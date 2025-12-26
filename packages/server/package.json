@@ -1,0 +1,38 @@
+{
+  "name": "@fellowsip/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fellowsip backend server with Fastify and Socket.io",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^9.4.0",
+    "@fastify/cors": "^9.0.1",
+    "@google/generative-ai": "^0.24.1",
+    "@lucia-auth/adapter-postgresql": "^3.1.2",
+    "@types/node": "^22.10.2",
+    "arctic": "^2.1.1",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.36.4",
+    "fastify": "^4.28.1",
+    "fastify-socket.io": "^5.1.0",
+    "lucia": "^3.2.2",
+    "node-cron": "^3.0.3",
+    "postgres": "^3.4.5",
+    "socket.io": "^4.8.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.1"
+  }
+}

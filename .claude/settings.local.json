@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(docker-compose config:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run docker:up:*)",
+      "Bash(docker ps:*)",
+      "Bash(npm run db:generate:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(printf:*)",
+      "Bash(PGPASSWORD=fellowsip_dev psql:*)",
+      "Bash(docker exec:*)",
+      "Bash(timeout 5 npm run dev:server:*)",
+      "Bash(cat:*)",
+      "Bash(npm view:*)",
+      "Bash(npm run dev:server:*)",
+      "Bash(npm run dev:app:*)",
+      "Bash(npm run dev:landing:*)",
+      "Bash(node -e:*)",
+      "Bash(kill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(xargs:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "fellowsip",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A platform for real-time collaborative tastings with AI-generated summaries",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:landing & npm run dev:server & npm run dev:app",
+    "dev:landing": "npm run dev --workspace=@fellowsip/landing",
+    "dev:server": "npm run dev --workspace=@fellowsip/server",
+    "dev:app": "npm run dev --workspace=@fellowsip/app",
+    "build": "npm run build --workspaces",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "keywords": [
+    "tasting",
+    "wine",
+    "whisky",
+    "collaborative",
+    "real-time"
+  ],
+  "author": "",
+  "license": "MIT"
+}
