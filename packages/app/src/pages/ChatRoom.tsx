@@ -555,7 +555,7 @@ export function ChatRoom() {
           </div>
           <div className="space-y-4">
             {wordFrequencies.length > 0 ? (
-              wordFrequencies.map(({ word, count }) => (
+              wordFrequencies.slice(0, 5).map(({ word, count }) => (
                 <div key={word} className="animate-fade-in-up">
                   <div className="flex justify-between text-[10px] mb-1.5">
                     <span className="text-[var(--text-secondary)] capitalize">{word}</span>

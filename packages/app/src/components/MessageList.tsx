@@ -36,8 +36,12 @@ export function MessageList({
         const isForceHidden = phaseSetting === 'hidden';
         const isForceRevealed = phaseSetting === 'revealed';
 
-        const shouldRevealSpoilers = isForceRevealed || revealedMessageIds.has(message.id);
-        const shouldForceHide = isForceHidden && !isForceRevealed;
+        // Phase visibility takes precedence over individual message reveal state:
+        // - 'hidden': Always hide spoilers (force entire message as spoiler)
+        // - 'revealed': Always show spoilers
+        // - 'normal' (auto): Respect individual message reveal state (revealedMessageIds)
+        const shouldRevealSpoilers = isForceRevealed || (phaseSetting === 'normal' && revealedMessageIds.has(message.id));
+        const shouldForceHide = isForceHidden;
 
         // System messages have special styling
         if (isSystemMessage) {
