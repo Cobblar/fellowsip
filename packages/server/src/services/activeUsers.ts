@@ -35,7 +35,16 @@ export function removeUserFromSession(sessionId: string, socketId: string) {
 
 export function getSessionUsers(sessionId: string): SocketUser[] {
   const users = sessionUsers.get(sessionId);
-  return users ? Array.from(users.values()) : [];
+  if (!users) return [];
+
+  // Deduplicate by userId - keep only the first socket connection per user
+  const uniqueUsers = new Map<string, SocketUser>();
+  for (const user of users.values()) {
+    if (!uniqueUsers.has(user.userId)) {
+      uniqueUsers.set(user.userId, user);
+    }
+  }
+  return Array.from(uniqueUsers.values());
 }
 
 export function getUserSessions(socketId: string): string[] {

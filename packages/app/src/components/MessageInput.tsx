@@ -45,7 +45,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
   }, [content, isManualPhase, isAutoSelectEnabled, customTags]);
 
   const handleSubmit = () => {
-    if (!content.trim() || disabled) return;
+    if (!content.trim() || disabled || content.length > 300) return;
     onSend(content, phase);
     setContent('');
     setPhase(undefined);
@@ -58,7 +58,9 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      if (content.length <= 300) {
+        handleSubmit();
+      }
     }
   };
 
@@ -325,14 +327,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           }}
         />
 
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-          {content.length > 280 && (
-            <span className={`text-[10px] font-bold ${content.length > 300 ? 'text-red-500' : 'text-orange-500'
-              }`}>
-              {content.length}/300
-            </span>
-          )}
-
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
           <button
             onClick={handleSubmit}
             disabled={disabled || !content.trim() || content.length > 300}
@@ -342,6 +337,15 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           </button>
         </div>
       </div>
+
+      {content.length > 280 && (
+        <div className="flex justify-end px-1">
+          <span className={`text-[10px] font-bold ${content.length > 300 ? 'text-red-500' : 'text-orange-500'
+            }`}>
+            {content.length}/300
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ export function Profile() {
     const [isLoading, setIsLoading] = useState(true);
     const [friendEmail, setFriendEmail] = useState('');
     const [activeTab, setActiveTab] = useState<'history' | 'friends' | 'settings'>('history');
+    const [showPendingRequests, setShowPendingRequests] = useState(false);
     const [newDisplayName, setNewDisplayName] = useState('');
 
     const { data: friendsData } = useFriends();
@@ -233,6 +234,71 @@ export function Profile() {
                     {/* Friends Tab */}
                     {activeTab === 'friends' && (
                         <div className="space-y-6">
+                            {/* Pending Requests Button */}
+                            {pendingRequests.length > 0 && (
+                                <button
+                                    onClick={() => setShowPendingRequests(!showPendingRequests)}
+                                    className="w-full card p-4 flex items-center justify-between hover:border-orange-500/50 transition-all"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
+                                            <UserPlus size={20} className="text-orange-500" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-sm font-bold text-[var(--text-primary)]">
+                                                {pendingRequests.length} Friend Request{pendingRequests.length > 1 ? 's' : ''}
+                                            </p>
+                                            <p className="text-xs text-[var(--text-secondary)]">
+                                                Tap to {showPendingRequests ? 'hide' : 'view'} requests
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight size={18} className={`text-[var(--text-muted)] transition-transform ${showPendingRequests ? 'rotate-90' : ''}`} />
+                                </button>
+                            )}
+
+                            {/* Expanded Pending Requests */}
+                            {showPendingRequests && pendingRequests.length > 0 && (
+                                <div className="card p-4 md:p-6 border-orange-500/30">
+                                    <div className="space-y-3">
+                                        {pendingRequests.map((request) => (
+                                            <div
+                                                key={request.id}
+                                                className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
+                                                        <User size={16} className="text-[var(--text-secondary)] md:size-18" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
+                                                            {request.sender?.displayName || request.sender?.email}
+                                                        </p>
+                                                        <p className="text-xs text-[var(--text-secondary)] truncate">{request.sender?.email}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                    <button
+                                                        onClick={() => acceptRequest.mutate(request.id)}
+                                                        disabled={acceptRequest.isPending}
+                                                        className="p-2 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors"
+                                                    >
+                                                        <Check size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => rejectRequest.mutate(request.id)}
+                                                        disabled={rejectRequest.isPending}
+                                                        className="p-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Add Friend Form */}
                             <div className="card p-4 md:p-6">
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4">Add Friend</h3>

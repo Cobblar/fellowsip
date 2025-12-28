@@ -125,12 +125,42 @@ export function setupSocketHandlers(io: Server) {
           return;
         }
 
-        // Check session timeout (6 hours)
+        // Check session timeout (6 hours) or if session has ended
         const SESSION_TIMEOUT_MS = 6 * 60 * 60 * 1000;
         const sessionAge = Date.now() - new Date(session.session.startedAt).getTime();
-        if (sessionAge > SESSION_TIMEOUT_MS) {
-          socket.emit('session_ended', { sessionId });
-          socket.emit('error', { message: 'This session has expired (6 hour limit).' });
+        const isExpired = sessionAge > SESSION_TIMEOUT_MS || session.session.status === 'ended';
+
+        if (isExpired) {
+          // Allow viewing transcript but in read-only mode
+          // Get message history for read-only viewing
+          const messageHistory = await getSessionMessages(sessionId);
+
+          socket.emit('message_history', {
+            messages: messageHistory.map((m) => ({
+              id: m.message.id,
+              sessionId: m.message.sessionId,
+              userId: m.message.userId,
+              content: m.message.content,
+              phase: m.message.phase,
+              createdAt: m.message.createdAt,
+              user: {
+                id: m.user?.id || '',
+                displayName: m.user?.displayName || null,
+                avatarUrl: m.user?.avatarUrl || null,
+              },
+            })),
+            livestreamUrl: null, // Don't show livestream for ended sessions
+            customTags: session.session.customTags,
+            hostId: session.session.hostId,
+            isReadOnly: true,
+          });
+
+          // Send session_ended event so UI knows it's read-only
+          socket.emit('session_ended', {
+            sessionId,
+            hostName: 'System',
+            message: session.session.status === 'ended' ? 'This session has ended.' : 'This session has expired (6 hour limit).',
+          });
           return;
         }
 

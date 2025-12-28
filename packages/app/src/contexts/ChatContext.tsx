@@ -28,6 +28,8 @@ interface ChatContextType {
     phaseVisibility: Record<string, 'normal' | 'hidden' | 'revealed'>;
     setPhaseVisibility: (phase: string, visibility: 'normal' | 'hidden' | 'revealed') => void;
     setAllPhaseVisibility: (visibility: 'normal' | 'hidden' | 'revealed') => void;
+    spoilerDefaults: Record<string, 'normal' | 'hidden' | 'revealed'>;
+    setSpoilerDefault: (phase: string, visibility: 'normal' | 'hidden' | 'revealed') => void;
     livestreamUrl: string | null;
     customTags: string[];
     canModerate: boolean;
@@ -72,9 +74,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(new Set());
     const [globallyRevealedMessageIds, setGloballyRevealedMessageIds] = useState<Set<string>>(new Set());
     const [averageRating, setAverageRating] = useState<number | null>(null);
-    const [phaseVisibility, setPhaseVisibilityState] = useState<Record<string, 'normal' | 'hidden' | 'revealed'>>(() => {
+    // Phase visibility starts empty - will be initialized when sessionId is known
+    const [phaseVisibility, setPhaseVisibilityState] = useState<Record<string, 'normal' | 'hidden' | 'revealed'>>({
+        nose: 'normal',
+        palate: 'normal',
+        finish: 'normal',
+        texture: 'normal',
+        untagged: 'normal',
+    });
+    const [phaseVisibilityInitialized, setPhaseVisibilityInitialized] = useState(false);
+
+    // Separate defaults for new sessions (stored separately)
+    const [spoilerDefaults, setSpoilerDefaultsState] = useState<Record<string, 'normal' | 'hidden' | 'revealed'>>(() => {
         try {
-            const saved = localStorage.getItem('fellowsip_spoiler_settings');
+            const saved = localStorage.getItem('fellowsip_spoiler_defaults');
             return saved ? JSON.parse(saved) : {
                 nose: 'normal',
                 palate: 'normal',
@@ -93,10 +106,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     });
 
-    // Save spoiler settings when they change
+    // Save spoiler defaults when they change
     useEffect(() => {
-        localStorage.setItem('fellowsip_spoiler_settings', JSON.stringify(phaseVisibility));
-    }, [phaseVisibility]);
+        localStorage.setItem('fellowsip_spoiler_defaults', JSON.stringify(spoilerDefaults));
+    }, [spoilerDefaults]);
+
+    const setSpoilerDefault = useCallback((phase: string, visibility: 'normal' | 'hidden' | 'revealed') => {
+        setSpoilerDefaultsState(prev => ({ ...prev, [phase]: visibility }));
+    }, []);
 
     const [livestreamUrl, setLivestreamUrl] = useState<string | null>(null);
     const [customTags, setCustomTags] = useState<string[]>([]);
@@ -115,6 +132,59 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const navigate = useNavigate();
     const match = location.pathname.match(/^\/session\/([^\/]+)$/);
     const sessionId = match ? match[1] : null;
+
+    // Load phase visibility when sessionId changes (or on mount)
+    // First: try session-specific key, then fall back to defaults
+    useEffect(() => {
+        const getDefaults = () => {
+            try {
+                const saved = localStorage.getItem('fellowsip_spoiler_defaults');
+                return saved ? JSON.parse(saved) : {
+                    nose: 'normal',
+                    palate: 'normal',
+                    finish: 'normal',
+                    texture: 'normal',
+                    untagged: 'normal',
+                };
+            } catch (e) {
+                return {
+                    nose: 'normal',
+                    palate: 'normal',
+                    finish: 'normal',
+                    texture: 'normal',
+                    untagged: 'normal',
+                };
+            }
+        };
+
+        if (sessionId) {
+            try {
+                const sessionKey = `fellowsip_spoiler_${sessionId}`;
+                const sessionSaved = localStorage.getItem(sessionKey);
+                if (sessionSaved) {
+                    // Use session-specific settings (e.g., on refresh)
+                    setPhaseVisibilityState(JSON.parse(sessionSaved));
+                } else {
+                    // First time joining this session - use defaults
+                    setPhaseVisibilityState(getDefaults());
+                }
+            } catch (e) {
+                setPhaseVisibilityState(getDefaults());
+            }
+        } else {
+            // No session - use defaults
+            setPhaseVisibilityState(getDefaults());
+        }
+        setPhaseVisibilityInitialized(true);
+    }, [sessionId]);
+
+    // Save phase visibility to session-specific key when it changes
+    useEffect(() => {
+        if (sessionId && phaseVisibilityInitialized) {
+            const sessionKey = `fellowsip_spoiler_${sessionId}`;
+            localStorage.setItem(sessionKey, JSON.stringify(phaseVisibility));
+        }
+    }, [phaseVisibility, sessionId, phaseVisibilityInitialized]);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -627,6 +697,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phaseVisibility,
             setPhaseVisibility,
             setAllPhaseVisibility,
+            spoilerDefaults,
+            setSpoilerDefault,
             livestreamUrl,
             customTags,
             canModerate: hostId === currentUserId || moderators.includes(currentUserId || ''),

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Tag, Info, MoreVertical, Loader2, BarChart3, User, Users, Check, X, Crown, AlertCircle, Copy, Link2, Hash, Shield, Eye, EyeOff, Star, Monitor, Bug, ChevronLeft, CheckCircle, PlayCircle, Ban, VolumeX, Volume2, ShieldOff } from 'lucide-react';
+import { Zap, Tag, Info, MoreVertical, MoreHorizontal, Loader2, BarChart3, User, Users, Check, X, Crown, AlertCircle, Copy, Link2, Hash, Shield, Eye, EyeOff, Star, Monitor, Bug, ChevronLeft, CheckCircle, PlayCircle, Ban, VolumeX, Volume2, ShieldOff } from 'lucide-react';
 import { useSession, useEndSession, useTransferHost } from '../api/sessions';
 import { useSessionJoinRequests, useApproveJoinRequest, useRejectJoinRequest } from '../api/friends';
 import { useChatContext } from '../contexts/ChatContext';
@@ -43,6 +43,7 @@ export function ChatRoom() {
     makeModerator,
     revealAllSpoilers,
     isConnected,
+    error,
     sessionEnded,
     sessionEndedBy,
     hostId: socketHostId,
@@ -53,6 +54,8 @@ export function ChatRoom() {
     phaseVisibility,
     setPhaseVisibility,
     setAllPhaseVisibility,
+    spoilerDefaults,
+    setSpoilerDefault,
     livestreamUrl,
     customTags,
     currentUserId,
@@ -145,6 +148,7 @@ export function ChatRoom() {
     userId: string;
     displayName: string | null;
   } | null>(null);
+  const [expandedActionUserId, setExpandedActionUserId] = useState<string | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const tastersMenuRef = useRef<HTMLDivElement>(null);
 
@@ -271,35 +275,65 @@ export function ChatRoom() {
       {/* Spoiler Defaults Modal */}
       {showSpoilerDefaults && (
         <div className="absolute inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="card w-full max-w-md p-6 border-orange-500/30 shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="card w-full max-w-md p-6 border-purple-500/30 shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-[var(--text-primary)]">Spoiler Settings</h3>
+              <div className="flex items-center gap-2">
+                <Eye size={20} className="text-purple-500" />
+                <h3 className="text-lg font-bold text-[var(--text-primary)]">Default Spoiler Settings</h3>
+              </div>
               <button onClick={() => setShowSpoilerDefaults(false)} className="text-[var(--text-secondary)] hover:text-white">
                 <X size={20} />
               </button>
             </div>
 
             <p className="text-sm text-[var(--text-secondary)] mb-4">
-              Choose which phases should be hidden by default when you join a session.
+              These settings will apply when you join new sessions.
             </p>
 
-            <div className="space-y-3">
-              {['nose', 'palate', 'finish', 'texture', 'untagged'].map((phase) => (
-                <div key={phase} className="flex items-center justify-between p-3 bg-[var(--bg-input)] rounded-lg border border-[var(--border-primary)]">
-                  <span className="text-sm font-bold uppercase text-[var(--text-primary)]">{phase}</span>
-                  <div className="flex gap-1 bg-[var(--bg-main)] p-1 rounded-md">
-                    <button
-                      onClick={() => setPhaseVisibility(phase, 'normal')}
-                      className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${phaseVisibility[phase] === 'normal' ? 'bg-green-500/20 text-green-500' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
-                    >
-                      Visible
-                    </button>
-                    <button
-                      onClick={() => setPhaseVisibility(phase, 'hidden')}
-                      className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${phaseVisibility[phase] === 'hidden' ? 'bg-red-500/20 text-red-500' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
-                    >
-                      Hidden
-                    </button>
+            <div className="space-y-4">
+              {[
+                { id: 'nose', label: 'Nose', color: 'orange' },
+                { id: 'palate', label: 'Palate', color: 'blue' },
+                { id: 'texture', label: 'Texture', color: 'emerald' },
+                { id: 'finish', label: 'Finish', color: 'purple' },
+                { id: 'untagged', label: 'Untagged', color: 'gray' }
+              ].map((p) => (
+                <div key={p.id} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${p.id === 'nose' ? 'text-orange-500' :
+                      p.id === 'palate' ? 'text-blue-500' :
+                        p.id === 'texture' ? 'text-emerald-500' :
+                          p.id === 'finish' ? 'text-purple-500' :
+                            'text-[var(--text-secondary)]'
+                      }`}>{p.label}</span>
+                    <span className="text-[9px] text-[var(--text-muted)] uppercase">Default</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 p-1 bg-[var(--bg-input)] rounded-md border border-[var(--border-primary)]">
+                    {[
+                      { id: 'hidden', label: 'Hide', icon: EyeOff },
+                      { id: 'normal', label: 'Auto', icon: Hash },
+                      { id: 'revealed', label: 'Show', icon: Eye }
+                    ].map((v) => {
+                      const isActive = spoilerDefaults[p.id] === v.id;
+                      const Icon = v.icon;
+                      return (
+                        <button
+                          key={v.id}
+                          onClick={() => setSpoilerDefault(p.id, v.id as any)}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 rounded text-[9px] font-bold uppercase transition-all ${isActive
+                            ? (p.id === 'nose' ? 'bg-orange-500 text-white shadow-sm' :
+                              p.id === 'palate' ? 'bg-blue-500 text-white shadow-sm' :
+                                p.id === 'texture' ? 'bg-emerald-500 text-white shadow-sm' :
+                                  p.id === 'finish' ? 'bg-purple-500 text-white shadow-sm' :
+                                    'bg-[var(--text-secondary)] text-white shadow-sm')
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-main)]'
+                            }`}
+                        >
+                          <Icon size={10} />
+                          {v.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -551,72 +585,95 @@ export function ChatRoom() {
                       <p className="text-[9px] text-blue-400/70">Moderator</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Collapsible host action menu */}
+                    {(canMakeMod || canTransfer || (canModerate && user.userId !== currentUserId && !isUserHost) || (isHost && isUserMod && !isUserHost && user.userId !== currentUserId)) && (
+                      <div className="relative flex items-center">
+                        {expandedActionUserId === user.userId ? (
+                          <>
+                            {canMakeMod && (
+                              <button
+                                onClick={() => { makeModerator(user.userId); setExpandedActionUserId(null); }}
+                                className="text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20 transition-all"
+                                title="Make Moderator"
+                              >
+                                <Shield size={10} />
+                              </button>
+                            )}
+                            {isHost && isUserMod && !isUserHost && user.userId !== currentUserId && (
+                              <button
+                                onClick={() => { unmodUser(user.userId); setExpandedActionUserId(null); }}
+                                className="text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
+                                title="Remove Moderator"
+                              >
+                                <ShieldOff size={10} />
+                              </button>
+                            )}
+                            {canTransfer && (
+                              <button
+                                onClick={() => { handleTransferHost(user.userId); setExpandedActionUserId(null); }}
+                                disabled={isTransferring}
+                                className="text-[9px] px-1.5 py-0.5 bg-orange-500/10 text-orange-500 rounded hover:bg-orange-500/20 transition-all"
+                                title="Make Host"
+                              >
+                                <Crown size={10} />
+                              </button>
+                            )}
+                            {canModerate && user.userId !== currentUserId && !isUserHost && (
+                              <>
+                                {mutedUsers.some(u => u.id === user.userId) ? (
+                                  <button
+                                    onClick={() => { unmuteUser(user.userId); setExpandedActionUserId(null); }}
+                                    className="text-[9px] px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded hover:bg-green-500/20 transition-all"
+                                    title="Unmute"
+                                  >
+                                    <Volume2 size={10} />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => { setConfirmAction({ type: 'mute', userId: user.userId, displayName: user.displayName }); setExpandedActionUserId(null); }}
+                                    className="text-[9px] px-1.5 py-0.5 bg-yellow-500/10 text-yellow-500 rounded hover:bg-yellow-500/20 transition-all"
+                                    title="Mute"
+                                  >
+                                    <VolumeX size={10} />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => { setConfirmAction({ type: 'kick', userId: user.userId, displayName: user.displayName }); setExpandedActionUserId(null); }}
+                                  className="text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
+                                  title="Kick"
+                                >
+                                  <Ban size={10} />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => setExpandedActionUserId(null)}
+                              className="text-[9px] px-1 py-0.5 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-all"
+                              title="Close"
+                            >
+                              <X size={10} />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => setExpandedActionUserId(user.userId)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/5 rounded transition-all"
+                            title="Actions"
+                          >
+                            <MoreHorizontal size={12} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {/* Score - appears to the left of ready check */}
                     {user.rating && (
                       <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-500/10 rounded text-[10px] font-bold text-orange-500">
                         <Star size={8} fill="currentColor" />
                         {user.rating}
                       </div>
                     )}
-                    <div className="flex items-center gap-1">
-                      {canMakeMod && (
-                        <button
-                          onClick={() => makeModerator(user.userId)}
-                          className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20 transition-all"
-                          title="Make Moderator"
-                        >
-                          <Shield size={10} />
-                        </button>
-                      )}
-                      {isHost && isUserMod && !isUserHost && user.userId !== currentUserId && (
-                        <button
-                          onClick={() => unmodUser(user.userId)}
-                          className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
-                          title="Remove Moderator"
-                        >
-                          <ShieldOff size={10} />
-                        </button>
-                      )}
-                      {canTransfer && (
-                        <button
-                          onClick={() => handleTransferHost(user.userId)}
-                          disabled={isTransferring}
-                          className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-orange-500/10 text-orange-500 rounded hover:bg-orange-500/20 transition-all"
-                          title="Make Host"
-                        >
-                          <Crown size={10} />
-                        </button>
-                      )}
-                      {/* Mute/Kick buttons (host/mod only, not on self or host) */}
-                      {canModerate && user.userId !== currentUserId && !isUserHost && (
-                        <>
-                          {mutedUsers.some(u => u.id === user.userId) ? (
-                            <button
-                              onClick={() => unmuteUser(user.userId)}
-                              className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded hover:bg-green-500/20 transition-all"
-                              title="Unmute"
-                            >
-                              <Volume2 size={10} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmAction({ type: 'mute', userId: user.userId, displayName: user.displayName })}
-                              className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-yellow-500/10 text-yellow-500 rounded hover:bg-yellow-500/20 transition-all"
-                              title="Mute"
-                            >
-                              <VolumeX size={10} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setConfirmAction({ type: 'kick', userId: user.userId, displayName: user.displayName })}
-                            className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
-                            title="Kick"
-                          >
-                            <Ban size={10} />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    {/* Ready check emoji - furthest right */}
                     {readyCheckActive && isUserReady && (
                       <span className="text-base">✅</span>
                     )}
@@ -747,7 +804,7 @@ export function ChatRoom() {
             </button>
 
             {/* Host Primary Action */}
-            {isHost && !summaryId && (
+            {isHost && !summaryId && !isSessionEnded && (
               <button
                 onClick={handleAnalyze}
                 disabled={isEnding}
@@ -758,11 +815,12 @@ export function ChatRoom() {
                 ) : (
                   <Zap size={14} className="md:mr-2" />
                 )}
-                <span className="hidden md:inline">{isEnding ? 'Synthesizing...' : 'Synthesize Profile'}</span>
+                <span className="hidden md:inline text-center leading-tight">{isEnding ? 'Creating Notes...' : <>Create Tasting Notes<br />&amp; End Session</>}</span>
               </button>
             )}
 
-            {summaryId && (
+            {/* Show View Summary button if summaryId exists OR session is ended (ended sessions should have summaries) */}
+            {(summaryId || isSessionEnded) && (
               <button
                 onClick={() => navigate(`/session/${id}/summary`)}
                 className="btn-orange text-[10px] md:text-xs py-1.5 md:py-2 px-2 md:px-4 shadow-lg shadow-orange-500/10"
@@ -952,7 +1010,15 @@ export function ChatRoom() {
                 You have been muted in this session.
               </div>
             ) : (
-              <MessageInput onSend={sendMessage} disabled={!isConnected} />
+              <>
+                {error && error.includes('Rate limit') && (
+                  <div className="mb-2 text-center py-2 text-xs text-orange-500 bg-orange-500/10 rounded-lg border border-orange-500/20 flex items-center justify-center gap-2">
+                    <AlertCircle size={14} />
+                    {error}
+                  </div>
+                )}
+                <MessageInput onSend={sendMessage} disabled={!isConnected || (error?.includes('Rate limit') ?? false)} />
+              </>
             )}
           </div>
         </div>
@@ -1043,9 +1109,18 @@ export function ChatRoom() {
 
         {/* Spoiler Controls */}
         <div className="card p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Eye size={16} className="text-purple-500" />
-            <h3 className="text-sm font-bold text-[var(--text-primary)]">Spoiler Controls</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Eye size={16} className="text-purple-500" />
+              <h3 className="text-sm font-bold text-[var(--text-primary)]">Spoiler Controls</h3>
+            </div>
+            <button
+              onClick={() => setShowSpoilerDefaults(true)}
+              className="p-1.5 text-[var(--text-muted)] hover:text-purple-500 hover:bg-purple-500/10 rounded transition-colors"
+              title="Set default spoiler visibility"
+            >
+              <MoreVertical size={14} />
+            </button>
           </div>
           <div className="space-y-4">
             {[

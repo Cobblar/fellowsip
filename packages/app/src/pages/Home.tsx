@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Users, User, Clock, ChevronRight, PlayCircle, Wine, Calendar, UserPlus, LogIn, Plus, X } from 'lucide-react';
-import { useFriends, useFriendsSessions, useMyJoinRequests, useRequestToJoin, useSendFriendRequest } from '../api/friends';
+import { Users, User, Clock, ChevronRight, PlayCircle, Wine, Calendar, UserPlus, LogIn, Plus, X, Check } from 'lucide-react';
+import { useFriends, useFriendsSessions, useMyJoinRequests, useRequestToJoin, useSendFriendRequest, usePendingRequests, useAcceptFriendRequest, useRejectFriendRequest } from '../api/friends';
 import { useAllSummaries, useUserSessions } from '../api/sessions';
 import { useState, useEffect } from 'react';
 import { getProductIcon } from '../utils/productIcons';
@@ -33,7 +33,12 @@ export function Home() {
     const [showJoinInput, setShowJoinInput] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
     const [friendEmail, setFriendEmail] = useState('');
+    const [showPendingRequests, setShowPendingRequests] = useState(false);
     const sendFriendRequest = useSendFriendRequest();
+    const { data: pendingData } = usePendingRequests();
+    const acceptRequest = useAcceptFriendRequest();
+    const rejectRequest = useRejectFriendRequest();
+    const pendingRequests = pendingData?.requests || [];
 
     const friends = friendsData?.friends || [];
     const friendsSessions = friendsSessionsData?.sessions || [];
@@ -184,6 +189,60 @@ export function Home() {
                     )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
+                    {/* Pending Friend Requests */}
+                    {pendingRequests.length > 0 && (
+                        <div className="mb-4">
+                            <button
+                                onClick={() => setShowPendingRequests(!showPendingRequests)}
+                                className="w-full flex items-center justify-between p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg hover:bg-orange-500/20 transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <UserPlus size={16} className="text-orange-500" />
+                                    <span className="text-sm font-medium text-orange-500">
+                                        {pendingRequests.length} Friend Request{pendingRequests.length > 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                                <ChevronRight size={14} className={`text-orange-500 transition-transform ${showPendingRequests ? 'rotate-90' : ''}`} />
+                            </button>
+                            {showPendingRequests && (
+                                <div className="mt-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    {pendingRequests.map((request) => (
+                                        <div
+                                            key={request.id}
+                                            className="flex items-center justify-between p-2 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
+                                        >
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-7 h-7 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
+                                                    <User size={12} className="text-[var(--text-secondary)]" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">
+                                                        {request.sender?.displayName || request.sender?.email}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                                                <button
+                                                    onClick={() => acceptRequest.mutate(request.id)}
+                                                    disabled={acceptRequest.isPending}
+                                                    className="p-1.5 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors"
+                                                >
+                                                    <Check size={12} />
+                                                </button>
+                                                <button
+                                                    onClick={() => rejectRequest.mutate(request.id)}
+                                                    disabled={rejectRequest.isPending}
+                                                    className="p-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     {friendsLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
@@ -494,9 +553,9 @@ export function Home() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {item.summary?.metadata?.rating && (
+                                                {(item.summary?.metadata?.rating || item.summary?.averageRating) && (
                                                     <div className="text-right">
-                                                        <span className="text-lg font-bold text-orange-500">{item.summary.metadata.rating}</span>
+                                                        <span className="text-lg font-bold text-orange-500">{item.summary?.metadata?.rating || item.summary?.averageRating}</span>
                                                         <p className="text-[8px] text-[var(--text-muted)] uppercase font-bold">Score</p>
                                                     </div>
                                                 )}
