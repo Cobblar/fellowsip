@@ -21,6 +21,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const codeVerifier = generateCodeVerifier();
 
     const url = google.createAuthorizationURL(state, codeVerifier, ['openid', 'profile', 'email']);
+    url.searchParams.set('prompt', 'select_account');
 
     // Store state and code verifier in cookies for validation
     reply
@@ -245,6 +246,40 @@ export async function authRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('Get profile sessions error:', error);
       return reply.status(500).send({ error: 'Failed to get profile sessions' });
+    }
+  });
+
+  // Update user preferences
+  fastify.patch('/auth/preferences', { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const { preferences } = request.body as { preferences: any };
+
+      if (!preferences || typeof preferences !== 'object') {
+        return reply.status(400).send({ error: 'Preferences object is required' });
+      }
+
+      // Fetch current preferences to merge
+      const [currentUser] = await db
+        .select({ preferences: users.preferences })
+        .from(users)
+        .where(eq(users.id, user.id));
+
+      const updatedPreferences = {
+        ...(currentUser?.preferences || {}),
+        ...preferences,
+      };
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({ preferences: updatedPreferences })
+        .where(eq(users.id, user.id))
+        .returning();
+
+      return reply.send({ user: updatedUser });
+    } catch (error) {
+      console.error('Update preferences error:', error);
+      return reply.status(500).send({ error: 'Failed to update preferences' });
     }
   });
 }

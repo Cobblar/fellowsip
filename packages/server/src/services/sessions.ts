@@ -6,7 +6,9 @@ export async function createSession(
   name: string,
   productType: string | null = null,
   productLink: string | null = null,
-  productName: string | null = null
+  productName: string | null = null,
+  livestreamUrl: string | null = null,
+  customTags: string[] = []
 ) {
   const [session] = await db
     .insert(tastingSessions)
@@ -15,6 +17,8 @@ export async function createSession(
       productType,
       productLink,
       productName,
+      livestreamUrl,
+      customTags,
       hostId,
       status: 'active',
     })
@@ -141,6 +145,60 @@ export async function updateSessionActivity(sessionId: string) {
     .where(eq(tastingSessions.id, sessionId));
 }
 
+export async function updateSessionDetails(
+  sessionId: string,
+  userId: string,
+  data: {
+    name?: string;
+    productType?: string | null;
+    productLink?: string | null;
+    productName?: string | null;
+    livestreamUrl?: string | null;
+    customTags?: string[];
+  }
+) {
+  const session = await getSession(sessionId);
+
+  if (!session || session.session.hostId !== userId) {
+    throw new Error('Unauthorized: Only the host can update this session');
+  }
+
+  const [updated] = await db
+    .update(tastingSessions)
+    .set({
+      ...data,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(tastingSessions.id, sessionId))
+    .returning();
+
+  return updated;
+}
+
+export async function addCustomTag(sessionId: string, userId: string, tag: string) {
+  const session = await getSession(sessionId);
+
+  if (!session || session.session.hostId !== userId) {
+    throw new Error('Unauthorized: Only the host can add custom tags');
+  }
+
+  const currentTags = session.session.customTags || [];
+  if (currentTags.includes(tag)) {
+    return session.session;
+  }
+
+  const [updated] = await db
+    .update(tastingSessions)
+    .set({
+      customTags: [...currentTags, tag],
+      updatedAt: sql`now()`,
+    })
+    .where(eq(tastingSessions.id, sessionId))
+    .returning();
+
+  return updated;
+}
+
 export async function cleanupInactiveSessions() {
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
 
@@ -180,8 +238,8 @@ export async function getSessionSummary(sessionId: string) {
 
   if (!summary) return null;
 
-  // Fetch all participants with their ratings
-  const participants = await db
+  // Fetch all participants with their ratings and deduplicate by userId
+  const allParticipants = await db
     .select({
       userId: sessionParticipants.userId,
       rating: sessionParticipants.rating,
@@ -191,6 +249,16 @@ export async function getSessionSummary(sessionId: string) {
     .from(sessionParticipants)
     .leftJoin(users, eq(sessionParticipants.userId, users.id))
     .where(eq(sessionParticipants.sessionId, sessionId));
+
+  // Deduplicate by userId (defensive)
+  const participants = allParticipants.reduce((acc: any[], current) => {
+    const x = acc.find(item => item.userId === current.userId);
+    if (!x) {
+      return acc.concat([current]);
+    } else {
+      return acc;
+    }
+  }, []);
 
   return {
     ...summary,
@@ -305,7 +373,30 @@ export async function getAllUserSummaries(userId: string) {
     )
     .orderBy(desc(tastingSummaries.createdAt));
 
-  return summaries;
+  // Fetch participants for each summary
+  const summariesWithParticipants = await Promise.all(
+    summaries.map(async (s) => {
+      const participants = await db
+        .select({
+          userId: sessionParticipants.userId,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(sessionParticipants)
+        .leftJoin(users, eq(sessionParticipants.userId, users.id))
+        .where(eq(sessionParticipants.sessionId, s.session.id));
+
+      return {
+        ...s,
+        summary: {
+          ...s.summary,
+          participants,
+        },
+      };
+    })
+  );
+
+  return summariesWithParticipants;
 }
 
 export async function updateSessionSummary(

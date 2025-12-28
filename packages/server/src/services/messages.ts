@@ -66,6 +66,19 @@ export async function hideMessage(messageId: string) {
   return updated;
 }
 
+// Update a message's content
+export async function updateMessage(messageId: string, content: string) {
+  const [updated] = await db
+    .update(messages)
+    .set({
+      content
+    })
+    .where(eq(messages.id, messageId))
+    .returning();
+
+  return updated;
+}
+
 // Get message by ID (including hidden, for validation)
 export async function getMessage(messageId: string) {
   const [message] = await db

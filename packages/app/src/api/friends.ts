@@ -34,6 +34,7 @@ interface FriendSession {
     id: string;
     name: string;
     startedAt: string;
+    productType: string | null;
     host: {
         id: string;
         displayName: string | null;
@@ -107,6 +108,7 @@ interface MyJoinRequest {
         id: string;
         name: string;
         status: string;
+        productType: string | null;
     };
 }
 

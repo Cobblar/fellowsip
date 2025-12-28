@@ -14,9 +14,11 @@ import {
   archiveSession,
   unarchiveSession,
   getArchivedSessions,
+  updateSessionDetails,
+  addCustomTag,
 } from '../services/sessions.js';
 import { getSessionMessages } from '../services/messages.js';
-import { emitSessionEnded, emitHostTransferred, emitToUser } from '../sockets/socketManager.js';
+import { emitSessionEnded, emitHostTransferred, emitToUser, emitLivestreamUpdated, emitCustomTagsUpdated } from '../sockets/socketManager.js';
 import { getFriends } from '../services/friends.js';
 
 export async function sessionRoutes(fastify: FastifyInstance) {
@@ -24,11 +26,13 @@ export async function sessionRoutes(fastify: FastifyInstance) {
   fastify.post('/sessions', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const user = (request as any).user;
-      const { name, productType, productLink, productName } = request.body as {
+      const { name, productType, productLink, productName, livestreamUrl, customTags } = request.body as {
         name: string;
         productType?: string;
         productLink?: string;
         productName?: string;
+        livestreamUrl?: string;
+        customTags?: string[];
       };
 
       if (!name) {
@@ -40,7 +44,9 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         name,
         productType || null,
         productLink || null,
-        productName || null
+        productName || null,
+        livestreamUrl || null,
+        customTags || []
       );
 
       // Notify all friends that a new session started
@@ -120,6 +126,59 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Update session details (protected, host only)
+  fastify.patch('/sessions/:id', { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const { id } = request.params as { id: string };
+      const data = request.body as {
+        name?: string;
+        productType?: string | null;
+        productLink?: string | null;
+        productName?: string | null;
+        livestreamUrl?: string | null;
+      };
+
+      const session = await updateSessionDetails(id, user.id, data);
+
+      if (data.livestreamUrl !== undefined) {
+        emitLivestreamUpdated(id, data.livestreamUrl);
+      }
+
+      return reply.send({ session });
+    } catch (error: any) {
+      console.error('Update session error:', error);
+      if (error.message?.includes('Unauthorized')) {
+        return reply.status(403).send({ error: error.message });
+      }
+      return reply.status(500).send({ error: 'Failed to update session' });
+    }
+  });
+
+  // Add custom tag (protected, host only)
+  fastify.post('/sessions/:id/tags', { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const { id } = request.params as { id: string };
+      const { tag } = request.body as { tag: string };
+
+      if (!tag) {
+        return reply.status(400).send({ error: 'Tag is required' });
+      }
+
+      const session = await addCustomTag(id, user.id, tag);
+      emitCustomTagsUpdated(id, session.customTags);
+
+      return reply.send({ tags: session.customTags });
+    } catch (error: any) {
+      console.error('Add custom tag error:', error);
+      if (error.message?.includes('Unauthorized')) {
+        return reply.status(403).send({ error: error.message });
+      }
+      return reply.status(500).send({ error: 'Failed to add custom tag' });
+    }
+  });
+
   // End session (protected, host only)
   fastify.post('/sessions/:id/end', { preHandler: requireAuth }, async (request, reply) => {
     console.log('[DEBUG] End session request received');
@@ -133,7 +192,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       const session = await endSession(id, user.id, shouldAnalyze);
 
       // Emit session ended event to all users in the session
-      emitSessionEnded(id, user.displayName || 'The host');
+      emitSessionEnded(id, user.displayName || 'The host', shouldAnalyze);
 
       // Notify all friends that the session ended
       const friends = await getFriends(user.id);

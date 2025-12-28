@@ -45,12 +45,23 @@ export function emitToUser(userId: string, event: string, data: any) {
 }
 
 // Emit session ended event to all users in the session
-export function emitSessionEnded(sessionId: string, hostName: string) {
+export function emitSessionEnded(sessionId: string, hostName: string, shouldAnalyze: boolean = false) {
     if (ioInstance) {
         ioInstance.to(sessionId).emit('session_ended', {
             sessionId,
             hostName,
+            shouldAnalyze,
             message: `${hostName} has ended the session`,
+        });
+    }
+}
+
+// Emit summary generated event to all users in the session
+export function emitSummaryGenerated(sessionId: string, summaryId: string) {
+    if (ioInstance) {
+        ioInstance.to(sessionId).emit('summary_generated', {
+            sessionId,
+            summaryId,
         });
     }
 }
@@ -63,6 +74,26 @@ export function emitHostTransferred(sessionId: string, newHostId: string, newHos
             newHostId,
             newHostName,
             message: `${newHostName} is now the host`,
+        });
+    }
+}
+
+// Emit livestream updated event to all users in the session
+export function emitLivestreamUpdated(sessionId: string, url: string | null) {
+    if (ioInstance) {
+        ioInstance.to(sessionId).emit('livestream_updated', {
+            sessionId,
+            url,
+        });
+    }
+}
+
+// Emit custom tags updated event to all users in the session
+export function emitCustomTagsUpdated(sessionId: string, tags: string[]) {
+    if (ioInstance) {
+        ioInstance.to(sessionId).emit('custom_tags_updated', {
+            sessionId,
+            tags,
         });
     }
 }

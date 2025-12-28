@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthGuard } from './components/AuthGuard';
 import { TopHeader } from './components/TopHeader';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { ChatProvider } from './contexts/ChatContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useSocketEvents } from './hooks/useSocketEvents';
@@ -33,6 +34,7 @@ function AppContent() {
       <ChatProvider>
         <div className="app-container">
           <TopHeader />
+          <MobileBottomNav />
           <main className="flex-1 overflow-y-auto">
             <Routes>
               <Route path="/" element={<Home />} />

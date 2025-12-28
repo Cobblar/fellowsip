@@ -89,61 +89,74 @@ export function Summaries() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header with New Session Button */}
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="heading-xl">Sessions</h1>
-                <div className="flex items-center gap-4">
-                    <div className="relative">
+            <div className="flex flex-col gap-6 mb-8">
+                <div className="flex items-center justify-between">
+                    <h1 className="heading-xl">Sessions</h1>
+                    <button
+                        onClick={() => navigate('/create')}
+                        className="btn-orange desktop-only"
+                    >
+                        <Plus size={16} />
+                        New Session
+                    </button>
+                </div>
+
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+                    <div className="relative flex-1">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
                         <input
                             type="text"
                             placeholder="Search sessions..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm w-64"
+                            className="pl-10 pr-4 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm w-full"
                         />
                     </div>
-                    {showJoinInput ? (
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                placeholder="Paste session ID..."
-                                value={joinSessionId}
-                                onChange={(e) => setJoinSessionId(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleJoinById()}
-                                className="px-3 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm w-48 font-mono"
-                                autoFocus
-                            />
+
+                    <div className="flex items-center gap-2">
+                        {showJoinInput ? (
+                            <div className="flex items-center gap-2 flex-1">
+                                <input
+                                    type="text"
+                                    placeholder="Paste session ID..."
+                                    value={joinSessionId}
+                                    onChange={(e) => setJoinSessionId(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleJoinById()}
+                                    className="px-3 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm flex-1 font-mono"
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={handleJoinById}
+                                    disabled={!joinSessionId.trim()}
+                                    className="btn-outline text-sm py-1.5"
+                                >
+                                    Join
+                                </button>
+                                <button
+                                    onClick={() => { setShowJoinInput(false); setJoinSessionId(''); }}
+                                    className="text-[var(--text-secondary)] hover:text-white text-sm"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
                             <button
-                                onClick={handleJoinById}
-                                disabled={!joinSessionId.trim()}
-                                className="btn-outline text-sm py-1.5"
+                                onClick={() => setShowJoinInput(true)}
+                                className="btn-outline flex-1 md:flex-none justify-center"
                             >
-                                Join
+                                Join by ID
                             </button>
-                            <button
-                                onClick={() => { setShowJoinInput(false); setJoinSessionId(''); }}
-                                className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] text-sm"
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    ) : (
+                        )}
                         <button
-                            onClick={() => setShowJoinInput(true)}
-                            className="btn-outline"
+                            onClick={() => navigate('/create')}
+                            className="btn-orange mobile-only flex-1 justify-center"
                         >
-                            Join by ID
+                            <Plus size={16} />
+                            New Session
                         </button>
-                    )}
-                    <button
-                        onClick={() => navigate('/create')}
-                        className="btn-orange"
-                    >
-                        <Plus size={16} />
-                        New Session
-                    </button>
+                    </div>
                 </div>
             </div>
 
@@ -291,7 +304,7 @@ export function Summaries() {
                                 return (
                                     <div
                                         key={item.session.id}
-                                        onClick={() => navigate(`/session/${item.session.id}`)}
+                                        onClick={() => navigate(`/session/${item.session.id}/summary`)}
                                         className="card hover:border-gray-600 transition-all cursor-pointer group"
                                     >
                                         <div className="flex items-start justify-between mb-4">

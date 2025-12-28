@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Trash2, Pencil, Check, X } from 'lucide-react';
 import type { Message } from '../types';
 import { SpoilerText } from './SpoilerText';
 
@@ -10,6 +10,7 @@ interface MessageListProps {
   onDeleteMessage?: (messageId: string) => void;
   revealedMessageIds?: Set<string>; // Message IDs with revealed spoilers
   phaseVisibility?: Record<string, 'normal' | 'hidden' | 'revealed'>;
+  onEditMessage?: (messageId: string, content: string) => void;
 }
 
 export function MessageList({
@@ -19,8 +20,11 @@ export function MessageList({
   onDeleteMessage,
   revealedMessageIds = new Set(),
   phaseVisibility = {},
+  onEditMessage,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,23 +96,68 @@ export function MessageList({
                   ? 'bg-orange-600/90 text-white'
                   : 'bg-[var(--bg-input)] border border-[var(--border-primary)] text-[var(--text-secondary)]'
                   }`}>
-                  <SpoilerText
-                    text={message.content}
-                    forceReveal={shouldRevealSpoilers}
-                    forceHide={shouldForceHide}
-                  />
+                  {editingMessageId === message.id ? (
+                    <div className="flex flex-col gap-2 min-w-[200px]">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full bg-black/20 text-white border border-white/20 rounded p-2 text-sm focus:outline-none focus:border-white/40 resize-none"
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditingMessageId(null)}
+                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          title="Cancel"
+                        >
+                          <X size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            onEditMessage?.(message.id, editContent);
+                            setEditingMessageId(null);
+                          }}
+                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          title="Save"
+                        >
+                          <Check size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <SpoilerText
+                      text={message.content}
+                      forceReveal={shouldRevealSpoilers}
+                      forceHide={shouldForceHide}
+                    />
+                  )}
                 </div>
 
-                {/* Delete button - appears toward center of chat (right of bubble for others, left of bubble for own) */}
-                {canDelete && (
-                  <button
-                    onClick={() => onDeleteMessage?.(message.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
-                    title="Delete message"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
+                {/* Action buttons - appear toward center of chat */}
+                <div className={`flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all ${isOwnMessage ? 'items-end' : 'items-start'}`}>
+                  {isOwnMessage && editingMessageId !== message.id && (
+                    <button
+                      onClick={() => {
+                        setEditingMessageId(message.id);
+                        setEditContent(message.content);
+                      }}
+                      className="p-1 text-[var(--text-muted)] hover:text-orange-400 hover:bg-orange-500/10 rounded transition-all flex-shrink-0"
+                      title="Edit message"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => onDeleteMessage?.(message.id)}
+                      className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-all flex-shrink-0"
+                      title="Delete message"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

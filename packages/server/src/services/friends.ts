@@ -288,6 +288,7 @@ export async function getFriendsActiveSessions(userId: string) {
             id: true,
             name: true,
             startedAt: true,
+            productType: true,
         },
     });
 
@@ -482,6 +483,7 @@ export async function getMyJoinRequests(userId: string) {
                     id: true,
                     name: true,
                     status: true,
+                    productType: true,
                 },
             },
         },

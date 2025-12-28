@@ -23,59 +23,61 @@ export function TopHeader() {
         }`;
 
     return (
-        <header className="top-header">
-            <div className="flex items-center">
-                {/* Logo */}
-                <button
-                    onClick={() => navigate('/')}
-                    className="font-black text-lg tracking-tight mr-8"
-                >
-                    <span className="text-orange-500">Fellow</span>sip
-                </button>
-
-                {/* Navigation */}
-                <nav className="flex items-center gap-8">
+        <>
+            <header className="top-header">
+                <div className="flex items-center">
+                    {/* Logo */}
                     <button
                         onClick={() => navigate('/')}
-                        className={navClass(isActive('/') && !location.pathname.startsWith('/my-cellar') && !location.pathname.startsWith('/session') && !location.pathname.startsWith('/summaries') && !location.pathname.startsWith('/profile'))}
+                        className="font-black text-lg tracking-tight mr-8"
                     >
-                        <Home size={16} />
-                        Home
+                        <span className="text-orange-500">Fellow</span>sip
                     </button>
-                    <button
-                        onClick={() => navigate('/my-cellar')}
-                        className={navClass(isActive('/my-cellar'))}
-                    >
-                        My Cellar
-                    </button>
-                    <button
-                        onClick={() => navigate('/summaries')}
-                        className={navClass(isActive('/summaries'))}
-                    >
-                        Sessions
-                    </button>
-                </nav>
-            </div>
 
-            <div className="flex items-center gap-6">
-                <button
-                    onClick={toggleTheme}
-                    className="p-2 text-[var(--text-secondary)] hover:text-orange-500 transition-colors rounded-lg hover:bg-[var(--bg-input)]/50"
-                    title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-                >
-                    {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
-                </button>
-                <NotificationDropdown />
-                <button
-                    onClick={() => navigate('/profile')}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-secondary)] cursor-pointer hover:border-orange-500 transition-colors overflow-hidden"
-                >
-                    {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : null}
-                </button>
-            </div>
-        </header>
+                    {/* Desktop Navigation */}
+                    <nav className="hidden md:flex items-center gap-8">
+                        <button
+                            onClick={() => navigate('/')}
+                            className={navClass(isActive('/') && !location.pathname.startsWith('/my-cellar') && !location.pathname.startsWith('/session') && !location.pathname.startsWith('/summaries') && !location.pathname.startsWith('/profile'))}
+                        >
+                            <Home size={16} />
+                            Home
+                        </button>
+                        <button
+                            onClick={() => navigate('/my-cellar')}
+                            className={navClass(isActive('/my-cellar'))}
+                        >
+                            Summaries
+                        </button>
+                        <button
+                            onClick={() => navigate('/summaries')}
+                            className={navClass(isActive('/summaries'))}
+                        >
+                            Sessions
+                        </button>
+                    </nav>
+                </div>
+
+                <div className="flex items-center gap-3 md:gap-6">
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 text-[var(--text-secondary)] hover:text-orange-500 transition-colors rounded-lg hover:bg-[var(--bg-input)]/50"
+                        title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+                    >
+                        {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
+                    <NotificationDropdown />
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-secondary)] cursor-pointer hover:border-orange-500 transition-colors overflow-hidden"
+                    >
+                        {user?.avatarUrl ? (
+                            <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                        ) : null}
+                    </button>
+                </div>
+            </header>
+        </>
     );
 }
 

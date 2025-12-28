@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Calendar, Users, Clock,
-    Wine, Star, Edit2, Save, X, Zap, Link2, User
+    Wine, Star, Edit2, Save, X, Zap, Link2, User, ChevronLeft
 } from 'lucide-react';
 import { api } from '../api/client';
 import { useCurrentUser } from '../api/auth';
@@ -182,7 +182,7 @@ export function Summary() {
 
     if (isLoading && isAnalyzing && !summary) {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-main)]">
+            <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-[var(--bg-main)]">
                 <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center mb-6 relative">
                     <Zap size={40} className="text-orange-500 animate-pulse" />
                     <div className="absolute inset-0 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
@@ -203,9 +203,19 @@ export function Summary() {
         );
     }
 
+    if (isLoading && !summary) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-[var(--bg-main)]">
+                <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-6"></div>
+                <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Loading Summary...</h2>
+                <p className="text-[var(--text-secondary)]">Please wait while we fetch the tasting analysis.</p>
+            </div>
+        );
+    }
+
     if (!session || !summary) {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-main)]">
+            <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-[var(--bg-main)]">
                 <div className="w-20 h-20 bg-[var(--bg-input)]/50 rounded-full flex items-center justify-center mb-6">
                     <Wine size={40} className="text-[var(--text-muted)]" />
                 </div>
@@ -228,64 +238,73 @@ export function Summary() {
 
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header Section */}
-            <div className="flex items-start justify-between mb-8">
-                <div>
-                    <div className="flex items-center gap-3 mb-1">
-                        <h1 className="heading-xl">{session.productName || session.name}</h1>
-                        {session.productLink && (
-                            <a
-                                href={session.productLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 bg-[var(--bg-input)] rounded-full text-[var(--text-secondary)] hover:text-orange-500 transition-colors"
-                                title="View Product Page"
-                            >
-                                <Link2 size={16} />
-                            </a>
-                        )}
-                    </div>
-                    {session.productName && <p className="text-sm text-[var(--text-secondary)] mb-2">{session.name}</p>}
-                    <div className="flex items-center gap-6 text-sm text-[var(--text-secondary)]">
-                        <div className="flex items-center gap-2">
-                            <Calendar size={14} />
-                            <span>{new Date(session.startedAt).toLocaleDateString()}</span>
+            <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-8">
+                <div className="flex items-start gap-4">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+                        title="Go Back"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <h1 className="heading-xl">{session.productName || session.name}</h1>
+                            {session.productLink && (
+                                <a
+                                    href={session.productLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 bg-[var(--bg-input)] rounded-full text-[var(--text-secondary)] hover:text-orange-500 transition-colors"
+                                    title="View Product Page"
+                                >
+                                    <Link2 size={16} />
+                                </a>
+                            )}
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Clock size={14} />
-                            <span>
-                                {new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                {' - '}
-                                {session.endedAt
-                                    ? new Date(session.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                    : 'ongoing'}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[var(--text-muted)]">
-                            <span>
-                                {(() => {
-                                    const start = new Date(session.startedAt).getTime();
-                                    const end = session.endedAt
-                                        ? new Date(session.endedAt).getTime()
-                                        : Date.now();
-                                    const durationMs = end - start;
-                                    const hours = Math.floor(durationMs / (1000 * 60 * 60));
-                                    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-                                    if (hours > 0) {
-                                        return `(${hours}h ${minutes}m)`;
-                                    }
-                                    return `(${minutes}m)`;
-                                })()}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Users size={14} />
-                            <span>{summary.metadata.participants?.length || 0} Tasters</span>
+                        {session.productName && <p className="text-sm text-[var(--text-secondary)] mb-2">{session.name}</p>}
+                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--text-secondary)]">
+                            <div className="flex items-center gap-2">
+                                <Calendar size={14} />
+                                <span>{new Date(session.startedAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Clock size={14} />
+                                <span>
+                                    {new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    {' - '}
+                                    {session.endedAt
+                                        ? new Date(session.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                        : 'ongoing'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[var(--text-muted)]">
+                                <span>
+                                    {(() => {
+                                        const start = new Date(session.startedAt).getTime();
+                                        const end = session.endedAt
+                                            ? new Date(session.endedAt).getTime()
+                                            : Date.now();
+                                        const durationMs = end - start;
+                                        const hours = Math.floor(durationMs / (1000 * 60 * 60));
+                                        const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                                        if (hours > 0) {
+                                            return `(${hours}h ${minutes}m)`;
+                                        }
+                                        return `(${minutes}m)`;
+                                    })()}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Users size={14} />
+                                <span>{summary.metadata.participants?.length || 0} Tasters</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className="flex rounded-md overflow-hidden border border-[var(--border-primary)]">
                         <button className="px-4 py-2 bg-[var(--bg-input)] text-sm font-medium">Analysis</button>
                         <button
@@ -313,7 +332,7 @@ export function Summary() {
             </div>
 
             {/* Main Analysis Grid */}
-            <div className="grid grid-cols-2 gap-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                 {/* Left Column: Personal Summary & Tasters */}
                 <div className="space-y-8">
                     <div className="flex items-center gap-3 mb-2">
@@ -333,7 +352,7 @@ export function Summary() {
                                 <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">Your Score</h3>
                             </div>
                             <div className="flex items-center gap-3">
-                                <div className="text-5xl font-black text-orange-500">
+                                <div className="text-4xl md:text-5xl font-black text-orange-500">
                                     {isEditing ? (
                                         <input
                                             type="number"
@@ -376,7 +395,7 @@ export function Summary() {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {[
                                     { label: 'Nose', key: 'nose' as const, icon: '👃' },
                                     { label: 'Palate', key: 'palate' as const, icon: '👅' },
@@ -410,64 +429,72 @@ export function Summary() {
                             Individual Tasters
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
-                            {summary.participants?.map(participant => {
-                                const isSelected = selectedMemberId === participant.userId;
-                                const tasterNote = summary.tasterSummaries?.find(s => s.userId === participant.userId);
+                            {summary.participants
+                                ?.filter(p => p.userId !== userData?.user?.id) // Filter out current user
+                                .reduce((acc: any[], current) => { // Deduplicate by userId
+                                    if (!acc.find(p => p.userId === current.userId)) {
+                                        acc.push(current);
+                                    }
+                                    return acc;
+                                }, [])
+                                .map(participant => {
+                                    const isSelected = selectedMemberId === participant.userId;
+                                    const tasterNote = summary.tasterSummaries?.find(s => s.userId === participant.userId);
 
-                                return (
-                                    <div key={participant.userId} className="space-y-2">
-                                        <button
-                                            onClick={() => setSelectedMemberId(isSelected ? null : participant.userId)}
-                                            className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected ? 'bg-orange-500/5 border-orange-500/30' : 'bg-[var(--bg-card)] border-[var(--border-primary)] hover:border-[var(--text-muted)]'}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {participant.avatarUrl ? (
-                                                    <img src={participant.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                        <User size={16} className="text-[var(--text-secondary)]" />
+                                    return (
+                                        <div key={participant.userId} className="space-y-2">
+                                            <button
+                                                onClick={() => setSelectedMemberId(isSelected ? null : participant.userId)}
+                                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected ? 'bg-orange-500/5 border-orange-500/30' : 'bg-[var(--bg-card)] border-[var(--border-primary)] hover:border-[var(--text-muted)]'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    {participant.avatarUrl ? (
+                                                        <img src={participant.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
+                                                            <User size={16} className="text-[var(--text-secondary)]" />
+                                                        </div>
+                                                    )}
+                                                    <div className="text-left">
+                                                        <p className="text-sm font-bold text-[var(--text-primary)]">{participant.displayName || 'Anonymous'}</p>
+                                                        <p className="text-[10px] text-[var(--text-secondary)]">{participant.userId === userData?.user?.id ? 'You' : 'Participant'}</p>
                                                     </div>
-                                                )}
-                                                <div className="text-left">
-                                                    <p className="text-sm font-bold text-[var(--text-primary)]">{participant.displayName || 'Anonymous'}</p>
-                                                    <p className="text-[10px] text-[var(--text-secondary)]">{participant.userId === userData?.user?.id ? 'You' : 'Participant'}</p>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {participant.rating !== null && (
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
-                                                        <Star size={12} fill="currentColor" />
-                                                        {participant.rating}
+                                                <div className="flex items-center gap-3">
+                                                    {participant.rating !== null && (
+                                                        <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
+                                                            <Star size={12} fill="currentColor" />
+                                                            {participant.rating}
+                                                        </div>
+                                                    )}
+                                                    <div className={`p-1.5 rounded-full transition-transform ${isSelected ? 'rotate-180 bg-orange-500/20 text-orange-500' : 'text-[var(--text-muted)]'}`}>
+                                                        <Zap size={14} />
                                                     </div>
-                                                )}
-                                                <div className={`p-1.5 rounded-full transition-transform ${isSelected ? 'rotate-180 bg-orange-500/20 text-orange-500' : 'text-[var(--text-muted)]'}`}>
-                                                    <Zap size={14} />
                                                 </div>
-                                            </div>
-                                        </button>
+                                            </button>
 
-                                        {isSelected && tasterNote && (
-                                            <div className="p-6 bg-orange-500/[0.02] border border-orange-500/10 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                                                <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic">\"{tasterNote.observations}\"</p>
-                                                <div className="grid grid-cols-3 gap-4 pt-2 border-t border-orange-500/10">
-                                                    <div>
-                                                        <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Nose</p>
-                                                        <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.nose}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Palate</p>
-                                                        <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.palate}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Finish</p>
-                                                        <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.finish}</p>
+                                            {isSelected && tasterNote && (
+                                                <div className="p-6 bg-orange-500/[0.02] border border-orange-500/10 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
+                                                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic">\"{tasterNote.observations}\"</p>
+                                                    <div className="grid grid-cols-3 gap-4 pt-2 border-t border-orange-500/10">
+                                                        <div>
+                                                            <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Nose</p>
+                                                            <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.nose}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Palate</p>
+                                                            <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.palate}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Finish</p>
+                                                            <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.finish}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                            )}
+                                        </div>
+                                    );
+                                })}
                         </div>
                     </div>
                 </div>
@@ -490,7 +517,7 @@ export function Summary() {
                                 <Star size={20} className="text-blue-500" />
                                 <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">Group Average</h3>
                             </div>
-                            <div className="text-5xl font-black text-blue-500">
+                            <div className="text-4xl md:text-5xl font-black text-blue-500">
                                 {(() => {
                                     const ratings = summary.participants?.map(p => p.rating).filter((r): r is number => r !== null) || [];
                                     if (ratings.length === 0) return '--';
@@ -507,7 +534,7 @@ export function Summary() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {[
                                     { label: 'Nose', value: summary.nose, icon: '👃' },
                                     { label: 'Palate', value: summary.palate, icon: '👅' },

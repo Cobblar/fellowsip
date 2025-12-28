@@ -46,7 +46,6 @@ await fastify.register(notificationRoutes);
 
 // Health check endpoint
 fastify.get('/health', async () => {
-  console.log('[TEST] Health check endpoint hit at:', new Date().toISOString());
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 

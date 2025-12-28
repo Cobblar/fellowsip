@@ -7,5 +7,10 @@ export default defineConfig({
   server: {
     port: 4321,
     host: true
+  },
+  vite: {
+    server: {
+      allowedHosts: ['fellowsip.cobbler.cc', '.cobbler.cc']
+    }
   }
 });

@@ -4,6 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide number input spinners */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner[type='number'] {
+  -moz-appearance: textfield;
+}
+
 :root {
   /* TastingMind Professional Dark Theme */
   --bg-main: #0b0e14;
@@ -78,6 +89,17 @@ body {
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .app-container {
+    height: 100dvh;
+    /* Use dynamic viewport height for mobile browsers */
+  }
+
+  .app-container main {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .sidebar {
   width: 280px;
   background: var(--bg-sidebar);
@@ -97,14 +119,22 @@ body {
 
 /* Header */
 .top-header {
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-top, 0px));
   background: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: env(safe-area-inset-top, 0px) 24px 0;
   flex-shrink: 0;
+  z-index: 40;
+}
+
+@media (max-width: 768px) {
+  .top-header {
+    padding: env(safe-area-inset-top, 0px) 16px 0;
+    height: calc(56px + env(safe-area-inset-top, 0px));
+  }
 }
 
 /* Cards */
@@ -342,4 +372,71 @@ input:focus {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* Responsive Utilities */
+.mobile-only {
+  display: none !important;
+}
+
+.desktop-only {
+  /* Default to visible, let Tailwind/component classes handle display type */
+}
+
+@media (max-width: 768px) {
+  .mobile-only {
+    display: block !important;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+    display: flex !important;
+  }
+
+  .sidebar.right-0 {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 45;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .sidebar-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+/* Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

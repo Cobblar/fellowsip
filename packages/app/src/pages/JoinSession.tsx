@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Users, Hash, ChevronRight, Link2 } from 'lucide-react';
+import { Users, Hash, ChevronRight, Link2, ChevronLeft } from 'lucide-react';
 import { useSession } from '../api/sessions';
 
 export function JoinSession() {
@@ -34,11 +34,20 @@ export function JoinSession() {
 
   return (
     <div className="p-8 max-w-xl mx-auto">
-      <div className="mb-8">
-        <h1 className="heading-xl mb-2">Join Session</h1>
-        <p className="text-sm text-[var(--text-secondary)]">
-          {urlSessionId ? 'Joining session...' : 'Enter a session ID to join an ongoing tasting.'}
-        </p>
+      <div className="mb-8 flex items-start gap-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+          title="Go Back"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <div>
+          <h1 className="heading-xl mb-2">Join Session</h1>
+          <p className="text-sm text-[var(--text-secondary)]">
+            {urlSessionId ? 'Joining session...' : 'Enter a session ID to join an ongoing tasting.'}
+          </p>
+        </div>
       </div>
 
       <div className="card p-8">

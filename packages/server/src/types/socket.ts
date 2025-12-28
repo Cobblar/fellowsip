@@ -51,6 +51,12 @@ export interface DeleteMessagePayload {
   messageId: string;
 }
 
+export interface EditMessagePayload {
+  sessionId: string;
+  messageId: string;
+  content: string;
+}
+
 export interface MakeModeratorPayload {
   sessionId: string;
   userId: string;
@@ -65,6 +71,11 @@ export interface RevealSpoilersPayload {
 export interface MessageDeletedEvent {
   messageId: string;
   deletedBy: string;
+}
+
+export interface MessageUpdatedEvent {
+  messageId: string;
+  content: string;
 }
 
 export interface ModeratorAddedEvent {

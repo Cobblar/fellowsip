@@ -2,6 +2,7 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { db, tastingSummaries } from '../db/index.js';
 import { getSessionMessages } from './messages.js';
 import { getSession } from './sessions.js';
+import { emitSummaryGenerated } from '../sockets/socketManager.js';
 
 // Helper to get model
 function getModel() {
@@ -85,7 +86,7 @@ export async function generateSessionSummary(sessionId: string) {
 
         // 3. Construct Prompt
         const participants = messages.reduce((acc: any[], m) => {
-            if (m.user && !acc.find(u => u.id === m.user.id)) {
+            if (m.user && !acc.find(u => u.id === m.user?.id)) {
                 acc.push({ id: m.user.id, name: m.user.displayName });
             }
             return acc;
@@ -173,7 +174,9 @@ export async function generateSessionSummary(sessionId: string) {
             })
             .returning();
 
-        return savedSummary;
+        // Emit event that summary is ready
+        emitSummaryGenerated(sessionId, savedSummary.id);
+
         return savedSummary;
     } catch (error: any) {
         console.error('[AI] Failed to generate summary:', error);

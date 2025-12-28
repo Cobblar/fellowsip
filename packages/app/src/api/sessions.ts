@@ -7,6 +7,7 @@ interface CreateSessionData {
   productType?: string;
   productLink?: string;
   productName?: string;
+  livestreamUrl?: string;
 }
 
 interface SessionResponse {

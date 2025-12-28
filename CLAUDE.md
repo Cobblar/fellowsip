@@ -1,6 +1,6 @@
 # Project: Fellowsip
 
-A platform for real-time collaborative tastings (wine, whisky, etc.) with AI-generated summaries.
+A platform for real-time collaborative tastings (wine, whisky, etc.) with automated summaries.
 
 ## Tech Stack
 
@@ -14,9 +14,10 @@ A platform for real-time collaborative tastings (wine, whisky, etc.) with AI-gen
 
 ## Architecture & Style Rules
 
+- **NEVER USE THE TERM "AI" IN ANY COPY IN THE PROJECT.** Use terms like "automated", "synthesized", or "generated" instead.
 - **Monorepo Structure:** - `/packages/landing` (Astro)
   - `/packages/app` (React/Vite)
   - `/packages/server` (Fastify/Drizzle)
 - **Data Flow:** Chat messages stored in Postgres -> Session ends -> Server sends logs to Gemini -> Summary stored in `tasting_summaries` table.
 - **Naming:** Use PascalCase for components, camelCase for variables/functions.
-- **AI Rule:** Use System Instructions to force Gemini to return structured JSON summaries.
+- **Automation Rule:** Use System Instructions to force Gemini to return structured JSON summaries.

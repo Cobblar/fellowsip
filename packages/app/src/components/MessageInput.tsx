@@ -1,5 +1,7 @@
 import { useState, KeyboardEvent, useRef, useEffect } from 'react';
-import { Send, EyeOff, ChevronDown, Wand2, Wand } from 'lucide-react';
+import { Send, EyeOff, ChevronDown, Wand2, Wand, Plus, ChevronRight, Check } from 'lucide-react';
+import { useChatContext } from '../contexts/ChatContext';
+import { api } from '../api/client';
 
 interface MessageInputProps {
   onSend: (content: string, phase?: string) => void;
@@ -12,6 +14,11 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
   const [isManualPhase, setIsManualPhase] = useState(false);
   const [isAutoSelectEnabled, setIsAutoSelectEnabled] = useState(true);
   const [showPhaseMenu, setShowPhaseMenu] = useState(false);
+  const [newTag, setNewTag] = useState('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [showRecentTags, setShowRecentTags] = useState(false);
+  const [selectedRecentTags, setSelectedRecentTags] = useState<string[]>([]);
+  const { customTags, canModerate, sessionId, recentTags, updateRecentTags } = useChatContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -27,9 +34,15 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
     } else if (lowerContent.includes('texture') || lowerContent.includes('mouthfeel') || lowerContent.includes('body') || lowerContent.includes('viscosity')) {
       setPhase('texture');
     } else {
-      setPhase(undefined);
+      // Check custom tags
+      const foundCustomTag = customTags.find(tag => lowerContent.includes(tag.toLowerCase()));
+      if (foundCustomTag) {
+        setPhase(foundCustomTag);
+      } else {
+        setPhase(undefined);
+      }
     }
-  }, [content, isManualPhase, isAutoSelectEnabled]);
+  }, [content, isManualPhase, isAutoSelectEnabled, customTags]);
 
   const handleSubmit = () => {
     if (!content.trim() || disabled) return;
@@ -73,6 +86,35 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
     }, 0);
   };
 
+  const handleAddTag = async () => {
+    if (!newTag.trim() || !sessionId) return;
+    const tag = newTag.trim();
+    try {
+      await api.post(`/sessions/${sessionId}/tags`, { tag });
+      setNewTag('');
+      setIsAddingTag(false);
+      // Update recent tags
+      updateRecentTags([...recentTags, tag]);
+    } catch (err) {
+      console.error('Failed to add tag:', err);
+    }
+  };
+
+  const handleAddRecentTags = async () => {
+    if (selectedRecentTags.length === 0 || !sessionId) return;
+    try {
+      for (const tag of selectedRecentTags) {
+        if (!customTags.includes(tag)) {
+          await api.post(`/sessions/${sessionId}/tags`, { tag });
+        }
+      }
+      setSelectedRecentTags([]);
+      setShowRecentTags(false);
+    } catch (err) {
+      console.error('Failed to add recent tags:', err);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
@@ -85,7 +127,8 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
                 phase === 'palate' ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' :
                   phase === 'finish' ? 'bg-purple-500/10 border-purple-500/30 text-purple-500' :
                     phase === 'texture' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' :
-                      'bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      customTags.includes(phase || '') ? 'bg-pink-500/10 border-pink-500/30 text-pink-500' :
+                        'bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                 }`}
             >
               {phase || 'Select Phase'}
@@ -114,6 +157,123 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
                     {p.label}
                   </button>
                 ))}
+
+                {customTags.length > 0 && (
+                  <>
+                    <div className="h-px bg-[var(--border-primary)] my-1" />
+                    {customTags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          setPhase(tag);
+                          setIsManualPhase(true);
+                          setShowPhaseMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-[var(--bg-input)] transition-colors text-pink-500"
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </>
+                )}
+
+                {canModerate && (
+                  <>
+                    <div className="h-px bg-[var(--border-primary)] my-1" />
+                    {isAddingTag ? (
+                      <div className="p-2 space-y-2">
+                        <input
+                          type="text"
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          placeholder="Tag name..."
+                          className="w-full bg-[var(--bg-main)] border border-[var(--border-primary)] rounded px-2 py-1 text-[10px] uppercase font-bold"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddTag();
+                            } else if (e.key === 'Escape') {
+                              setIsAddingTag(false);
+                            }
+                          }}
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={handleAddTag}
+                            className="flex-1 bg-orange-600 text-white py-1 rounded text-[8px] font-bold uppercase"
+                          >
+                            Add
+                          </button>
+                          <button
+                            onClick={() => setIsAddingTag(false)}
+                            className="flex-1 bg-[var(--bg-input)] text-[var(--text-secondary)] py-1 rounded text-[8px] font-bold uppercase"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col">
+                        <div className="flex items-center border-b border-[var(--border-primary)] last:border-0">
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingTag(true)}
+                            className="flex-1 text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-[var(--bg-input)] transition-colors text-orange-500 flex items-center gap-1.5"
+                          >
+                            <Plus size={10} />
+                            Add Custom Tag
+                          </button>
+                          {recentTags.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setShowRecentTags(!showRecentTags)}
+                              className={`px-2 py-2 transition-colors border-l border-[var(--border-primary)] ${showRecentTags ? 'text-orange-500 bg-[var(--bg-input)]' : 'text-[var(--text-muted)] hover:text-orange-500'}`}
+                            >
+                              <ChevronRight size={10} className={showRecentTags ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                            </button>
+                          )}
+                        </div>
+
+                        {showRecentTags && recentTags.length > 0 && (
+                          <div className="bg-[var(--bg-main)] p-2 space-y-2 animate-in slide-in-from-left-2 duration-200">
+                            <div className="text-[8px] font-bold uppercase text-[var(--text-muted)] px-1">Recent Tags</div>
+                            <div className="max-h-32 overflow-y-auto space-y-1 custom-scrollbar">
+                              {recentTags.map(tag => (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedRecentTags(prev =>
+                                      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                                    );
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--bg-input)] transition-colors text-left"
+                                >
+                                  <div className={`w-3 h-3 rounded border flex items-center justify-center transition-colors ${selectedRecentTags.includes(tag) ? 'bg-orange-600 border-orange-600' : 'border-[var(--border-primary)] bg-[var(--bg-card)]'}`}>
+                                    {selectedRecentTags.includes(tag) && <Check size={8} className="text-white" />}
+                                  </div>
+                                  <span className={`text-[9px] font-bold uppercase ${customTags.includes(tag) ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-secondary)]'}`}>
+                                    {tag}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                            {selectedRecentTags.length > 0 && (
+                              <button
+                                onClick={handleAddRecentTags}
+                                className="w-full bg-orange-600 text-white py-1.5 rounded text-[8px] font-bold uppercase shadow-lg shadow-orange-600/20 hover:bg-orange-500 transition-all"
+                              >
+                                Add Selected ({selectedRecentTags.length})
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -135,7 +295,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           <button
             type="button"
             onClick={handleSpoiler}
-            className="p-1.5 text-[var(--text-muted)] hover:text-orange-500 transition-colors"
+            className="p-1.5 rounded bg-[var(--bg-input)] border border-[var(--border-primary)] text-[var(--text-muted)] hover:text-orange-500 hover:border-orange-500/30 transition-colors"
             title="Mark as spoiler"
           >
             <EyeOff size={16} />
@@ -143,7 +303,6 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
         </div>
 
         <div className="flex gap-4">
-          <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-tighter">Enter to share</span>
           <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-tighter">||text|| for spoilers</span>
         </div>
       </div>

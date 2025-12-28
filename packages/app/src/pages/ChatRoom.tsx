@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Tag, Info, MoreVertical, Loader2, BarChart3, User, Users, Check, X, Crown, AlertCircle, Copy, Link2, Hash, Shield, Eye, EyeOff, Star } from 'lucide-react';
+import { Zap, Tag, Info, MoreVertical, Loader2, BarChart3, User, Users, Check, X, Crown, AlertCircle, Copy, Link2, Hash, Shield, Eye, EyeOff, Star, Monitor, Bug, ChevronLeft } from 'lucide-react';
 import { useSession, useEndSession, useTransferHost } from '../api/sessions';
 import { useSessionJoinRequests, useApproveJoinRequest, useRejectJoinRequest } from '../api/friends';
 import { useChatContext } from '../contexts/ChatContext';
 import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
+import { LivestreamEmbed } from '../components/LivestreamEmbed';
+import { PostSessionModal } from '../components/PostSessionModal';
 import { api } from '../api/client';
 
 const STOP_WORDS = new Set([
@@ -29,7 +31,6 @@ const STOP_WORDS = new Set([
 export function ChatRoom() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copied, setCopied] = useState<'id' | 'link' | null>(null);
   const { data: sessionData, isLoading, refetch: refetchSession } = useSession(id!);
   const {
@@ -38,10 +39,9 @@ export function ChatRoom() {
     moderators,
     sendMessage,
     deleteMessage,
+    editMessage,
     makeModerator,
     revealAllSpoilers,
-    revealMySpoilers,
-    injectDebugHistory,
     isConnected,
     sessionEnded,
     sessionEndedBy,
@@ -53,27 +53,18 @@ export function ChatRoom() {
     phaseVisibility,
     setPhaseVisibility,
     setAllPhaseVisibility,
+    livestreamUrl,
+    customTags,
+    currentUserId,
+    injectDebugHistory,
   } = useChatContext();
   const { mutate: endSession, isPending: isEnding } = useEndSession();
   const { mutate: transferHost, isPending: isTransferring } = useTransferHost();
 
-  // Join request hooks (poll every 5 seconds for hosts to see incoming requests)
   const { data: joinRequestsData } = useSessionJoinRequests(id!);
   const approveJoinRequest = useApproveJoinRequest();
   const rejectJoinRequest = useRejectJoinRequest();
   const joinRequests = joinRequestsData?.requests || [];
-
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await api.get<{ user: { id: string } }>('/auth/session');
-        setCurrentUserId(response.user.id);
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
-      }
-    };
-    fetchUser();
-  }, []);
 
   const copySessionId = async () => {
     if (!id) return;
@@ -110,8 +101,72 @@ export function ChatRoom() {
   }, [messages]);
 
   const [showEndModal, setShowEndModal] = useState(false);
+  const [showPostSessionModal, setShowPostSessionModal] = useState(false);
+
+  const session = sessionData?.session;
+  const isSessionEnded = sessionEnded || session?.status === 'ended';
+  const effectiveSessionEndedBy = sessionEndedBy || (session?.status === 'ended' ? 'The host' : null);
+
+  // Use socket-based hostId if available (for real-time updates), fallback to session data
+  const effectiveHostId = socketHostId || session?.hostId;
+  const isHost = effectiveHostId === currentUserId;
+
+  useEffect(() => {
+    // Show post-session modal for non-hosts when session ends
+    if (sessionEnded && !isHost) {
+      setShowPostSessionModal(true);
+    }
+  }, [sessionEnded, isHost]);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [showStreamInput, setShowStreamInput] = useState(false);
+  const [streamInputValue, setStreamInputValue] = useState('');
+  const [activeSidebar, setActiveSidebar] = useState<'tasters' | 'summary' | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+
+  // Sidebar resizing
+  const [sidebarWidth, setSidebarWidth] = useState(600);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const startResizing = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  const stopResizing = () => {
+    setIsResizing(false);
+  };
+
+  const resize = (e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = e.clientX;
+      if (newWidth >= 240 && newWidth <= 800) {
+        setSidebarWidth(newWidth);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', resize);
+      window.addEventListener('mouseup', stopResizing);
+    } else {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    }
+    return () => {
+      window.removeEventListener('mousemove', resize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [isResizing]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -123,6 +178,18 @@ export function ChatRoom() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleUpdateLivestream = async () => {
+    if (!id) return;
+    try {
+      await api.patch(`/sessions/${id}`, { livestreamUrl: streamInputValue || null });
+      setShowStreamInput(false);
+      setStreamInputValue('');
+      setIsActionsOpen(false);
+    } catch (error) {
+      console.error('Failed to update livestream:', error);
+    }
+  };
 
   const handleAnalyze = () => {
     if (!id) return;
@@ -157,13 +224,6 @@ export function ChatRoom() {
     );
   }
 
-  const session = sessionData?.session;
-  const isSessionEnded = sessionEnded || session?.status === 'ended';
-  const effectiveSessionEndedBy = sessionEndedBy || (session?.status === 'ended' ? 'The host' : null);
-
-  // Use socket-based hostId if available (for real-time updates), fallback to session data
-  const effectiveHostId = socketHostId || session?.hostId;
-  const isHost = effectiveHostId === currentUserId;
   const isModerator = currentUserId ? moderators.includes(currentUserId) : false;
   const canModerate = isHost || isModerator; // Can delete messages
 
@@ -182,7 +242,7 @@ export function ChatRoom() {
     <div className="h-full flex overflow-hidden relative">
       {/* End Session Modal */}
       {showEndModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="absolute inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="card w-full max-w-md p-8 border-orange-500/30 shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-500">
@@ -225,14 +285,35 @@ export function ChatRoom() {
         </div>
       )}
 
+      {/* Sidebar Overlay (Mobile) */}
+      <div
+        className={`sidebar-overlay ${activeSidebar ? 'open' : ''}`}
+        onClick={() => setActiveSidebar(null)}
+      />
+
       {/* Left Sidebar: Active Tasters & Join Requests */}
-      <aside className="w-[220px] bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-hidden">
+      <aside
+        className={`sidebar ${activeSidebar === 'tasters' ? 'open' : ''} bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-hidden transition-all duration-300`}
+        style={{ width: livestreamUrl ? `${sidebarWidth}px` : '240px' }}
+      >
+        {/* Desktop Livestream Embed */}
+        {livestreamUrl && !isMobile && (
+          <div className="hidden md:block p-4 border-b border-[var(--border-primary)]">
+            <LivestreamEmbed url={livestreamUrl} />
+          </div>
+        )}
+
         {/* Active Tasters */}
         <div className="p-4 flex-1 overflow-y-auto">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 flex items-center gap-2">
-            <Users size={12} />
-            Active Tasters
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
+              <Users size={12} />
+              Active Tasters
+            </h3>
+            <button onClick={() => setActiveSidebar(null)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+              <X size={16} />
+            </button>
+          </div>
           <div className="space-y-2">
             {activeUsers.map((user) => {
               const isUserHost = user.userId === effectiveHostId;
@@ -363,20 +444,43 @@ export function ChatRoom() {
         )}
       </aside>
 
+      {/* Resize Handle */}
+      {livestreamUrl && (
+        <div
+          className={`hidden md:flex w-1 hover:w-1.5 bg-transparent hover:bg-orange-500/50 cursor-col-resize transition-all z-10 items-center justify-center group ${isResizing ? 'bg-orange-500/50 w-1.5' : ''}`}
+          onMouseDown={startResizing}
+        >
+          <div className={`w-0.5 h-8 bg-[var(--border-primary)] rounded-full group-hover:bg-orange-500/50 ${isResizing ? 'bg-orange-500/50' : ''}`} />
+        </div>
+      )}
+
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 border-r border-[var(--border-primary)]">
         {/* Chat Header */}
-        <header className="border-bottom border-[var(--border-primary)] flex items-center justify-between px-6 py-3 bg-[var(--bg-main)]">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="heading-lg">{session?.name}</h1>
-              <div className="flex items-center gap-3 mt-1">
+        <header className="border-bottom border-[var(--border-primary)] flex items-center justify-between px-4 md:px-6 py-3 bg-[var(--bg-main)]">
+          <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+              title="Back to Home"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button
+              onClick={() => setActiveSidebar('tasters')}
+              className="p-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+            >
+              <Users size={20} />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-sm md:text-lg font-bold text-[var(--text-primary)] truncate">{session?.name}</h1>
+              <div className="flex items-center gap-2 md:gap-3 mt-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                  <span className="text-xs text-[var(--text-secondary)]">{activeUsers.length} Taster{activeUsers.length !== 1 ? 's' : ''}</span>
+                  <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
+                  <span className="text-[10px] md:text-xs text-[var(--text-secondary)]">{activeUsers.length} Taster{activeUsers.length !== 1 ? 's' : ''}</span>
                 </div>
-                <span className="text-[var(--text-muted)]">•</span>
-                <div className="flex items-center gap-1.5">
+                <span className="text-[var(--text-muted)] hidden md:inline">•</span>
+                <div className="hidden md:flex items-center gap-1.5">
                   <Hash size={10} className="text-[var(--text-muted)]" />
                   <span className="text-xs text-[var(--text-secondary)] font-mono">{id?.slice(0, 8)}...</span>
                   <button
@@ -391,15 +495,15 @@ export function ChatRoom() {
                   <>
                     <span className="text-[var(--text-muted)]">•</span>
                     <div className="flex items-center gap-1.5">
-                      <Star size={12} className="text-orange-500 fill-orange-500" />
-                      <span className="text-xs font-bold text-[var(--text-primary)]">{averageRating.toFixed(1)} Avg</span>
+                      <Star size={10} className="text-orange-500 fill-orange-500 md:w-3 md:h-3" />
+                      <span className="text-[10px] md:text-xs font-bold text-[var(--text-primary)]">{averageRating.toFixed(1)} Avg</span>
                     </div>
                   </>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             {/* Share & Personal Actions (Icon Buttons) */}
             <button
               onClick={copyJoinLink}
@@ -409,20 +513,19 @@ export function ChatRoom() {
               {copied === 'link' ? <Check size={18} className="text-green-500" /> : <Link2 size={18} />}
             </button>
 
-
             {/* Host Primary Action */}
             {isHost && (
               <button
                 onClick={handleAnalyze}
                 disabled={isEnding}
-                className="btn-orange text-xs py-2 px-4 shadow-lg shadow-orange-500/10"
+                className="btn-orange text-[10px] md:text-xs py-1.5 md:py-2 px-2 md:px-4 shadow-lg shadow-orange-500/10"
               >
                 {isEnding ? (
-                  <Loader2 size={14} className="animate-spin mr-2" />
+                  <Loader2 size={14} className="animate-spin md:mr-2" />
                 ) : (
-                  <Zap size={14} className="mr-2" />
+                  <Zap size={14} className="md:mr-2" />
                 )}
-                {isEnding ? 'Synthesizing...' : 'Synthesize Profile'}
+                <span className="hidden md:inline">{isEnding ? 'Synthesizing...' : 'Synthesize Profile'}</span>
               </button>
             )}
 
@@ -434,12 +537,51 @@ export function ChatRoom() {
                   className={`p-2 rounded-lg transition-all ${isActionsOpen ? 'bg-[var(--bg-input)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)]/50'}`}
                   title="Session Actions"
                 >
-                  <MoreVertical size={20} />
+                  <MoreVertical size={18} />
                 </button>
 
                 {isActionsOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 mt-2 w-64 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-2 space-y-1">
+                      {showStreamInput ? (
+                        <div className="px-3 py-2 space-y-2">
+                          <p className="text-[10px] font-bold uppercase text-[var(--text-muted)]">Livestream URL</p>
+                          <input
+                            type="text"
+                            value={streamInputValue}
+                            onChange={(e) => setStreamInputValue(e.target.value)}
+                            placeholder="YouTube or Twitch URL"
+                            className="w-full px-2 py-1.5 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded text-xs text-[var(--text-primary)] focus:outline-none focus:border-orange-500"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleUpdateLivestream}
+                              className="flex-1 py-1 bg-orange-500 text-white text-xs font-bold rounded hover:bg-orange-600"
+                            >
+                              Set
+                            </button>
+                            <button
+                              onClick={() => setShowStreamInput(false)}
+                              className="px-2 py-1 bg-[var(--bg-input)] text-[var(--text-secondary)] text-xs font-bold rounded hover:bg-[var(--bg-main)]"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setShowStreamInput(true);
+                            setStreamInputValue(livestreamUrl || '');
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                        >
+                          <Monitor size={16} />
+                          {livestreamUrl ? 'Update Livestream' : 'Add Livestream'}
+                        </button>
+                      )}
+
                       <button
                         onClick={() => {
                           revealAllSpoilers();
@@ -457,9 +599,9 @@ export function ChatRoom() {
                             injectDebugHistory();
                             setIsActionsOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-md transition-colors"
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-md transition-colors"
                         >
-                          <Zap size={16} />
+                          <Bug size={16} />
                           Inject Debug History
                         </button>
                       )}
@@ -481,19 +623,26 @@ export function ChatRoom() {
                 )}
               </div>
             )}
+
+            <button
+              onClick={() => setActiveSidebar('summary')}
+              className="p-2 text-[var(--text-secondary)] hover:text-white md:hidden"
+            >
+              <BarChart3 size={20} />
+            </button>
           </div>
         </header>
 
         {/* Session Ended Banner */}
         {isSessionEnded && (
-          <div className="bg-red-500/10 border-b border-red-500/30 px-6 py-4">
+          <div className="bg-red-500/10 border-b border-red-500/30 px-4 md:px-6 py-3 md:py-4">
             <div className="max-w-3xl mx-auto flex items-center gap-3">
               <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-red-400">
+                <p className="text-xs md:text-sm font-medium text-red-400">
                   {effectiveSessionEndedBy} has ended the session
                 </p>
-                <p className="text-xs text-red-400/70">
+                <p className="text-[10px] md:text-xs text-red-400/70">
                   Chat is now closed. You can still view the conversation.
                 </p>
               </div>
@@ -501,8 +650,15 @@ export function ChatRoom() {
           </div>
         )}
 
+        {/* Mobile Livestream Embed */}
+        {livestreamUrl && isMobile && (
+          <div className="md:hidden bg-black border-b border-[var(--border-primary)]">
+            <LivestreamEmbed url={livestreamUrl} className="rounded-none" />
+          </div>
+        )}
+
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-6">
+        <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6">
           <div className="max-w-3xl mx-auto space-y-6">
             <div className="text-center">
               <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
@@ -521,6 +677,7 @@ export function ChatRoom() {
               currentUserId={currentUserId || undefined}
               canDelete={canModerate}
               onDeleteMessage={deleteMessage}
+              onEditMessage={editMessage}
               revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
               phaseVisibility={phaseVisibility}
             />
@@ -528,7 +685,7 @@ export function ChatRoom() {
         </div>
 
         {/* Input */}
-        <div className="p-6 bg-[var(--bg-main)]">
+        <div className="p-4 md:p-6 bg-[var(--bg-main)]">
           <div className="max-w-3xl mx-auto">
             {isSessionEnded ? (
               <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
@@ -542,10 +699,15 @@ export function ChatRoom() {
       </div>
 
       {/* Right Sidebar: Tasting Summary */}
-      <aside className="w-[380px] bg-[var(--bg-main)] overflow-y-auto p-6 space-y-6">
-        <div className="flex items-center gap-2 mb-2">
-          <BarChart3 size={18} className="text-orange-500" />
-          <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">Tasting Summary</h2>
+      <aside className={`sidebar md:relative md:translate-x-0 right-0 md:left-auto ${activeSidebar === 'summary' ? 'open' : ''} w-[320px] md:w-[380px] bg-[var(--bg-main)] overflow-y-auto p-6 space-y-6 border-l border-[var(--border-primary)]`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 size={18} className="text-orange-500" />
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">Tasting Summary</h2>
+          </div>
+          <button onClick={() => setActiveSidebar(null)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="card p-5">
@@ -587,23 +749,35 @@ export function ChatRoom() {
               <Star size={16} className="text-orange-500" />
               <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Score</h3>
             </div>
-            <span className="text-lg font-bold text-orange-500">
-              {activeUsers.find(u => u.userId === currentUserId)?.rating || '--'}
-            </span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={activeUsers.find(u => u.userId === currentUserId)?.rating ?? ''}
+              onChange={(e) => {
+                const val = e.target.value === '' ? null : parseInt(e.target.value);
+                if (val === null || (val >= 0 && val <= 100)) {
+                  updateRating(val ?? 0);
+                }
+              }}
+              className="w-14 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded py-0.5 px-1 text-sm font-bold text-orange-500 text-center focus:outline-none focus:border-orange-500 transition-colors no-spinner"
+            />
           </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={activeUsers.find(u => u.userId === currentUserId)?.rating || 0}
-            onChange={(e) => updateRating(parseInt(e.target.value))}
-            className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-orange-500 mb-2"
-          />
-          <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-medium">
-            <span>0</span>
-            <span>50</span>
-            <span>100</span>
+          <div className="hidden md:block">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={activeUsers.find(u => u.userId === currentUserId)?.rating || 0}
+              onChange={(e) => updateRating(parseInt(e.target.value))}
+              className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-orange-500 mb-2"
+            />
+            <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-medium">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+            </div>
           </div>
         </div>
 
@@ -619,6 +793,7 @@ export function ChatRoom() {
               { id: 'palate', label: 'Palate', color: 'blue' },
               { id: 'texture', label: 'Texture', color: 'emerald' },
               { id: 'finish', label: 'Finish', color: 'purple' },
+              ...customTags.map(tag => ({ id: tag, label: tag, color: 'pink' })),
               { id: 'untagged', label: 'Untagged', color: 'gray' }
             ].map((p) => (
               <div key={p.id} className="flex flex-col gap-2">
@@ -627,7 +802,8 @@ export function ChatRoom() {
                     p.id === 'palate' ? 'text-blue-500' :
                       p.id === 'texture' ? 'text-emerald-500' :
                         p.id === 'finish' ? 'text-purple-500' :
-                          'text-[var(--text-secondary)]'
+                          customTags.includes(p.id) ? 'text-pink-500' :
+                            'text-[var(--text-secondary)]'
                     }`}>{p.label}</span>
                   <span className="text-[9px] text-[var(--text-muted)] uppercase">Visibility</span>
                 </div>
@@ -648,7 +824,8 @@ export function ChatRoom() {
                             p.id === 'palate' ? 'bg-blue-500 text-white shadow-sm' :
                               p.id === 'texture' ? 'bg-emerald-500 text-white shadow-sm' :
                                 p.id === 'finish' ? 'bg-purple-500 text-white shadow-sm' :
-                                  'bg-[var(--text-secondary)] text-white shadow-sm')
+                                  customTags.includes(p.id) ? 'bg-pink-500 text-white shadow-sm' :
+                                    'bg-[var(--text-secondary)] text-white shadow-sm')
                           : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-main)]'
                           }`}
                       >
@@ -699,6 +876,10 @@ export function ChatRoom() {
           </p>
         </div>
       </aside>
+      <PostSessionModal
+        isOpen={showPostSessionModal}
+        onClose={() => setShowPostSessionModal(false)}
+      />
     </div>
   );
 }

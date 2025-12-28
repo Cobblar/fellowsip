@@ -1,7 +1,7 @@
 import type { Server, Socket } from 'socket.io';
 import { lucia } from '../auth/lucia.js';
 import { getSession } from '../services/sessions.js';
-import { createMessage, getSessionMessages, hideMessage, getMessage } from '../services/messages.js';
+import { createMessage, getSessionMessages, hideMessage, getMessage, updateMessage } from '../services/messages.js';
 import {
   addUserToSession,
   removeUserFromSession,
@@ -26,6 +26,8 @@ import type {
   RevealSpoilersPayload,
   UpdateRatingPayload,
   RatingUpdatedEvent,
+  EditMessagePayload,
+  MessageUpdatedEvent,
 } from '../types/socket.js';
 
 export function setupSocketHandlers(io: Server) {
@@ -139,6 +141,9 @@ export function setupSocketHandlers(io: Server) {
               avatarUrl: m.user?.avatarUrl || null,
             },
           })),
+          livestreamUrl: session.session.livestreamUrl,
+          customTags: session.session.customTags,
+          hostId: session.session.hostId,
         });
 
         // Send active users to all in room (includes moderators)
@@ -246,6 +251,41 @@ export function setupSocketHandlers(io: Server) {
       } catch (error) {
         console.error('Delete message error:', error);
         socket.emit('error', { message: 'Failed to delete message' });
+      }
+    });
+
+    socket.on('edit_message', async (payload: EditMessagePayload) => {
+      try {
+        const { sessionId, messageId, content } = payload;
+
+        if (!content.trim()) {
+          socket.emit('error', { message: 'Message content cannot be empty' });
+          return;
+        }
+
+        // Get the message to check ownership
+        const message = await getMessage(messageId);
+        if (!message) {
+          socket.emit('error', { message: 'Message not found' });
+          return;
+        }
+
+        const isAuthor = message.userId === userId;
+
+        if (isAuthor) {
+          await updateMessage(messageId, content.trim());
+          const event: MessageUpdatedEvent = {
+            messageId,
+            content: content.trim(),
+          };
+          io.to(sessionId).emit('message_updated', event);
+          console.log(`Message ${messageId} edited in session ${sessionId} by ${userId}`);
+        } else {
+          socket.emit('error', { message: 'Unauthorized to edit this message' });
+        }
+      } catch (error) {
+        console.error('Edit message error:', error);
+        socket.emit('error', { message: 'Failed to edit message' });
       }
     });
 
@@ -379,17 +419,15 @@ export function setupSocketHandlers(io: Server) {
 
       try {
         const { sessionId } = payload;
+        const room = io.sockets.adapter.rooms.get(sessionId);
+        console.log(`[DEBUG] Room ${sessionId} has ${room?.size || 0} members`);
+
         const participants = [
           { id: 'bot-mia', name: 'Mia', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia' },
           { id: 'bot-alex', name: 'Alex', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex' },
           { id: 'bot-sam', name: 'Sam', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sam' },
           { id: 'bot-jordan', name: 'Jordan', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan' },
           { id: 'bot-taylor', name: 'Taylor', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor' },
-          { id: 'bot-casey', name: 'Casey', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Casey' },
-          { id: 'bot-riley', name: 'Riley', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Riley' },
-          { id: 'bot-quinn', name: 'Quinn', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Quinn' },
-          { id: 'bot-avery', name: 'Avery', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Avery' },
-          { id: 'bot-charlie', name: 'Charlie', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Charlie' },
         ];
 
         // Ensure bot users exist
@@ -406,35 +444,43 @@ export function setupSocketHandlers(io: Server) {
         }
 
         const conversation = [
-          { user: 'bot-mia', text: "Wow, these dry leaves are stunning. So dark and twisted." },
-          { user: 'bot-alex', text: "I'm getting a lot of dark chocolate and maybe some dried plum on the dry leaf." },
-          { user: 'bot-sam', text: "Agreed, Alex. There's a subtle smokiness too, like a distant campfire." },
-          { user: 'bot-jordan', text: "The aroma after the rinse is incredible. Super floral, like orchids." },
-          { user: 'bot-taylor', text: "I'm getting more of a honey sweetness now. Very thick aroma." },
-          { user: 'bot-casey', text: "First sip... oh that's buttery. Really nice mouthfeel." },
-          { user: 'bot-riley', text: "It's got a bit of a mineral bite at the end, which I love. Very clean." },
-          { user: 'bot-quinn', text: "The second infusion is opening up. More stone fruit coming through now. Peach?" },
-          { user: 'bot-avery', text: "Definitely peach. And maybe a hint of cinnamon on the finish." },
-          { user: 'bot-charlie', text: "This is holding up so well. Third infusion and it's still so vibrant." },
-          { user: 'bot-mia', text: "||I think this might be my favorite tea of the year so far.||" },
-          { user: 'bot-alex', text: "The aftertaste just lingers. Very sweet and cooling." },
-          { user: 'bot-sam', text: "Anyone else getting a slight nutty note now? Like toasted almonds?" },
-          { user: 'bot-jordan', text: "Yes! Toasted almonds for sure. It's evolving beautifully." },
-          { user: 'bot-taylor', text: "The texture is what's really impressing me. So silky." },
-          { user: 'bot-casey', text: "I'm on my fifth infusion and it's still giving so much flavor." },
-          { user: 'bot-riley', text: "The finish is just... wow. So long and complex." },
-          { user: 'bot-quinn', text: "I'm getting a bit of a cooling sensation in the throat now. Huigan is strong." },
-          { user: 'bot-avery', text: "Agreed, the energy of this tea is very calming." },
-          { user: 'bot-charlie', text: "What a great session. Thanks for hosting, Cobbler!" },
+          // Nose
+          { user: 'bot-mia', text: "The dry leaf has such a deep, roasted aroma. Very inviting.", phase: 'nose' },
+          { user: 'bot-alex', text: "I'm getting strong notes of dark chocolate and dried plums.", phase: 'nose' },
+          { user: 'bot-sam', text: "There's a hint of charcoal and maybe some toasted grains here.", phase: 'nose' },
+          { user: 'bot-jordan', text: "After the rinse, it's much more floral. Like orchids in the rain.", phase: 'nose' },
+          { user: 'bot-taylor', text: "I'm picking up a sweet, honey-like scent now. Very rich.", phase: 'nose' },
+
+          // Palate
+          { user: 'bot-mia', text: "First sip is incredibly smooth. Very balanced sweetness.", phase: 'palate' },
+          { user: 'bot-alex', text: "The flavor is quite complex. I'm tasting stone fruits, maybe peach?", phase: 'palate' },
+          { user: 'bot-sam', text: "It's got a nice mineral quality to it. Very clean and crisp.", phase: 'palate' },
+          { user: 'bot-jordan', text: "I'm getting a bit of a nutty undertone, like roasted almonds.", phase: 'palate' },
+          { user: 'bot-taylor', text: "There's a subtle spice here too. A tiny bit of cinnamon.", phase: 'palate' },
+
+          // Texture
+          { user: 'bot-mia', text: "The mouthfeel is so buttery and thick. Really coats the tongue.", phase: 'texture' },
+          { user: 'bot-alex', text: "It's very silky. Almost like drinking liquid velvet.", phase: 'texture' },
+          { user: 'bot-sam', text: "I find it quite light and refreshing, not too heavy at all.", phase: 'texture' },
+          { user: 'bot-jordan', text: "There's a slight astringency that makes it feel very vibrant.", phase: 'texture' },
+          { user: 'bot-taylor', text: "The viscosity is impressive. It feels very high quality.", phase: 'texture' },
+
+          // Finish
+          { user: 'bot-mia', text: "The finish is exceptionally long. Still tasting it minutes later.", phase: 'finish' },
+          { user: 'bot-alex', text: "It leaves a wonderful cooling sensation in the throat. Very sweet.", phase: 'finish' },
+          { user: 'bot-sam', text: "The aftertaste is slightly metallic but in a good, clean way.", phase: 'finish' },
+          { user: 'bot-jordan', text: "I'm getting a lingering floral note on the breath. Beautiful.", phase: 'finish' },
+          { user: 'bot-taylor', text: "||This is easily one of the best sessions I've had all year.||", phase: 'finish' },
         ];
 
         for (const msg of conversation) {
-          const messageData = await createMessage(sessionId, msg.user, msg.text);
+          const messageData = await createMessage(sessionId, msg.user, msg.text, msg.phase);
           const messagePayload = {
             id: messageData.message.id,
             sessionId: messageData.message.sessionId,
             userId: messageData.message.userId,
             content: messageData.message.content,
+            phase: messageData.message.phase,
             createdAt: messageData.message.createdAt,
             user: {
               id: messageData.user?.id || '',

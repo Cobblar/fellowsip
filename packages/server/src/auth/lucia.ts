@@ -23,6 +23,7 @@ export const lucia = new Lucia(adapter, {
       // Postgres returns snake_case columns
       displayName: attributes.display_name,
       avatarUrl: attributes.avatar_url,
+      preferences: attributes.preferences,
     };
   },
 });

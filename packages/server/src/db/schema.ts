@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, jsonb, index, primaryKey, boolean, real } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, jsonb, index, primaryKey, boolean, real, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Users table - for authentication and user profiles
@@ -47,6 +47,7 @@ export const tastingSessions = pgTable('tasting_sessions', {
   productType: text('product_type'),
   productLink: text('product_link'),
   productName: text('product_name'),
+  livestreamUrl: text('livestream_url'),
   hostId: text('host_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
@@ -54,6 +55,7 @@ export const tastingSessions = pgTable('tasting_sessions', {
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().default(sql`now()`),
   endedAt: timestamp('ended_at', { withTimezone: true }),
   lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).notNull().default(sql`now()`),
+  customTags: jsonb('custom_tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({
@@ -156,7 +158,7 @@ export const sessionParticipants = pgTable('session_participants', {
 }, (table) => ({
   sessionIdx: index('session_participants_session_id_idx').on(table.sessionId),
   userIdx: index('session_participants_user_id_idx').on(table.userId),
-  uniqueParticipant: index('unique_session_participant_idx').on(table.sessionId, table.userId),
+  uniqueParticipant: uniqueIndex('unique_session_participant_idx').on(table.sessionId, table.userId),
 }));
 
 // Relations for better querying

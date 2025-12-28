@@ -17,6 +17,7 @@ export interface Session {
   lastActivityAt: string;
   createdAt: string;
   updatedAt: string;
+  customTags: string[];
   host?: User;
   summaryId?: string;
   userRating?: number | null;
@@ -53,6 +54,14 @@ export interface SendMessagePayload {
 
 export interface MessageHistoryEvent {
   messages: Message[];
+  livestreamUrl?: string | null;
+  customTags?: string[];
+  hostId?: string | null;
+}
+
+export interface CustomTagsUpdatedEvent {
+  sessionId: string;
+  tags: string[];
 }
 
 export interface ActiveUsersEvent {
@@ -80,6 +89,11 @@ export interface ErrorEvent {
 export interface MessageDeletedEvent {
   messageId: string;
   deletedBy: string;
+}
+
+export interface MessageUpdatedEvent {
+  messageId: string;
+  content: string;
 }
 
 export interface ModeratorAddedEvent {
