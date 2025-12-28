@@ -89,3 +89,31 @@ export async function getMessage(messageId: string) {
   return message;
 }
 
+// Hide all messages from a user in a session (for kick/mute with erase)
+export async function hideAllMessagesFromUser(sessionId: string, userId: string): Promise<string[]> {
+  // First get all message IDs that will be hidden
+  const messagesToHide = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(and(
+      eq(messages.sessionId, sessionId),
+      eq(messages.userId, userId),
+      eq(messages.isHidden, false)
+    ));
+
+  const messageIds = messagesToHide.map(m => m.id);
+
+  if (messageIds.length > 0) {
+    // Hide all messages from this user
+    await db
+      .update(messages)
+      .set({ isHidden: true })
+      .where(and(
+        eq(messages.sessionId, sessionId),
+        eq(messages.userId, userId)
+      ));
+  }
+
+  return messageIds;
+}
+

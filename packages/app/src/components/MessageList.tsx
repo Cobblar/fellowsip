@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, Pencil, Check, X } from 'lucide-react';
+import { Trash2, Pencil, Check, X, FileText } from 'lucide-react';
 import type { Message } from '../types';
 import { SpoilerText } from './SpoilerText';
 
@@ -11,6 +11,7 @@ interface MessageListProps {
   revealedMessageIds?: Set<string>; // Message IDs with revealed spoilers
   phaseVisibility?: Record<string, 'normal' | 'hidden' | 'revealed'>;
   onEditMessage?: (messageId: string, content: string) => void;
+  summaryId?: string | null;
 }
 
 export function MessageList({
@@ -21,6 +22,7 @@ export function MessageList({
   revealedMessageIds = new Set(),
   phaseVisibility = {},
   onEditMessage,
+  summaryId,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -45,7 +47,8 @@ export function MessageList({
         // - 'revealed': Always show spoilers
         // - 'normal' (auto): Respect individual message reveal state (revealedMessageIds)
         const shouldRevealSpoilers = isForceRevealed || (phaseSetting === 'normal' && revealedMessageIds.has(message.id));
-        const shouldForceHide = isForceHidden;
+        // Don't force hide own messages (unless manually tagged, which is handled by SpoilerText parsing)
+        const shouldForceHide = isForceHidden && !isOwnMessage;
 
         // System messages have special styling
         if (isSystemMessage) {
@@ -88,6 +91,15 @@ export function MessageList({
                 <span className="text-[10px] text-[var(--text-muted)]">
                   {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
+                {summaryId && (
+                  <a
+                    href={`/session/${message.sessionId}/summary`}
+                    className="text-[var(--text-muted)] hover:text-orange-500 transition-colors"
+                    title="View Session Summary"
+                  >
+                    <FileText size={10} />
+                  </a>
+                )}
               </div>
 
               {/* Message bubble with delete button - button always toward center */}

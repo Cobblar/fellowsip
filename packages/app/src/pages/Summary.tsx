@@ -380,46 +380,65 @@ export function Summary() {
                         </div>
 
                         <div className="space-y-6">
-                            <div className="space-y-2">
-                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-500/60">Observations</h4>
-                                {isEditing ? (
-                                    <textarea
-                                        value={editData.observations}
-                                        onChange={(e) => setEditData({ ...editData, observations: e.target.value })}
-                                        className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm text-[var(--text-secondary)] min-h-[100px] rounded-lg p-3"
-                                    />
-                                ) : (
-                                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                                        {summary.tasterSummaries?.find(s => s.userId === userData?.user?.id)?.observations || summary.observations}
+                            {!summary.tasterSummaries?.find(s => s.userId === userData?.user?.id) && !isEditing ? (
+                                <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg text-center">
+                                    <p className="text-sm text-[var(--text-secondary)] mb-2">
+                                        We couldn't generate a personalized profile for you based on your chat messages.
                                     </p>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                {[
-                                    { label: 'Nose', key: 'nose' as const, icon: '👃' },
-                                    { label: 'Palate', key: 'palate' as const, icon: '👅' },
-                                    { label: 'Finish', key: 'finish' as const, icon: '✨' }
-                                ].map(({ label, key, icon }) => (
-                                    <div key={key} className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-xs">{icon}</span>
-                                            <h5 className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{label}</h5>
-                                        </div>
+                                    <p className="text-xs text-[var(--text-muted)]">
+                                        Try contributing more specific tasting notes (aroma, flavor, finish) in the chat next time!
+                                    </p>
+                                    <button
+                                        onClick={handleEdit}
+                                        className="mt-3 text-xs font-bold text-orange-500 hover:text-orange-400 uppercase tracking-wider"
+                                    >
+                                        Add Notes Manually
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-2">
+                                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-500/60">Observations</h4>
                                         {isEditing ? (
                                             <textarea
-                                                value={editData[key]}
-                                                onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
-                                                className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-xs text-[var(--text-secondary)] min-h-[60px] rounded-md p-2"
+                                                value={editData.observations}
+                                                onChange={(e) => setEditData({ ...editData, observations: e.target.value })}
+                                                className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm text-[var(--text-secondary)] min-h-[100px] rounded-lg p-3"
                                             />
                                         ) : (
-                                            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                                                {summary.tasterSummaries?.find(s => s.userId === userData?.user?.id)?.[key] || (summary as any)[key]}
+                                            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+                                                {summary.tasterSummaries?.find(s => s.userId === userData?.user?.id)?.observations || summary.observations}
                                             </p>
                                         )}
                                     </div>
-                                ))}
-                            </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        {[
+                                            { label: 'Nose', key: 'nose' as const, icon: '👃' },
+                                            { label: 'Palate', key: 'palate' as const, icon: '👅' },
+                                            { label: 'Finish', key: 'finish' as const, icon: '✨' }
+                                        ].map(({ label, key, icon }) => (
+                                            <div key={key} className="space-y-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-xs">{icon}</span>
+                                                    <h5 className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{label}</h5>
+                                                </div>
+                                                {isEditing ? (
+                                                    <textarea
+                                                        value={editData[key]}
+                                                        onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
+                                                        className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-xs text-[var(--text-secondary)] min-h-[60px] rounded-md p-2"
+                                                    />
+                                                ) : (
+                                                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                                                        {summary.tasterSummaries?.find(s => s.userId === userData?.user?.id)?.[key] || (summary as any)[key]}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
 

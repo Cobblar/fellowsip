@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../hooks/useSocket';
 import { api } from '../api/client';
-import { ActiveUser, Message, MessageHistoryEvent, ActiveUsersEvent, NewMessageEvent, ErrorEvent, MessageDeletedEvent, MessageUpdatedEvent, SpoilersRevealedEvent, RatingUpdatedEvent } from '../types';
+import { ActiveUser, Message, MessageHistoryEvent, ActiveUsersEvent, NewMessageEvent, ErrorEvent, MessageDeletedEvent, MessageUpdatedEvent, SpoilersRevealedEvent, RatingUpdatedEvent, ReadyCheckStartedEvent, ReadyCheckEndedEvent, UserReadyEvent, ReadyCheckStateEvent, BannedUser, UserMutedEvent, UserUnmutedEvent, YouWereKickedEvent, YouWereMutedEvent, YouWereUnmutedEvent, BannedUsersListEvent, MessagesErasedEvent } from '../types';
 
 interface ChatContextType {
     activeUsers: ActiveUser[];
@@ -37,6 +37,23 @@ interface ChatContextType {
     summaryId: string | null;
     updateRecentTags: (tags: string[]) => Promise<void>;
     setLivestreamUrl: (url: string | null) => void;
+    // Ready check
+    readyCheckActive: boolean;
+    readyUsers: Set<string>;
+    startReadyCheck: () => void;
+    endReadyCheck: () => void;
+    markReady: () => void;
+    markUnready: () => void;
+    // Moderation
+    isMuted: boolean;
+    mutedUsers: BannedUser[];
+    kickedUsers: BannedUser[];
+    muteUser: (userId: string, eraseMessages?: boolean) => void;
+    unmuteUser: (userId: string) => void;
+    kickUser: (userId: string, eraseMessages?: boolean) => void;
+    unkickUser: (userId: string) => void;
+    getBannedUsers: () => void;
+    unmodUser: (userId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -55,20 +72,47 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(new Set());
     const [globallyRevealedMessageIds, setGloballyRevealedMessageIds] = useState<Set<string>>(new Set());
     const [averageRating, setAverageRating] = useState<number | null>(null);
-    const [phaseVisibility, setPhaseVisibilityState] = useState<Record<string, 'normal' | 'hidden' | 'revealed'>>({
-        nose: 'normal',
-        palate: 'normal',
-        finish: 'normal',
-        texture: 'normal',
-        untagged: 'normal',
+    const [phaseVisibility, setPhaseVisibilityState] = useState<Record<string, 'normal' | 'hidden' | 'revealed'>>(() => {
+        try {
+            const saved = localStorage.getItem('fellowsip_spoiler_settings');
+            return saved ? JSON.parse(saved) : {
+                nose: 'normal',
+                palate: 'normal',
+                finish: 'normal',
+                texture: 'normal',
+                untagged: 'normal',
+            };
+        } catch (e) {
+            return {
+                nose: 'normal',
+                palate: 'normal',
+                finish: 'normal',
+                texture: 'normal',
+                untagged: 'normal',
+            };
+        }
     });
+
+    // Save spoiler settings when they change
+    useEffect(() => {
+        localStorage.setItem('fellowsip_spoiler_settings', JSON.stringify(phaseVisibility));
+    }, [phaseVisibility]);
+
     const [livestreamUrl, setLivestreamUrl] = useState<string | null>(null);
     const [customTags, setCustomTags] = useState<string[]>([]);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [recentTags, setRecentTags] = useState<string[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [summaryId, setSummaryId] = useState<string | null>(null);
+    // Ready check state
+    const [readyCheckActive, setReadyCheckActive] = useState(false);
+    const [readyUsers, setReadyUsers] = useState<Set<string>>(new Set());
+    // Moderation state
+    const [isMuted, setIsMuted] = useState(false);
+    const [mutedUsers, setMutedUsers] = useState<BannedUser[]>([]);
+    const [kickedUsers, setKickedUsers] = useState<BannedUser[]>([]);
 
+    const navigate = useNavigate();
     const match = location.pathname.match(/^\/session\/([^\/]+)$/);
     const sessionId = match ? match[1] : null;
 
@@ -149,8 +193,27 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setMessages((prev) => [...prev, message]);
         };
 
-        const handleError = (data: ErrorEvent) => {
-            setError(data.message);
+        const handleError = (data: ErrorEvent & { code?: string; remainingSeconds?: number }) => {
+            if (data.code === 'RATE_LIMIT_EXCEEDED' && data.remainingSeconds) {
+                // Show a more persistent/prominent error for rate limits
+                const endTime = Date.now() + (data.remainingSeconds * 1000);
+                setError(`Rate limit exceeded. Try again in ${data.remainingSeconds}s`);
+
+                // Optional: You could use a toast library here if available, 
+                // or set a special state to show a countdown component.
+                // For now, we'll just update the error state with a countdown.
+                const interval = setInterval(() => {
+                    const remaining = Math.ceil((endTime - Date.now()) / 1000);
+                    if (remaining <= 0) {
+                        clearInterval(interval);
+                        setError(null);
+                    } else {
+                        setError(`Rate limit exceeded. Try again in ${remaining}s`);
+                    }
+                }, 1000);
+            } else {
+                setError(data.message);
+            }
             console.error('Socket error:', data.message);
         };
 
@@ -254,6 +317,29 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setCustomTags(data.tags);
         };
 
+        const handleReadyCheckStarted = (data: ReadyCheckStartedEvent) => {
+            console.log('Ready check started:', data);
+            setReadyCheckActive(true);
+            setReadyUsers(new Set());
+        };
+
+        const handleReadyCheckEnded = (data: ReadyCheckEndedEvent) => {
+            console.log('Ready check ended:', data);
+            setReadyCheckActive(false);
+            setReadyUsers(new Set());
+        };
+
+        const handleUserReady = (data: UserReadyEvent) => {
+            console.log('User ready:', data);
+            setReadyUsers((prev) => new Set([...prev, data.userId]));
+        };
+
+        const handleReadyCheckState = (data: ReadyCheckStateEvent) => {
+            console.log('Ready check state:', data);
+            setReadyCheckActive(data.isActive);
+            setReadyUsers(new Set(data.readyUsers));
+        };
+
         socket.on('message_history', handleMessageHistory);
         socket.on('active_users', handleActiveUsers);
         socket.on('new_message', handleNewMessage);
@@ -267,6 +353,61 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         socket.on('rating_updated', handleRatingUpdated);
         socket.on('livestream_updated', handleLivestreamUpdated);
         socket.on('custom_tags_updated', handleCustomTagsUpdated);
+        socket.on('ready_check_started', handleReadyCheckStarted);
+        socket.on('ready_check_ended', handleReadyCheckEnded);
+        socket.on('user_ready', handleUserReady);
+        socket.on('ready_check_state', handleReadyCheckState);
+
+        // Moderation event handlers
+        const handleYouWereMuted = (data: YouWereMutedEvent) => {
+            console.log('You were muted:', data);
+            setIsMuted(true);
+        };
+
+        const handleYouWereUnmuted = (data: YouWereUnmutedEvent) => {
+            console.log('You were unmuted:', data);
+            setIsMuted(false);
+        };
+
+        const handleYouWereKicked = (data: YouWereKickedEvent) => {
+            console.log('You were kicked:', data);
+            // Redirect to home with message
+            navigate('/', { state: { kickedMessage: data.message } });
+        };
+
+        const handleBannedUsersList = (data: BannedUsersListEvent) => {
+            console.log('Banned users list:', data);
+            setMutedUsers(data.mutedUsers);
+            setKickedUsers(data.kickedUsers);
+        };
+
+        const handleUserMuted = (data: UserMutedEvent) => {
+            console.log('User muted:', data);
+            // Update muted users list
+            setMutedUsers((prev) => {
+                if (prev.some(u => u.id === data.userId)) return prev;
+                return [...prev, { id: data.userId, displayName: data.displayName }];
+            });
+        };
+
+        const handleUserUnmuted = (data: UserUnmutedEvent) => {
+            console.log('User unmuted:', data);
+            setMutedUsers((prev) => prev.filter(u => u.id !== data.userId));
+        };
+
+        const handleMessagesErased = (data: MessagesErasedEvent) => {
+            console.log('Messages erased:', data);
+            // Remove messages from state
+            setMessages((prev) => prev.filter(m => !data.messageIds.includes(m.id)));
+        };
+
+        socket.on('you_were_muted', handleYouWereMuted);
+        socket.on('you_were_unmuted', handleYouWereUnmuted);
+        socket.on('you_were_kicked', handleYouWereKicked);
+        socket.on('banned_users_list', handleBannedUsersList);
+        socket.on('user_muted', handleUserMuted);
+        socket.on('user_unmuted', handleUserUnmuted);
+        socket.on('messages_erased', handleMessagesErased);
 
         return () => {
             console.log('Leaving session:', sessionId);
@@ -284,9 +425,25 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             socket.off('rating_updated', handleRatingUpdated);
             socket.off('livestream_updated', handleLivestreamUpdated);
             socket.off('custom_tags_updated', handleCustomTagsUpdated);
+            socket.off('ready_check_started', handleReadyCheckStarted);
+            socket.off('ready_check_ended', handleReadyCheckEnded);
+            socket.off('user_ready', handleUserReady);
+            socket.off('ready_check_state', handleReadyCheckState);
+            socket.off('you_were_muted', handleYouWereMuted);
+            socket.off('you_were_unmuted', handleYouWereUnmuted);
+            socket.off('you_were_kicked', handleYouWereKicked);
+            socket.off('banned_users_list', handleBannedUsersList);
+            socket.off('user_muted', handleUserMuted);
+            socket.off('user_unmuted', handleUserUnmuted);
+            socket.off('messages_erased', handleMessagesErased);
             setIsConnected(false);
             setSessionEnded(false);
             setSessionEndedBy(null);
+            setReadyCheckActive(false);
+            setReadyUsers(new Set());
+            setIsMuted(false);
+            setMutedUsers([]);
+            setKickedUsers([]);
         };
     }, [socket, sessionId]);
 
@@ -396,6 +553,55 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [revealMySpoilers]);
 
+    const startReadyCheck = useCallback(() => {
+        if (socket && sessionId) {
+            socket.emit('start_ready_check', { sessionId });
+        }
+    }, [socket, sessionId]);
+
+    const endReadyCheck = useCallback(() => {
+        if (socket && sessionId) {
+            socket.emit('end_ready_check', { sessionId });
+        }
+    }, [socket, sessionId]);
+
+    const markReady = useCallback(() => {
+        if (socket && sessionId) {
+            socket.emit('mark_ready', { sessionId });
+        }
+    }, [socket, sessionId]);
+
+    // Moderation callbacks
+    const muteUser = useCallback((targetUserId: string, eraseMessages?: boolean) => {
+        if (socket && sessionId) {
+            socket.emit('mute_user', { sessionId, userId: targetUserId, eraseMessages });
+        }
+    }, [socket, sessionId]);
+
+    const unmuteUser = useCallback((targetUserId: string) => {
+        if (socket && sessionId) {
+            socket.emit('unmute_user', { sessionId, userId: targetUserId });
+        }
+    }, [socket, sessionId]);
+
+    const kickUserFn = useCallback((targetUserId: string, eraseMessages?: boolean) => {
+        if (socket && sessionId) {
+            socket.emit('kick_user', { sessionId, userId: targetUserId, eraseMessages });
+        }
+    }, [socket, sessionId]);
+
+    const unkickUser = useCallback((targetUserId: string) => {
+        if (socket && sessionId) {
+            socket.emit('unkick_user', { sessionId, userId: targetUserId });
+        }
+    }, [socket, sessionId]);
+
+    const getBannedUsers = useCallback(() => {
+        if (socket && sessionId) {
+            socket.emit('get_banned_users', { sessionId });
+        }
+    }, [socket, sessionId]);
+
     return (
         <ChatContext.Provider value={{
             activeUsers,
@@ -430,6 +636,33 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             summaryId,
             updateRecentTags,
             setLivestreamUrl,
+            readyCheckActive,
+            readyUsers,
+            startReadyCheck,
+            endReadyCheck,
+            markReady,
+            markUnready: () => {
+                if (socket && sessionId) {
+                    socket.emit('mark_unready', { sessionId });
+                }
+            },
+            isMuted,
+            mutedUsers,
+            kickedUsers,
+            muteUser: (userId: string, eraseMessages?: boolean) => {
+                if (socket && sessionId) {
+                    socket.emit('mute_user', { sessionId, userId, eraseMessages });
+                }
+            },
+            unmuteUser,
+            kickUser: kickUserFn,
+            unkickUser,
+            getBannedUsers,
+            unmodUser: (userId: string) => {
+                if (socket && sessionId) {
+                    socket.emit('unmod_user', { sessionId, userId });
+                }
+            },
         }}>
             {children}
         </ChatContext.Provider>

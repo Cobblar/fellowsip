@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, Clock, ChevronRight, ChevronDown, PlayCircle, Plus, Users, UserPlus, LogIn, Archive } from 'lucide-react';
 import { useAllSummaries, useUserSessions, useArchiveSession } from '../api/sessions';
 import { useFriendsSessions, useRequestToJoin, useMyJoinRequests } from '../api/friends';
-import { getProductIcon, getProductColor } from '../utils/productIcons';
+import { getProductIcon } from '../utils/productIcons';
 
 export function Summaries() {
     const navigate = useNavigate();
@@ -22,9 +22,6 @@ export function Summaries() {
     const allSessions = sessionsData?.sessions || [];
     const friendsSessions = friendsSessionsData?.sessions || [];
     const myJoinRequests = myJoinRequestsData?.requests || [];
-
-    const [joinSessionId, setJoinSessionId] = useState('');
-    const [showJoinInput, setShowJoinInput] = useState(false);
 
     // Helper to get join request status for a session
     const getJoinStatus = (sessionId: string): 'none' | 'pending' | 'approved' | 'rejected' => {
@@ -82,12 +79,6 @@ export function Summaries() {
         );
     }
 
-    const handleJoinById = () => {
-        if (joinSessionId.trim()) {
-            navigate(`/join/${joinSessionId.trim()}`);
-        }
-    };
-
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             {/* Header with New Session Button */}
@@ -116,39 +107,6 @@ export function Summaries() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {showJoinInput ? (
-                            <div className="flex items-center gap-2 flex-1">
-                                <input
-                                    type="text"
-                                    placeholder="Paste session ID..."
-                                    value={joinSessionId}
-                                    onChange={(e) => setJoinSessionId(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleJoinById()}
-                                    className="px-3 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm flex-1 font-mono"
-                                    autoFocus
-                                />
-                                <button
-                                    onClick={handleJoinById}
-                                    disabled={!joinSessionId.trim()}
-                                    className="btn-outline text-sm py-1.5"
-                                >
-                                    Join
-                                </button>
-                                <button
-                                    onClick={() => { setShowJoinInput(false); setJoinSessionId(''); }}
-                                    className="text-[var(--text-secondary)] hover:text-white text-sm"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setShowJoinInput(true)}
-                                className="btn-outline flex-1 md:flex-none justify-center"
-                            >
-                                Join by ID
-                            </button>
-                        )}
                         <button
                             onClick={() => navigate('/create')}
                             className="btn-orange mobile-only flex-1 justify-center"
@@ -299,8 +257,7 @@ export function Summaries() {
                     previousSummaries.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {previousSummaries.map((item) => {
-                                const ProductIcon = getProductIcon(item.session.productType);
-                                const colorClass = getProductColor(item.session.productType);
+                                const productEmoji = getProductIcon(item.session.productType);
                                 return (
                                     <div
                                         key={item.session.id}
@@ -309,17 +266,19 @@ export function Summaries() {
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center ${colorClass}`}>
-                                                    <ProductIcon size={20} />
+                                                <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
+                                                    {productEmoji}
                                                 </div>
                                                 <div>
                                                     <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">{item.session?.name}</h3>
                                                     <p className="text-xs text-[var(--text-secondary)]">{item.session.productType || 'Tasting'}</p>
                                                 </div>
                                             </div>
-                                            {item.summary?.metadata?.rating && (
+                                            {(item.summary?.metadata?.rating || item.summary?.averageRating) && (
                                                 <div className="flex flex-col items-end">
-                                                    <span className="text-lg font-bold text-orange-500">{item.summary.metadata.rating}</span>
+                                                    <span className="text-lg font-bold text-orange-500">
+                                                        {item.summary?.metadata?.rating || item.summary?.averageRating}
+                                                    </span>
                                                     <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">Score</span>
                                                 </div>
                                             )}

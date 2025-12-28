@@ -315,7 +315,8 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           onKeyDown={handleKeyDown}
           placeholder="Share your tasting notes..."
           disabled={disabled}
-          className="w-full bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg px-4 py-4 text-sm resize-none focus:border-[var(--border-secondary)] transition-all pr-14"
+          className={`w-full bg-[var(--bg-card)] border rounded-lg px-4 py-4 text-sm resize-none focus:border-[var(--border-secondary)] transition-all pr-14 ${content.length > 300 ? 'border-red-500 focus:border-red-500' : 'border-[var(--border-primary)]'
+            }`}
           rows={1}
           onInput={(e) => {
             const target = e.target as HTMLTextAreaElement;
@@ -324,13 +325,22 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           }}
         />
 
-        <button
-          onClick={handleSubmit}
-          disabled={disabled || !content.trim()}
-          className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-orange-600 rounded-md flex items-center justify-center text-white hover:bg-orange-500 disabled:opacity-50 disabled:bg-[var(--bg-input)] transition-all"
-        >
-          <Send size={18} />
-        </button>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          {content.length > 280 && (
+            <span className={`text-[10px] font-bold ${content.length > 300 ? 'text-red-500' : 'text-orange-500'
+              }`}>
+              {content.length}/300
+            </span>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={disabled || !content.trim() || content.length > 300}
+            className="w-10 h-10 bg-orange-600 rounded-md flex items-center justify-center text-white hover:bg-orange-500 disabled:opacity-50 disabled:bg-[var(--bg-input)] transition-all"
+          >
+            <Send size={18} />
+          </button>
+        </div>
       </div>
     </div>
   );

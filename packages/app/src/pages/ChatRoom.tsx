@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Zap, Tag, Info, MoreVertical, Loader2, BarChart3, User, Users, Check, X, Crown, AlertCircle, Copy, Link2, Hash, Shield, Eye, EyeOff, Star, Monitor, Bug, ChevronLeft } from 'lucide-react';
+import { Zap, Tag, Info, MoreVertical, Loader2, BarChart3, User, Users, Check, X, Crown, AlertCircle, Copy, Link2, Hash, Shield, Eye, EyeOff, Star, Monitor, Bug, ChevronLeft, CheckCircle, PlayCircle, Ban, VolumeX, Volume2, ShieldOff } from 'lucide-react';
 import { useSession, useEndSession, useTransferHost } from '../api/sessions';
 import { useSessionJoinRequests, useApproveJoinRequest, useRejectJoinRequest } from '../api/friends';
 import { useChatContext } from '../contexts/ChatContext';
@@ -57,6 +57,22 @@ export function ChatRoom() {
     customTags,
     currentUserId,
     injectDebugHistory,
+    readyCheckActive,
+    readyUsers,
+    startReadyCheck,
+    endReadyCheck,
+    markReady,
+    markUnready,
+    isMuted,
+    mutedUsers,
+    kickedUsers,
+    muteUser,
+    unmuteUser,
+    kickUser,
+    unkickUser,
+    getBannedUsers,
+    unmodUser,
+    summaryId,
   } = useChatContext();
   const { mutate: endSession, isPending: isEnding } = useEndSession();
   const { mutate: transferHost, isPending: isTransferring } = useTransferHost();
@@ -102,6 +118,7 @@ export function ChatRoom() {
 
   const [showEndModal, setShowEndModal] = useState(false);
   const [showPostSessionModal, setShowPostSessionModal] = useState(false);
+  const [showSpoilerDefaults, setShowSpoilerDefaults] = useState(false);
 
   const session = sessionData?.session;
   const isSessionEnded = sessionEnded || session?.status === 'ended';
@@ -121,7 +138,15 @@ export function ChatRoom() {
   const [showStreamInput, setShowStreamInput] = useState(false);
   const [streamInputValue, setStreamInputValue] = useState('');
   const [activeSidebar, setActiveSidebar] = useState<'tasters' | 'summary' | null>(null);
+  const [isTastersMenuOpen, setIsTastersMenuOpen] = useState(false);
+  const [showManageBans, setShowManageBans] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'kick' | 'mute';
+    userId: string;
+    displayName: string | null;
+  } | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const tastersMenuRef = useRef<HTMLDivElement>(null);
 
   // Sidebar resizing
   const [sidebarWidth, setSidebarWidth] = useState(600);
@@ -173,6 +198,9 @@ export function ChatRoom() {
     function handleClickOutside(event: MouseEvent) {
       if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
         setIsActionsOpen(false);
+      }
+      if (tastersMenuRef.current && !tastersMenuRef.current.contains(event.target as Node)) {
+        setIsTastersMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -240,6 +268,55 @@ export function ChatRoom() {
 
   return (
     <div className="h-full flex overflow-hidden relative">
+      {/* Spoiler Defaults Modal */}
+      {showSpoilerDefaults && (
+        <div className="absolute inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="card w-full max-w-md p-6 border-orange-500/30 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Spoiler Settings</h3>
+              <button onClick={() => setShowSpoilerDefaults(false)} className="text-[var(--text-secondary)] hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              Choose which phases should be hidden by default when you join a session.
+            </p>
+
+            <div className="space-y-3">
+              {['nose', 'palate', 'finish', 'texture', 'untagged'].map((phase) => (
+                <div key={phase} className="flex items-center justify-between p-3 bg-[var(--bg-input)] rounded-lg border border-[var(--border-primary)]">
+                  <span className="text-sm font-bold uppercase text-[var(--text-primary)]">{phase}</span>
+                  <div className="flex gap-1 bg-[var(--bg-main)] p-1 rounded-md">
+                    <button
+                      onClick={() => setPhaseVisibility(phase, 'normal')}
+                      className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${phaseVisibility[phase] === 'normal' ? 'bg-green-500/20 text-green-500' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                    >
+                      Visible
+                    </button>
+                    <button
+                      onClick={() => setPhaseVisibility(phase, 'hidden')}
+                      className={`px-2 py-1 text-[10px] font-bold uppercase rounded ${phaseVisibility[phase] === 'hidden' ? 'bg-red-500/20 text-red-500' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
+                    >
+                      Hidden
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowSpoilerDefaults(false)}
+                className="btn-orange"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* End Session Modal */}
       {showEndModal && (
         <div className="absolute inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -310,16 +387,123 @@ export function ChatRoom() {
               <Users size={12} />
               Active Tasters
             </h3>
-            <button onClick={() => setActiveSidebar(null)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Host dropdown menu */}
+              {isHost && !sessionEnded && (
+                <div className="relative" ref={tastersMenuRef}>
+                  <button
+                    onClick={() => setIsTastersMenuOpen(!isTastersMenuOpen)}
+                    className={`p-1 rounded transition-all ${isTastersMenuOpen ? 'bg-[var(--bg-input)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                  {isTastersMenuOpen && (
+                    <div className="absolute right-0 mt-1 w-44 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-1">
+                        {readyCheckActive ? (
+                          <button
+                            onClick={() => {
+                              endReadyCheck();
+                              setIsTastersMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
+                          >
+                            <X size={14} />
+                            End Ready Check
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              startReadyCheck();
+                              setIsTastersMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-green-400 hover:bg-green-500/10 rounded-md transition-colors"
+                          >
+                            <PlayCircle size={14} />
+                            Start Ready Check
+                          </button>
+                        )}
+                        <div className="border-t border-[var(--border-primary)] my-1" />
+                        <button
+                          onClick={() => {
+                            getBannedUsers();
+                            setShowManageBans(true);
+                            setIsTastersMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                        >
+                          <Ban size={14} />
+                          Manage Bans
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <button onClick={() => setActiveSidebar(null)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+                <X size={16} />
+              </button>
+            </div>
           </div>
+
+          {/* Ready Check Status (for non-host) */}
+          {readyCheckActive && (
+            <div className="mb-4 p-3 bg-green-500/5 border border-green-500/20 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Ready Check Active</span>
+                <span className="text-xs font-bold text-green-400">
+                  {readyUsers.size}/{activeUsers.length} ({activeUsers.length > 0 ? Math.round((readyUsers.size / activeUsers.length) * 100) : 0}%)
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-[var(--bg-input)] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all duration-300"
+                  style={{ width: `${activeUsers.length > 0 ? (readyUsers.size / activeUsers.length) * 100 : 0}%` }}
+                />
+              </div>
+              {currentUserId && !readyUsers.has(currentUserId) && (
+                <button
+                  onClick={markReady}
+                  className="w-full mt-3 py-2 px-3 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <CheckCircle size={14} />
+                  Mark Ready
+                </button>
+              )}
+              {currentUserId && readyUsers.has(currentUserId) && (
+                <div className="flex gap-2 mt-3">
+                  <div className="flex-1 py-2 px-3 bg-green-500/10 text-green-400 border border-green-500/30 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-2">
+                    <CheckCircle size={14} />
+                    You're Ready!
+                  </div>
+                  <button
+                    onClick={markUnready}
+                    className="px-3 py-2 bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-bold transition-colors"
+                    title="Unready"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {isHost && activeUsers.length > 0 && (readyUsers.size / activeUsers.length) >= 0.95 && (
+                <button
+                  onClick={endReadyCheck}
+                  className="w-full mt-2 py-1.5 px-3 bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-lg text-[10px] font-bold transition-colors border border-[var(--border-primary)]"
+                >
+                  Close Ready Check
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             {activeUsers.map((user) => {
               const isUserHost = user.userId === effectiveHostId;
               const isUserMod = moderators.includes(user.userId);
               const canTransfer = isHost && !isUserHost && user.userId !== currentUserId;
               const canMakeMod = isHost && !isUserHost && !isUserMod && user.userId !== currentUserId;
+              const isUserReady = readyUsers.has(user.userId);
               return (
                 <div
                   key={user.socketId}
@@ -327,7 +511,9 @@ export function ChatRoom() {
                     ? 'bg-orange-500/5 border-orange-500/30'
                     : isUserMod
                       ? 'bg-blue-500/5 border-blue-500/30'
-                      : 'bg-[var(--bg-main)]/30 border-[var(--border-primary)]/50'
+                      : readyCheckActive && isUserReady
+                        ? 'bg-green-500/5 border-green-500/30'
+                        : 'bg-[var(--bg-main)]/30 border-[var(--border-primary)]/50'
                     }`}
                 >
                   <div className="relative">
@@ -338,7 +524,13 @@ export function ChatRoom() {
                         <User size={14} className="text-[var(--text-secondary)]" />
                       </div>
                     )}
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-[var(--bg-sidebar)] rounded-full"></span>
+                    {readyCheckActive && isUserReady ? (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[var(--bg-sidebar)] rounded-full flex items-center justify-center">
+                        <Check size={6} className="text-white" />
+                      </span>
+                    ) : (
+                      <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-[var(--bg-sidebar)] rounded-full"></span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
@@ -376,6 +568,15 @@ export function ChatRoom() {
                           <Shield size={10} />
                         </button>
                       )}
+                      {isHost && isUserMod && !isUserHost && user.userId !== currentUserId && (
+                        <button
+                          onClick={() => unmodUser(user.userId)}
+                          className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
+                          title="Remove Moderator"
+                        >
+                          <ShieldOff size={10} />
+                        </button>
+                      )}
                       {canTransfer && (
                         <button
                           onClick={() => handleTransferHost(user.userId)}
@@ -386,7 +587,39 @@ export function ChatRoom() {
                           <Crown size={10} />
                         </button>
                       )}
+                      {/* Mute/Kick buttons (host/mod only, not on self or host) */}
+                      {canModerate && user.userId !== currentUserId && !isUserHost && (
+                        <>
+                          {mutedUsers.some(u => u.id === user.userId) ? (
+                            <button
+                              onClick={() => unmuteUser(user.userId)}
+                              className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded hover:bg-green-500/20 transition-all"
+                              title="Unmute"
+                            >
+                              <Volume2 size={10} />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmAction({ type: 'mute', userId: user.userId, displayName: user.displayName })}
+                              className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-yellow-500/10 text-yellow-500 rounded hover:bg-yellow-500/20 transition-all"
+                              title="Mute"
+                            >
+                              <VolumeX size={10} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setConfirmAction({ type: 'kick', userId: user.userId, displayName: user.displayName })}
+                            className="opacity-0 group-hover:opacity-100 text-[9px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-all"
+                            title="Kick"
+                          >
+                            <Ban size={10} />
+                          </button>
+                        </>
+                      )}
                     </div>
+                    {readyCheckActive && isUserReady && (
+                      <span className="text-base">✅</span>
+                    )}
                   </div>
                 </div>
               );
@@ -445,7 +678,7 @@ export function ChatRoom() {
       </aside>
 
       {/* Resize Handle */}
-      {livestreamUrl && (
+      {livestreamUrl && !isSessionEnded && (
         <div
           className={`hidden md:flex w-1 hover:w-1.5 bg-transparent hover:bg-orange-500/50 cursor-col-resize transition-all z-10 items-center justify-center group ${isResizing ? 'bg-orange-500/50 w-1.5' : ''}`}
           onMouseDown={startResizing}
@@ -514,7 +747,7 @@ export function ChatRoom() {
             </button>
 
             {/* Host Primary Action */}
-            {isHost && (
+            {isHost && !summaryId && (
               <button
                 onClick={handleAnalyze}
                 disabled={isEnding}
@@ -526,6 +759,16 @@ export function ChatRoom() {
                   <Zap size={14} className="md:mr-2" />
                 )}
                 <span className="hidden md:inline">{isEnding ? 'Synthesizing...' : 'Synthesize Profile'}</span>
+              </button>
+            )}
+
+            {summaryId && (
+              <button
+                onClick={() => navigate(`/session/${id}/summary`)}
+                className="btn-orange text-[10px] md:text-xs py-1.5 md:py-2 px-2 md:px-4 shadow-lg shadow-orange-500/10"
+              >
+                <Zap size={14} className="md:mr-2" />
+                <span className="hidden md:inline">View Summary</span>
               </button>
             )}
 
@@ -593,6 +836,17 @@ export function ChatRoom() {
                         Reveal All Spoilers
                       </button>
 
+                      <button
+                        onClick={() => {
+                          setShowSpoilerDefaults(true);
+                          setIsActionsOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                      >
+                        <EyeOff size={16} />
+                        Spoiler Defaults
+                      </button>
+
                       {currentUserId === '108758497007070939011' && (
                         <button
                           onClick={() => {
@@ -615,7 +869,7 @@ export function ChatRoom() {
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
                       >
-                        <X size={16} />
+                        <Ban size={16} />
                         End Session
                       </button>
                     </div>
@@ -651,7 +905,7 @@ export function ChatRoom() {
         )}
 
         {/* Mobile Livestream Embed */}
-        {livestreamUrl && isMobile && (
+        {livestreamUrl && isMobile && !isSessionEnded && (
           <div className="md:hidden bg-black border-b border-[var(--border-primary)]">
             <LivestreamEmbed url={livestreamUrl} className="rounded-none" />
           </div>
@@ -680,6 +934,7 @@ export function ChatRoom() {
               onEditMessage={editMessage}
               revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
               phaseVisibility={phaseVisibility}
+              summaryId={summaryId}
             />
           </div>
         </div>
@@ -690,6 +945,11 @@ export function ChatRoom() {
             {isSessionEnded ? (
               <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
                 This session has ended. Chat is disabled.
+              </div>
+            ) : isMuted ? (
+              <div className="text-center py-3 text-sm text-yellow-500 bg-yellow-500/5 rounded-lg border border-yellow-500/20 flex items-center justify-center gap-2">
+                <VolumeX size={16} />
+                You have been muted in this session.
               </div>
             ) : (
               <MessageInput onSend={sendMessage} disabled={!isConnected} />
@@ -880,6 +1140,152 @@ export function ChatRoom() {
         isOpen={showPostSessionModal}
         onClose={() => setShowPostSessionModal(false)}
       />
+
+      {/* Confirmation Dialog for Kick/Mute */}
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">
+              {confirmAction.type === 'kick' ? 'Kick User' : 'Mute User'}
+            </h3>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              Are you sure you want to {confirmAction.type === 'kick' ? 'kick' : 'mute'}{' '}
+              <span className="font-semibold text-[var(--text-primary)]">
+                {confirmAction.displayName || 'this user'}
+              </span>
+              {confirmAction.type === 'kick'
+                ? '? They will be removed from the session and cannot rejoin.'
+                : '? They will not be able to send messages.'}
+            </p>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmAction(null)}
+                  className="flex-1 py-2 px-4 bg-[var(--bg-input)] text-[var(--text-primary)] rounded-lg text-sm font-medium hover:bg-[var(--bg-main)] transition-colors"
+                >
+                  Cancel
+                </button>
+                {confirmAction.type === 'kick' ? (
+                  <button
+                    onClick={() => {
+                      kickUser(confirmAction.userId, true);
+                      setConfirmAction(null);
+                    }}
+                    className="flex-1 py-2 px-4 rounded-lg text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  >
+                    Kick & Erase
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      muteUser(confirmAction.userId, false);
+                      setConfirmAction(null);
+                    }}
+                    className="flex-1 py-2 px-4 rounded-lg text-sm font-bold bg-yellow-500 text-black hover:bg-yellow-400 transition-colors"
+                  >
+                    Mute Only
+                  </button>
+                )}
+              </div>
+              {confirmAction.type === 'mute' && (
+                <button
+                  onClick={() => {
+                    muteUser(confirmAction.userId, true);
+                    setConfirmAction(null);
+                  }}
+                  className="w-full py-2 px-4 rounded-lg text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-colors"
+                >
+                  Mute & Erase Messages
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Bans Modal */}
+      {showManageBans && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl p-6 max-w-md w-full mx-4 shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-[var(--text-primary)]">Manage Bans</h3>
+              <button
+                onClick={() => setShowManageBans(false)}
+                className="p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Muted Users */}
+            <div className="mb-6">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-yellow-500 mb-3 flex items-center gap-2">
+                <VolumeX size={12} />
+                Muted Users ({mutedUsers.length})
+              </h4>
+              {mutedUsers.length === 0 ? (
+                <p className="text-xs text-[var(--text-muted)] italic">No muted users</p>
+              ) : (
+                <div className="space-y-2">
+                  {mutedUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-2 bg-yellow-500/5 border border-yellow-500/20 rounded-lg"
+                    >
+                      <span className="text-sm text-[var(--text-primary)]">
+                        {user.displayName || 'Unknown User'}
+                      </span>
+                      <button
+                        onClick={() => unmuteUser(user.id)}
+                        className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded hover:bg-green-500/20 transition-colors"
+                      >
+                        Unmute
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Kicked Users */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-red-400 mb-3 flex items-center gap-2">
+                <Ban size={12} />
+                Kicked Users ({kickedUsers.length})
+              </h4>
+              {kickedUsers.length === 0 ? (
+                <p className="text-xs text-[var(--text-muted)] italic">No kicked users</p>
+              ) : (
+                <div className="space-y-2">
+                  {kickedUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-2 bg-red-500/5 border border-red-500/20 rounded-lg"
+                    >
+                      <span className="text-sm text-[var(--text-primary)]">
+                        {user.displayName || 'Unknown User'}
+                      </span>
+                      {isHost && (
+                        <button
+                          onClick={() => unkickUser(user.id)}
+                          className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded hover:bg-green-500/20 transition-colors"
+                        >
+                          Unkick
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!isHost && kickedUsers.length > 0 && (
+                <p className="text-[10px] text-[var(--text-muted)] mt-2 italic">
+                  Only the host can unkick users
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -70,7 +70,8 @@ export async function getUserSessions(userId: string) {
               .where(
                 and(
                   eq(sessionParticipants.sessionId, tastingSessions.id),
-                  eq(sessionParticipants.userId, userId)
+                  eq(sessionParticipants.userId, userId),
+                  eq(sessionParticipants.isBanned, false) // Filter out banned
                 )
               )
           )
@@ -279,14 +280,16 @@ export async function addSessionParticipant(sessionId: string, userId: string) {
 
 export async function updateParticipantRating(sessionId: string, userId: string, rating: number) {
   await db
-    .update(sessionParticipants)
-    .set({ rating })
-    .where(
-      and(
-        eq(sessionParticipants.sessionId, sessionId),
-        eq(sessionParticipants.userId, userId)
-      )
-    );
+    .insert(sessionParticipants)
+    .values({
+      sessionId,
+      userId,
+      rating,
+    })
+    .onConflictDoUpdate({
+      target: [sessionParticipants.sessionId, sessionParticipants.userId],
+      set: { rating },
+    });
 }
 
 export async function getAverageRating(sessionId: string): Promise<number | null> {
@@ -332,7 +335,8 @@ export async function getParticipatedSessions(userId: string) {
               .where(
                 and(
                   eq(sessionParticipants.sessionId, tastingSessions.id),
-                  eq(sessionParticipants.userId, userId)
+                  eq(sessionParticipants.userId, userId),
+                  eq(sessionParticipants.isBanned, false) // Filter out banned
                 )
               )
           )
@@ -342,6 +346,40 @@ export async function getParticipatedSessions(userId: string) {
     .orderBy(desc(tastingSessions.createdAt));
 
   return sessions;
+}
+
+export async function banParticipant(sessionId: string, userId: string) {
+  await db
+    .update(sessionParticipants)
+    .set({ isBanned: true })
+    .where(
+      and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId)
+      )
+    );
+}
+
+export async function unbanParticipant(sessionId: string, userId: string) {
+  await db
+    .update(sessionParticipants)
+    .set({ isBanned: false })
+    .where(
+      and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId)
+      )
+    );
+}
+
+export async function isParticipantBanned(sessionId: string, userId: string): Promise<boolean> {
+  const participant = await db.query.sessionParticipants.findFirst({
+    where: and(
+      eq(sessionParticipants.sessionId, sessionId),
+      eq(sessionParticipants.userId, userId)
+    ),
+  });
+  return participant?.isBanned ?? false;
 }
 
 export async function getAllUserSummaries(userId: string) {
@@ -364,7 +402,8 @@ export async function getAllUserSummaries(userId: string) {
               .where(
                 and(
                   eq(sessionParticipants.sessionId, tastingSessions.id),
-                  eq(sessionParticipants.userId, userId)
+                  eq(sessionParticipants.userId, userId),
+                  eq(sessionParticipants.isBanned, false) // Filter out banned
                 )
               )
           )
@@ -546,7 +585,8 @@ export async function getArchivedSessions(userId: string) {
               .where(
                 and(
                   eq(sessionParticipants.sessionId, tastingSessions.id),
-                  eq(sessionParticipants.userId, userId)
+                  eq(sessionParticipants.userId, userId),
+                  eq(sessionParticipants.isBanned, false) // Filter out banned
                 )
               )
           )

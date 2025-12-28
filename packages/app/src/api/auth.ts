@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 
 interface User {
@@ -23,5 +23,18 @@ export function useCurrentUser() {
         queryKey: authKeys.session,
         queryFn: () => api.get<SessionResponse>('/auth/session'),
         staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+}
+
+// Update user profile
+export function useUpdateProfile() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: { displayName: string }) =>
+            api.patch<{ user: User }>('/auth/profile', data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: authKeys.session });
+        },
     });
 }

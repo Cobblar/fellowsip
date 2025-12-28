@@ -154,6 +154,7 @@ export const sessionParticipants = pgTable('session_participants', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   rating: real('rating'),
+  isBanned: boolean('is_banned').notNull().default(false),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({
   sessionIdx: index('session_participants_session_id_idx').on(table.sessionId),

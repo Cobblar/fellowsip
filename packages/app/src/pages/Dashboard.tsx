@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, ChevronRight, ArrowUpDown, Package, Archive, SlidersHorizontal } from 'lucide-react';
 import { useAllSummaries, useArchiveSession, useUserSessions } from '../api/sessions';
-import { getProductIcon, getProductColor } from '../utils/productIcons';
+import { getProductIcon } from '../utils/productIcons';
 
 type SortOption = 'name' | 'date' | 'rating';
 
@@ -232,7 +232,7 @@ export function Dashboard() {
           All
         </button>
         {productTypes.map((type) => {
-          const Icon = getProductIcon(type);
+          const emoji = getProductIcon(type);
           const isSelected = selectedType === type;
           return (
             <button
@@ -243,7 +243,7 @@ export function Dashboard() {
                 : 'bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-secondary)]'
                 }`}
             >
-              <Icon size={14} />
+              <span className="text-sm">{emoji}</span>
               {type}
             </button>
           );
@@ -254,8 +254,7 @@ export function Dashboard() {
       {filteredAndSortedSummaries.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedSummaries.map((item) => {
-            const ProductIcon = getProductIcon(item.session.productType);
-            const colorClass = getProductColor(item.session.productType);
+            const productEmoji = getProductIcon(item.session.productType);
             return (
               <div
                 key={item.session.id}
@@ -264,8 +263,8 @@ export function Dashboard() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 bg-[var(--bg-input)] rounded-lg flex items-center justify-center ${colorClass}`}>
-                      <ProductIcon size={24} />
+                    <div className="w-12 h-12 bg-[var(--bg-input)] rounded-lg flex items-center justify-center text-2xl">
+                      {productEmoji}
                     </div>
                     <div>
                       <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">

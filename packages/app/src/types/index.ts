@@ -118,3 +118,74 @@ export interface RatingUpdatedEvent {
   averageRating: number | null;
 }
 
+// Ready check events
+export interface ReadyCheckStartedEvent {
+  sessionId: string;
+  startedBy: string;
+}
+
+export interface ReadyCheckEndedEvent {
+  sessionId: string;
+}
+
+export interface UserReadyEvent {
+  userId: string;
+  displayName: string | null;
+}
+
+export interface ReadyCheckStateEvent {
+  isActive: boolean;
+  readyUsers: string[];
+  totalUsers: number;
+}
+
+// User moderation events
+export interface BannedUser {
+  id: string;
+  displayName: string | null;
+}
+
+export interface UserMutedEvent {
+  userId: string;
+  displayName: string | null;
+}
+
+export interface UserUnmutedEvent {
+  userId: string;
+  displayName: string | null;
+}
+
+export interface UserKickedEvent {
+  userId: string;
+  displayName: string | null;
+}
+
+export interface UserUnkickedEvent {
+  userId: string;
+  displayName: string | null;
+}
+
+export interface YouWereKickedEvent {
+  sessionId: string;
+  message: string;
+}
+
+export interface YouWereMutedEvent {
+  sessionId: string;
+  message: string;
+}
+
+export interface YouWereUnmutedEvent {
+  sessionId: string;
+}
+
+export interface BannedUsersListEvent {
+  mutedUsers: BannedUser[];
+  kickedUsers: BannedUser[];
+}
+
+export interface MessagesErasedEvent {
+  userId: string;
+  messageIds: string[];
+}
+

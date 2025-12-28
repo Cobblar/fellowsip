@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wine, Coffee, Beer, Grape, Leaf, Square, ChevronRight, Plus, Loader2, ChevronLeft } from 'lucide-react';
+import { ChevronRight, Loader2, ChevronLeft } from 'lucide-react';
 import { useCreateSession } from '../api/sessions';
 import { api } from '../api/client';
+import { getProductIcon } from '../utils/productIcons';
 
-const PRODUCT_TYPES = [
-  { name: 'Wine', icon: Grape },
-  { name: 'Whisky', icon: Wine },
-  { name: 'Beer', icon: Beer },
-  { name: 'Sake', icon: Wine },
-  { name: 'Coffee', icon: Coffee },
-  { name: 'Tea', icon: Leaf },
-  { name: 'Chocolate', icon: Square },
-  { name: 'Other', icon: Wine },
-];
+const PRODUCT_TYPES = ['Wine', 'Whisky', 'Beer', 'Sake', 'Coffee', 'Tea', 'Chocolate', 'Other'];
 
 export function CreateSession() {
   const navigate = useNavigate();
@@ -22,7 +14,6 @@ export function CreateSession() {
   const [productLink, setProductLink] = useState('');
   const [productName, setProductName] = useState('');
   const [livestreamUrl, setLivestreamUrl] = useState('');
-  const [showProductLink, setShowProductLink] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const createSession = useCreateSession();
 
@@ -126,20 +117,20 @@ export function CreateSession() {
               <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3 block">Product Category</label>
               <div className="grid grid-cols-4 gap-3">
                 {PRODUCT_TYPES.map((type) => {
-                  const Icon = type.icon;
-                  const isSelected = productType === type.name;
+                  const emoji = getProductIcon(type);
+                  const isSelected = productType === type;
                   return (
                     <button
-                      key={type.name}
+                      key={type}
                       type="button"
-                      onClick={() => setProductType(isSelected ? '' : type.name)}
+                      onClick={() => setProductType(isSelected ? '' : type)}
                       className={`flex flex-col items-center gap-2.5 p-3 rounded-lg border transition-all ${isSelected
                         ? 'bg-orange-500/10 border-orange-500 text-orange-500'
                         : 'bg-[var(--bg-main)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-secondary)]'
                         }`}
                     >
-                      <Icon size={20} />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{type.name}</span>
+                      <span className="text-2xl">{emoji}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">{type}</span>
                     </button>
                   );
                 })}
@@ -147,27 +138,17 @@ export function CreateSession() {
             </div>
 
             <div>
-              <button
-                type="button"
-                onClick={() => setShowProductLink(!showProductLink)}
-                className="text-[10px] font-bold uppercase tracking-widest text-orange-500 hover:text-orange-400 flex items-center gap-1.5 transition-colors"
-              >
-                <Plus size={12} className={`transition-transform ${showProductLink ? 'rotate-45' : ''}`} />
-                {showProductLink ? 'Hide Product Link' : 'Add Product Link'}
-              </button>
-
-              {showProductLink && (
-                <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Product Link (Optional)</label>
-                  <input
-                    type="url"
-                    value={productLink}
-                    onChange={(e) => setProductLink(e.target.value)}
-                    placeholder="https://example.com/product"
-                    className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2"
-                  />
-                </div>
-              )}
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Product Link (Optional)</label>
+              <input
+                type="url"
+                value={productLink}
+                onChange={(e) => setProductLink(e.target.value)}
+                placeholder="https://example.com/product"
+                className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2.5"
+              />
+              <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
+                Paste a link to auto-fill the product name.
+              </p>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Clock, ChevronRight, PlayCircle, Users, UserPlus, LogIn, Archive, Calendar } from 'lucide-react';
-import { getProductIcon, getProductColor } from '../utils/productIcons';
+import { getProductIcon } from '../utils/productIcons';
 
 type SessionVariant = 'active' | 'friend' | 'ended';
 type JoinStatus = 'none' | 'pending' | 'approved' | 'rejected';
@@ -56,17 +56,16 @@ export function EnhancedSessionCard({
     const getIconStyles = () => {
         switch (variant) {
             case 'active':
-                return { bg: 'bg-green-500/10', color: 'text-green-500', Icon: PlayCircle };
+                return { bg: 'bg-green-500/10', color: 'text-green-500', Icon: PlayCircle, isEmoji: false };
             case 'friend':
-                return { bg: 'bg-blue-500/10', color: 'text-blue-500', Icon: Users };
+                return { bg: 'bg-blue-500/10', color: 'text-blue-500', Icon: Users, isEmoji: false };
             default:
-                const ProductIcon = getProductIcon(productType);
-                const colorClass = getProductColor(productType);
-                return { bg: 'bg-[var(--bg-input)]', color: colorClass, Icon: ProductIcon };
+                const productEmoji = getProductIcon(productType);
+                return { bg: 'bg-[var(--bg-input)]', color: '', Icon: productEmoji, isEmoji: true };
         }
     };
 
-    const { bg, color, Icon } = getIconStyles();
+    const { bg, color, Icon, isEmoji } = getIconStyles();
 
     const formatTime = (dateString: string) => {
         return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -130,8 +129,15 @@ export function EnhancedSessionCard({
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 ${bg} rounded flex items-center justify-center ${color}`}>
-                        <Icon size={20} />
+                    <div className={`w-10 h-10 ${bg} rounded flex items-center justify-center ${color} ${isEmoji ? 'text-xl' : ''}`}>
+                        {isEmoji ? (
+                            <span>{Icon as string}</span>
+                        ) : (
+                            (() => {
+                                const IconComponent = Icon as React.ComponentType<{ size: number }>;
+                                return <IconComponent size={20} />;
+                            })()
+                        )}
                     </div>
                     <div>
                         <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
@@ -147,8 +153,8 @@ export function EnhancedSessionCard({
                 {variant !== 'ended' && (
                     <span
                         className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider ${variant === 'active'
-                                ? 'bg-green-500/20 text-green-500'
-                                : 'bg-blue-500/20 text-blue-500'
+                            ? 'bg-green-500/20 text-green-500'
+                            : 'bg-blue-500/20 text-blue-500'
                             }`}
                     >
                         Live

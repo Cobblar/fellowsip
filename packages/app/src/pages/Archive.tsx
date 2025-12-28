@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Archive as ArchiveIcon, ArrowLeft, Clock, RefreshCw } from 'lucide-react';
 import { useArchivedSessions, useUnarchiveSession } from '../api/sessions';
-import { getProductIcon, getProductColor } from '../utils/productIcons';
+import { getProductIcon } from '../utils/productIcons';
 
 export function Archive() {
     const navigate = useNavigate();
@@ -59,8 +59,7 @@ export function Archive() {
             ) : (
                 <div className="space-y-4">
                     {archivedSessions.map((session) => {
-                        const ProductIcon = getProductIcon(session.productType);
-                        const colorClass = getProductColor(session.productType);
+                        const productEmoji = getProductIcon(session.productType);
                         return (
                             <div
                                 key={session.id}
@@ -69,8 +68,8 @@ export function Archive() {
                                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                         {/* Product Icon */}
-                                        <div className={`w-12 h-12 rounded-xl bg-[var(--bg-input)]/50 flex items-center justify-center shrink-0 ${colorClass}`}>
-                                            <ProductIcon size={24} />
+                                        <div className="w-12 h-12 rounded-xl bg-[var(--bg-input)]/50 flex items-center justify-center shrink-0 text-2xl">
+                                            {productEmoji}
                                         </div>
 
                                         {/* Session Info */}

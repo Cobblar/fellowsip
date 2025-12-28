@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar, Wine, LogOut, ChevronRight, Mail, Shield, Users, UserPlus, Check, X, Archive } from 'lucide-react';
+import { User, Calendar, Wine, LogOut, ChevronRight, Mail, Shield, Users, UserPlus, Check, X, Archive, Settings } from 'lucide-react';
 import { api } from '../api/client';
 import { useFriends, usePendingRequests, useSendFriendRequest, useAcceptFriendRequest, useRejectFriendRequest, useRemoveFriend, useUpdateAutoMod } from '../api/friends';
+import { useCurrentUser, useUpdateProfile } from '../api/auth';
 import type { Session } from '../types';
 
 export function Profile() {
     const navigate = useNavigate();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [user, setUser] = useState<{ id: string; displayName: string | null; email: string } | null>(null);
     const [friendEmail, setFriendEmail] = useState('');
-    const [activeTab, setActiveTab] = useState<'history' | 'friends'>('history');
+    const [activeTab, setActiveTab] = useState<'history' | 'friends' | 'settings'>('history');
+    const [newDisplayName, setNewDisplayName] = useState('');
 
     const { data: friendsData } = useFriends();
     const { data: pendingData } = usePendingRequests();
@@ -20,27 +21,33 @@ export function Profile() {
     const rejectRequest = useRejectFriendRequest();
     const removeFriend = useRemoveFriend();
     const updateAutoMod = useUpdateAutoMod();
+    const { data: currentUserData } = useCurrentUser();
+    const updateProfile = useUpdateProfile();
+
+    const currentUser = currentUserData?.user;
 
     const friends = friendsData?.friends || [];
     const pendingRequests = pendingData?.requests || [];
 
     useEffect(() => {
-        const fetchProfileData = async () => {
+        const fetchSessions = async () => {
             try {
-                const [sessionRes, userRes] = await Promise.all([
-                    api.get<{ sessions: Session[] }>('/auth/profile/sessions'),
-                    api.get<{ user: { id: string; displayName: string | null; email: string } }>('/auth/session')
-                ]);
+                const sessionRes = await api.get<{ sessions: Session[] }>('/auth/profile/sessions');
                 setSessions(sessionRes.sessions);
-                setUser(userRes.user);
             } catch (error) {
-                console.error('Failed to fetch profile data:', error);
+                console.error('Failed to fetch sessions:', error);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchProfileData();
+        fetchSessions();
     }, []);
+
+    useEffect(() => {
+        if (currentUser?.displayName) {
+            setNewDisplayName(currentUser.displayName);
+        }
+    }, [currentUser]);
 
     const handleLogout = async () => {
         try {
@@ -49,6 +56,17 @@ export function Profile() {
             console.error('Logout failed:', error);
         } finally {
             window.location.href = import.meta.env.VITE_LANDING_URL || 'http://localhost:4321';
+        }
+    };
+
+    const handleUpdateDisplayName = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newDisplayName.trim()) return;
+
+        try {
+            await updateProfile.mutateAsync({ displayName: newDisplayName.trim() });
+        } catch (error) {
+            console.error('Failed to update display name:', error);
         }
     };
 
@@ -82,8 +100,8 @@ export function Profile() {
                         <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[var(--bg-input)] flex items-center justify-center mb-4 border-2 border-[var(--border-secondary)]">
                             <User size={40} className="text-[var(--text-secondary)] md:size-12" />
                         </div>
-                        <h2 className="heading-lg mb-1">{user?.displayName || 'User'}</h2>
-                        <p className="text-xs text-[var(--text-secondary)] mb-6">{user?.email}</p>
+                        <h2 className="heading-lg mb-1">{currentUser?.displayName || 'User'}</h2>
+                        <p className="text-xs text-[var(--text-secondary)] mb-6">{currentUser?.email}</p>
 
                         <div className="w-full grid grid-cols-3 gap-2 pt-6 border-t border-[var(--border-primary)]">
                             <div>
@@ -151,10 +169,20 @@ export function Profile() {
                             <Users size={14} />
                             Friends
                             {pendingRequests.length > 0 && (
-                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-2">
                                     {pendingRequests.length}
                                 </span>
                             )}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('settings')}
+                            className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'settings'
+                                ? 'text-orange-500 border-b-2 border-orange-500'
+                                : 'text-[var(--text-secondary)] hover:text-white'
+                                }`}
+                        >
+                            <Settings size={14} />
+                            Settings
                         </button>
                     </div>
 
@@ -214,7 +242,7 @@ export function Profile() {
                                         placeholder="Enter friend's email address"
                                         value={friendEmail}
                                         onChange={(e) => setFriendEmail(e.target.value)}
-                                        className="flex-1 px-4 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm"
+                                        className="flex-1 px-4 py-2 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg text-sm focus:outline-none focus:border-orange-500 transition-colors"
                                     />
                                     <button
                                         type="submit"
@@ -335,10 +363,53 @@ export function Profile() {
                                     </div>
                                 ) : (
                                     <div className="text-center py-8 text-[var(--text-muted)] text-sm italic">
-                                        No friends yet. Send a friend request to get started!
+                                        No friends yet.
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Settings Tab */}
+                    {activeTab === 'settings' && (
+                        <div className="card p-4 md:p-6">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-6">Profile Settings</h3>
+
+                            <form onSubmit={handleUpdateDisplayName} className="space-y-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                                        Display Name
+                                    </label>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <input
+                                            type="text"
+                                            placeholder="Enter your display name"
+                                            value={newDisplayName}
+                                            onChange={(e) => setNewDisplayName(e.target.value)}
+                                            className="flex-1 px-4 py-2 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg text-sm focus:outline-none focus:border-orange-500 transition-colors"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={updateProfile.isPending || !newDisplayName.trim() || newDisplayName === currentUser?.displayName}
+                                            className="btn-orange disabled:opacity-50 justify-center"
+                                        >
+                                            {updateProfile.isPending ? 'Updating...' : 'Update Name'}
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-[var(--text-muted)] mt-2 italic">
+                                        This is how other users will see you in chat rooms and friend lists.
+                                    </p>
+                                </div>
+
+                                {updateProfile.isSuccess && (
+                                    <p className="text-green-500 text-xs">Display name updated successfully!</p>
+                                )}
+                                {updateProfile.isError && (
+                                    <p className="text-red-500 text-xs">
+                                        {(updateProfile.error as any)?.data?.error || 'Failed to update display name'}
+                                    </p>
+                                )}
+                            </form>
                         </div>
                     )}
                 </div>

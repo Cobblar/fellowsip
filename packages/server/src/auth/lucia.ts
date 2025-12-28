@@ -13,8 +13,8 @@ const adapter = new PostgresJsAdapter(client, {
 export const lucia = new Lucia(adapter, {
   sessionCookie: {
     attributes: {
-      secure: true, // Required for SameSite=None, localhost is treated as secure
-      sameSite: 'none', // Required for cross-origin (different ports) requests
+      secure: true,
+      sameSite: 'none',
     },
   },
   getUserAttributes: (attributes) => {

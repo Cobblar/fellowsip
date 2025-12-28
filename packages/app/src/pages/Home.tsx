@@ -1,12 +1,25 @@
 import { useNavigate } from 'react-router-dom';
 import { Users, User, Clock, ChevronRight, PlayCircle, Wine, Calendar, UserPlus, LogIn, Plus, X } from 'lucide-react';
-import { useFriends, useFriendsSessions, useMyJoinRequests, useRequestToJoin } from '../api/friends';
+import { useFriends, useFriendsSessions, useMyJoinRequests, useRequestToJoin, useSendFriendRequest } from '../api/friends';
 import { useAllSummaries, useUserSessions } from '../api/sessions';
-import { useState } from 'react';
-import { getProductIcon, getProductColor } from '../utils/productIcons';
+import { useState, useEffect } from 'react';
+import { getProductIcon } from '../utils/productIcons';
+import { Hash } from 'lucide-react';
+import { AdPlaceholder } from '../components/AdPlaceholder';
+import { useCurrentUser } from '../api/auth';
+import { OnboardingModal } from '../components/OnboardingModal';
 
 export function Home() {
     const navigate = useNavigate();
+    const { data: currentUserData } = useCurrentUser();
+    const [showOnboarding, setShowOnboarding] = useState(false);
+
+    useEffect(() => {
+        if (currentUserData?.user && currentUserData.user.displayName === null) {
+            setShowOnboarding(true);
+        }
+    }, [currentUserData]);
+
     const { data: friendsData, isLoading: friendsLoading } = useFriends();
     const { data: friendsSessionsData } = useFriendsSessions();
     const { data: myJoinRequestsData } = useMyJoinRequests();
@@ -16,6 +29,11 @@ export function Home() {
 
     const [requestedSessions, setRequestedSessions] = useState<Set<string>>(new Set());
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [joinSessionId, setJoinSessionId] = useState('');
+    const [showJoinInput, setShowJoinInput] = useState(false);
+    const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const [friendEmail, setFriendEmail] = useState('');
+    const sendFriendRequest = useSendFriendRequest();
 
     const friends = friendsData?.friends || [];
     const friendsSessions = friendsSessionsData?.sessions || [];
@@ -49,6 +67,12 @@ export function Home() {
         }
     };
 
+    const handleJoinById = () => {
+        if (joinSessionId.trim()) {
+            navigate(`/join/${joinSessionId.trim()}`);
+        }
+    };
+
     return (
         <div className="h-full flex overflow-hidden relative">
             {/* Mobile Sidebar Toggle */}
@@ -67,14 +91,97 @@ export function Home() {
 
             {/* Left Sidebar: Friends List */}
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''} w-[280px] bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-hidden`}>
-                <div className="p-6 border-b border-[var(--border-primary)] flex items-center justify-between">
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
-                        <Users size={14} />
-                        Friends ({friends.length})
-                    </h2>
-                    <button onClick={() => setIsSidebarOpen(false)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
-                        <X size={20} />
-                    </button>
+                <div className="p-4 border-b border-[var(--border-primary)]">
+                    <div className={`flex items-center justify-between ${isAddingFriend ? 'mb-4' : ''}`}>
+                        <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
+                            <Users size={14} />
+                            Friends ({friends.length})
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsAddingFriend(!isAddingFriend)}
+                                className={`p-1.5 rounded-lg transition-colors ${isAddingFriend
+                                    ? 'bg-orange-500 text-white'
+                                    : friends.length === 0
+                                        ? 'bg-orange-500 text-white animate-pulse'
+                                        : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/5'
+                                    }`}
+                                title="Add Friend"
+                            >
+                                <UserPlus size={16} />
+                            </button>
+                            <button onClick={() => setIsSidebarOpen(false)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {isAddingFriend && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="relative">
+                                <input
+                                    type="email"
+                                    placeholder="Friend's email..."
+                                    value={friendEmail}
+                                    onChange={(e) => setFriendEmail(e.target.value)}
+                                    className="w-full bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg py-2 px-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-orange-500 transition-colors"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && friendEmail) {
+                                            sendFriendRequest.mutate(friendEmail, {
+                                                onSuccess: () => {
+                                                    setFriendEmail('');
+                                                    // Don't close the box on success
+                                                }
+                                            });
+                                        }
+                                        if (e.key === 'Escape') {
+                                            setIsAddingFriend(false);
+                                        }
+                                    }}
+                                />
+                                {sendFriendRequest.isPending && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-orange-500"></div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        if (friendEmail) {
+                                            sendFriendRequest.mutate(friendEmail, {
+                                                onSuccess: () => {
+                                                    setFriendEmail('');
+                                                    // Don't close the box on success
+                                                }
+                                            });
+                                        }
+                                    }}
+                                    disabled={!friendEmail || sendFriendRequest.isPending}
+                                    className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold py-2 rounded-lg transition-colors"
+                                >
+                                    Add Friend
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingFriend(false)}
+                                    className="px-3 bg-[var(--bg-input)] hover:bg-[var(--bg-main)] text-[var(--text-secondary)] text-xs font-bold py-2 rounded-lg transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                            {sendFriendRequest.isError && (
+                                <p className="text-[10px] text-red-500 px-1">
+                                    {(sendFriendRequest.error as any)?.message || 'Failed to send request'}
+                                </p>
+                            )}
+                            {sendFriendRequest.isSuccess && (
+                                <p className="text-[10px] text-green-500 px-1">
+                                    Request sent!
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-4">
                     {friendsLoading ? (
@@ -161,14 +268,13 @@ export function Home() {
                         <div className="text-center py-8">
                             <User size={32} className="mx-auto text-[var(--text-muted)] mb-3" />
                             <p className="text-sm text-[var(--text-secondary)]">No friends yet</p>
-                            <button
-                                onClick={() => { navigate('/profile'); setIsSidebarOpen(false); }}
-                                className="text-xs text-orange-500 hover:underline mt-2"
-                            >
-                                Add friends
-                            </button>
                         </div>
                     )}
+                </div>
+
+                {/* Ad Placeholder */}
+                <div className="p-4 border-t border-[var(--border-primary)] mt-auto">
+                    <AdPlaceholder />
                 </div>
             </aside>
 
@@ -178,13 +284,51 @@ export function Home() {
                     {/* Welcome Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                         <h1 className="heading-xl">Welcome Back</h1>
-                        <button
-                            onClick={() => navigate('/create')}
-                            className="btn-orange w-full md:w-auto justify-center"
-                        >
-                            <Plus size={16} />
-                            New Session
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {showJoinInput ? (
+                                <div className="flex items-center gap-2 flex-1 md:flex-none">
+                                    <div className="relative flex-1 md:w-64">
+                                        <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
+                                        <input
+                                            type="text"
+                                            placeholder="Paste session ID..."
+                                            value={joinSessionId}
+                                            onChange={(e) => setJoinSessionId(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleJoinById()}
+                                            className="pl-9 pr-3 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm w-full font-mono"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleJoinById}
+                                        disabled={!joinSessionId.trim()}
+                                        className="btn-orange text-sm py-2 px-4"
+                                    >
+                                        Join
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowJoinInput(false); setJoinSessionId(''); }}
+                                        className="text-[var(--text-secondary)] hover:text-white text-sm px-2"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setShowJoinInput(true)}
+                                    className="btn-outline w-full md:w-auto justify-center"
+                                >
+                                    Join by ID
+                                </button>
+                            )}
+                            <button
+                                onClick={() => navigate('/create')}
+                                className="btn-orange w-full md:w-auto justify-center"
+                            >
+                                <Plus size={16} />
+                                New Session
+                            </button>
+                        </div>
                     </div>
 
                     {/* Active Sessions Section */}
@@ -198,8 +342,7 @@ export function Home() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {activeSessions.map((session) => {
-                                            const ProductIcon = getProductIcon(session.productType);
-                                            const colorClass = getProductColor(session.productType);
+                                            const productEmoji = getProductIcon(session.productType);
                                             return (
                                                 <div
                                                     key={session.id}
@@ -208,8 +351,8 @@ export function Home() {
                                                 >
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center ${colorClass}`}>
-                                                                <ProductIcon size={20} />
+                                                            <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
+                                                                {productEmoji}
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white">{session.name}</h3>
@@ -243,8 +386,7 @@ export function Home() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {friendsSessions.map((session) => {
                                             const status = getJoinStatus(session.id);
-                                            const ProductIcon = getProductIcon(session.productType);
-                                            const colorClass = getProductColor(session.productType);
+                                            const productEmoji = getProductIcon(session.productType);
                                             return (
                                                 <div
                                                     key={session.id}
@@ -252,8 +394,8 @@ export function Home() {
                                                 >
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center ${colorClass}`}>
-                                                                <ProductIcon size={20} />
+                                                            <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
+                                                                {productEmoji}
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-bold text-[var(--text-primary)]">{session.name}</h3>
@@ -326,8 +468,7 @@ export function Home() {
                         {summaries.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {summaries.slice(0, 3).map((item) => {
-                                    const ProductIcon = getProductIcon(item.session.productType);
-                                    const colorClass = getProductColor(item.session.productType);
+                                    const productEmoji = getProductIcon(item.session.productType);
                                     return (
                                         <div
                                             key={item.session.id}
@@ -336,8 +477,8 @@ export function Home() {
                                         >
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center ${colorClass}`}>
-                                                        <ProductIcon size={20} />
+                                                    <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
+                                                        {productEmoji}
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center gap-2">
@@ -389,6 +530,7 @@ export function Home() {
                     </section>
                 </div>
             </div>
+            <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
         </div>
     );
 }

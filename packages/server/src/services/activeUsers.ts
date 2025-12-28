@@ -89,3 +89,106 @@ export function clearSessionModerators(sessionId: string) {
   sessionModerators.delete(sessionId);
 }
 
+// In-memory store for ready check state per session
+const readyCheckState = new Map<string, Set<string>>(); // sessionId -> Set of ready userIds
+
+export function startReadyCheck(sessionId: string): void {
+  readyCheckState.set(sessionId, new Set());
+}
+
+export function endReadyCheck(sessionId: string): void {
+  readyCheckState.delete(sessionId);
+}
+
+export function markUserReady(sessionId: string, userId: string): boolean {
+  const readyUsers = readyCheckState.get(sessionId);
+  if (!readyUsers) return false; // No active check
+  readyUsers.add(userId);
+  return true;
+}
+
+export function markUserUnready(sessionId: string, userId: string): boolean {
+  const readyUsers = readyCheckState.get(sessionId);
+  if (!readyUsers) return false; // No active check
+  readyUsers.delete(userId);
+  return true;
+}
+
+export function isReadyCheckActive(sessionId: string): boolean {
+  return readyCheckState.has(sessionId);
+}
+
+export function getReadyUsers(sessionId: string): string[] {
+  const readyUsers = readyCheckState.get(sessionId);
+  return readyUsers ? Array.from(readyUsers) : [];
+}
+
+export function isUserReady(sessionId: string, userId: string): boolean {
+  const readyUsers = readyCheckState.get(sessionId);
+  return readyUsers ? readyUsers.has(userId) : false;
+}
+
+// In-memory store for muted users per session
+// sessionId -> Map<userId, displayName>
+const mutedUsers = new Map<string, Map<string, string | null>>();
+
+export function muteUser(sessionId: string, userId: string, displayName: string | null): void {
+  if (!mutedUsers.has(sessionId)) {
+    mutedUsers.set(sessionId, new Map());
+  }
+  mutedUsers.get(sessionId)!.set(userId, displayName);
+}
+
+export function unmuteUser(sessionId: string, userId: string): void {
+  const muted = mutedUsers.get(sessionId);
+  if (muted) {
+    muted.delete(userId);
+    if (muted.size === 0) {
+      mutedUsers.delete(sessionId);
+    }
+  }
+}
+
+export function isUserMuted(sessionId: string, userId: string): boolean {
+  const muted = mutedUsers.get(sessionId);
+  return muted ? muted.has(userId) : false;
+}
+
+export function getMutedUsers(sessionId: string): { id: string; displayName: string | null }[] {
+  const muted = mutedUsers.get(sessionId);
+  if (!muted) return [];
+  return Array.from(muted.entries()).map(([id, displayName]) => ({ id, displayName }));
+}
+
+// In-memory store for kicked users per session
+// sessionId -> Map<userId, displayName>
+const kickedUsers = new Map<string, Map<string, string | null>>();
+
+export function kickUser(sessionId: string, userId: string, displayName: string | null): void {
+  if (!kickedUsers.has(sessionId)) {
+    kickedUsers.set(sessionId, new Map());
+  }
+  kickedUsers.get(sessionId)!.set(userId, displayName);
+}
+
+export function unkickUser(sessionId: string, userId: string): void {
+  const kicked = kickedUsers.get(sessionId);
+  if (kicked) {
+    kicked.delete(userId);
+    if (kicked.size === 0) {
+      kickedUsers.delete(sessionId);
+    }
+  }
+}
+
+export function isUserKicked(sessionId: string, userId: string): boolean {
+  const kicked = kickedUsers.get(sessionId);
+  return kicked ? kicked.has(userId) : false;
+}
+
+export function getKickedUsers(sessionId: string): { id: string; displayName: string | null }[] {
+  const kicked = kickedUsers.get(sessionId);
+  if (!kicked) return [];
+  return Array.from(kicked.entries()).map(([id, displayName]) => ({ id, displayName }));
+}
+
