@@ -27,11 +27,11 @@ export const RecentSummaries: React.FC<RecentSummariesProps> = ({
             {summaries.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {summaries.slice(0, 3).map((item) => {
-                        const productEmoji = getProductIcon(item.session.productType);
+                        const productEmoji = getProductIcon(item.session?.productType);
                         return (
                             <div
-                                key={item.session.id}
-                                onClick={() => onViewSummary(item.session.id)}
+                                key={item.session?.id}
+                                onClick={() => onViewSummary(item.session?.id)}
                                 className="card hover:border-gray-600 transition-all cursor-pointer group p-5"
                             >
                                 <div className="flex items-start justify-between mb-3">
@@ -42,14 +42,14 @@ export const RecentSummaries: React.FC<RecentSummariesProps> = ({
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] text-sm">
-                                                    {item.session.productName || item.session.name}
+                                                    {item.session?.productName || item.session?.name}
                                                 </h3>
-                                                {item.session.startedAt && (new Date().getTime() - new Date(item.session.startedAt).getTime() < 24 * 60 * 60 * 1000) && (
+                                                {item.session?.startedAt && (new Date().getTime() - new Date(item.session.startedAt).getTime() < 24 * 60 * 60 * 1000) && (
                                                     <span className="text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">New</span>
                                                 )}
                                             </div>
                                             <p className="text-[10px] text-[var(--text-secondary)]">
-                                                {item.session.productName ? item.session.name : (item.session.productType || 'Tasting')}
+                                                {item.session?.productName ? item.session?.name : (item.session?.productType || 'Tasting')}
                                             </p>
                                         </div>
                                     </div>

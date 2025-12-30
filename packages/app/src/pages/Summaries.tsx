@@ -257,11 +257,11 @@ export function Summaries() {
                     previousSummaries.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {previousSummaries.map((item) => {
-                                const productEmoji = getProductIcon(item.session.productType);
+                                const productEmoji = getProductIcon(item.session?.productType);
                                 return (
                                     <div
-                                        key={item.session.id}
-                                        onClick={() => navigate(`/session/${item.session.id}`)}
+                                        key={item.session?.id}
+                                        onClick={() => navigate(`/session/${item.session?.id}`)}
                                         className="card hover:border-gray-600 transition-all cursor-pointer group"
                                     >
                                         <div className="flex items-start justify-between mb-4">
@@ -271,7 +271,7 @@ export function Summaries() {
                                                 </div>
                                                 <div>
                                                     <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">{item.session?.name}</h3>
-                                                    <p className="text-xs text-[var(--text-secondary)]">{item.session.productType || 'Tasting'}</p>
+                                                    <p className="text-xs text-[var(--text-secondary)]">{item.session?.productType || 'Tasting'}</p>
                                                 </div>
                                             </div>
                                             {(item.summary?.metadata?.rating || item.summary?.averageRating) && (
