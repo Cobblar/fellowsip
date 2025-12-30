@@ -67,7 +67,7 @@ export function CreateSession() {
       <div className="mb-8 flex items-start gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+          className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden flex-shrink-0"
           title="Go Back"
         >
           <ChevronLeft size={24} />

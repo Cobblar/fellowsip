@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Wine, Calendar, ChevronRight, ArrowLeft, Star, Search } from 'lucide-react';
+import { User, FileText, Calendar, ChevronRight, ArrowLeft, Star, Search } from 'lucide-react';
 import { usePublicProfile } from '../api/auth';
-import { getProductLucideIcon } from '../utils/productIcons';
+import { getProductIcon } from '../utils/productIcons';
 
 export function PublicProfile() {
     const { id } = useParams<{ id: string }>();
@@ -49,7 +49,7 @@ export function PublicProfile() {
     const regularSummaries = filteredSummaries.filter(s => !s.session?.isHighlighted);
 
     const SummaryCard = ({ s, featured = false }: { s: any; featured?: boolean }) => {
-        const Icon = getProductLucideIcon(s.session?.productType);
+        const productEmoji = getProductIcon(s.session?.productType);
         return (
             <div
                 onClick={() => navigate(`/session/${s.sessionId}/summary/public`)}
@@ -59,12 +59,9 @@ export function PublicProfile() {
                     }`}
             >
                 <div className="flex items-start gap-4">
-                    <div className={`shrink-0 rounded-xl flex items-center justify-center transition-colors ${featured
-                        ? 'w-14 h-14 bg-yellow-500/20 text-yellow-500 group-hover:bg-yellow-500 group-hover:text-black'
-                        : 'w-10 h-10 bg-[var(--bg-input)] text-[var(--text-muted)] group-hover:bg-orange-500/10 group-hover:text-orange-500'
-                        }`}>
-                        <Icon size={featured ? 24 : 18} />
-                    </div>
+                    <span className={featured ? 'text-2xl' : 'text-xl'}>
+                        {productEmoji}
+                    </span>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             {featured && (
@@ -104,14 +101,13 @@ export function PublicProfile() {
                 <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
                     <button
                         onClick={() => navigate('/profile')}
-                        className="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-white transition-colors"
+                        className="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                     >
                         <ArrowLeft size={14} />
                         <span>Back</span>
                     </button>
                     <div className="flex items-center gap-1.5 opacity-60">
-                        <Wine size={14} className="text-orange-500" />
-                        <span className="text-xs font-bold tracking-tight text-white">FELLOWSIP</span>
+                        <span className="text-xs font-black tracking-tight text-orange-500">FELLOWSIP</span>
                     </div>
                 </div>
             </div>
@@ -158,7 +154,7 @@ export function PublicProfile() {
                 <div>
                     <div className="flex items-center justify-between gap-4 mb-4">
                         <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--text-muted)] flex items-center gap-2">
-                            <Wine size={12} className="text-orange-500" />
+                            <FileText size={12} className="text-orange-500" />
                             {highlightedSummaries.length > 0 ? 'All Tastings' : 'Shared Tastings'}
                         </h2>
                         {summaries.length > 3 && (
@@ -195,8 +191,7 @@ export function PublicProfile() {
                     className="inline-flex items-center gap-1.5 opacity-40 hover:opacity-70 transition-opacity cursor-pointer"
                     onClick={() => window.location.href = import.meta.env.VITE_LANDING_URL || 'http://localhost:4321'}
                 >
-                    <Wine size={14} className="text-orange-500" />
-                    <span className="text-xs font-bold tracking-tight text-white">FELLOWSIP</span>
+                    <span className="text-xs font-black tracking-tight text-orange-500">FELLOWSIP</span>
                 </div>
             </div>
         </div>

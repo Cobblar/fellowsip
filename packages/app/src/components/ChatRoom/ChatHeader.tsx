@@ -71,14 +71,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
                 <button
                     onClick={onNavigateBack}
-                    className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+                    className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden flex-shrink-0"
                     title="Back to Home"
                 >
                     <ChevronLeft size={24} />
                 </button>
                 <button
                     onClick={onOpenTastersSidebar}
-                    className="p-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
+                    className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden flex-shrink-0"
                 >
                     <Users size={20} />
                 </button>
@@ -192,7 +192,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                                 setShowStreamInput(true);
                                                 setStreamInputValue(livestreamUrl || '');
                                             }}
-                                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
                                         >
                                             <Monitor size={16} />
                                             {livestreamUrl ? 'Update Livestream' : 'Add Livestream'}
@@ -204,7 +204,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                             onRevealAllSpoilers();
                                             setIsActionsOpen(false);
                                         }}
-                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
                                     >
                                         <Eye size={16} />
                                         Reveal All Spoilers
@@ -215,7 +215,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                             onShowSpoilerDefaults();
                                             setIsActionsOpen(false);
                                         }}
-                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-white hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
                                     >
                                         <EyeOff size={16} />
                                         Spoiler Defaults
@@ -254,7 +254,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
                 <button
                     onClick={onOpenSummarySidebar}
-                    className="p-2 text-[var(--text-secondary)] hover:text-white md:hidden"
+                    className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden"
                 >
                     <BarChart3 size={20} />
                 </button>

@@ -112,14 +112,14 @@ export function MessageList({
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full bg-black/20 text-white border border-white/20 rounded p-2 text-sm focus:outline-none focus:border-white/40 resize-none"
+                        className="w-full bg-[var(--bg-input)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded p-2 text-sm focus:outline-none focus:border-orange-500 resize-none"
                         rows={3}
                         autoFocus
                       />
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setEditingMessageId(null)}
-                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          className="p-1 hover:bg-[var(--bg-hover)] rounded transition-colors"
                           title="Cancel"
                         >
                           <X size={16} />
@@ -129,7 +129,7 @@ export function MessageList({
                             onEditMessage?.(message.id, editContent);
                             setEditingMessageId(null);
                           }}
-                          className="p-1 hover:bg-white/10 rounded transition-colors"
+                          className="p-1 hover:bg-[var(--bg-hover)] rounded transition-colors"
                           title="Save"
                         >
                           <Check size={16} />

@@ -65,11 +65,11 @@ export const GroupSynthesis: React.FC<GroupSynthesisProps> = ({
             <div className="grid grid-cols-2 gap-4">
                 <div className="card p-4 flex flex-col items-center justify-center text-center">
                     <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Avg Rating</p>
-                    <p className="text-2xl font-black text-white">{avgRating}</p>
+                    <p className="text-2xl font-black text-[var(--text-primary)]">{avgRating}</p>
                 </div>
                 <div className="card p-4 flex flex-col items-center justify-center text-center">
                     <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tasters</p>
-                    <p className="text-2xl font-black text-white">{participants.length}</p>
+                    <p className="text-2xl font-black text-[var(--text-primary)]">{participants.length}</p>
                 </div>
             </div>
         </div>

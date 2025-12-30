@@ -128,7 +128,7 @@ export function Dashboard() {
               onClick={() => setIsAdvancedSearch(!isAdvancedSearch)}
               className={`p-2 rounded border transition-colors ${isAdvancedSearch
                 ? 'bg-orange-500/10 border-orange-500 text-orange-500'
-                : 'bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-white'
+                : 'bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               title="Advanced Search"
             >
@@ -160,7 +160,7 @@ export function Dashboard() {
                 setAdvancedFilters({ nose: '', palate: '', finish: '', observations: '', people: '' });
                 setIsAdvancedSearch(false);
               }}
-              className="text-xs text-[var(--text-secondary)] hover:text-white"
+              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
               Reset & Close
             </button>
@@ -267,7 +267,7 @@ export function Dashboard() {
                       {productEmoji}
                     </div>
                     <div>
-                      <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
+                      <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">
                         {item.session.productName || item.session.name}
                       </h3>
                       <p className="text-xs text-[var(--text-secondary)]">

@@ -147,7 +147,7 @@ export const FriendsTab: React.FC<FriendsTabProps> = ({
                         {friends.map((item) => (
                             <div
                                 key={item.friendshipId}
-                                className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg group"
+                                className="flex items-center justify-between p-3 md:p-4 border border-transparent hover:bg-[var(--bg-input)] hover:border-[var(--border-primary)] hover:scale-[1.01] active:scale-[0.99] rounded-lg group transition-all"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div

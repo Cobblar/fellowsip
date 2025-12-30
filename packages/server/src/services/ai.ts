@@ -81,6 +81,8 @@ export async function generateSessionSummary(sessionId: string) {
                     },
                 })
                 .returning();
+
+            emitSummaryGenerated(sessionId, savedSummary.id);
             return savedSummary;
         }
 
@@ -177,13 +179,19 @@ export async function generateSessionSummary(sessionId: string) {
         // Emit event that summary is ready
         emitSummaryGenerated(sessionId, savedSummary.id);
 
+        console.log('[AI] Summary generated successfully');
         return savedSummary;
     } catch (error: any) {
         console.error('[AI] Failed to generate summary:', error);
         if (error.response) {
-            console.error('[AI] Gemini Error Response:', await error.response.text());
+            try {
+                console.error('[AI] Gemini Error Response:', await error.response.text());
+            } catch (e) {
+                console.error('[AI] Could not read error response text');
+            }
         }
-        // Don't throw, just log. We don't want to break the "End Session" flow if AI fails.
+        // Emit null to let the frontend know we're done (even if it failed)
+        emitSummaryGenerated(sessionId, null as any);
         return null;
     }
 }

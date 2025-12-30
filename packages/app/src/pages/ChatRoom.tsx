@@ -138,10 +138,10 @@ export function ChatRoom() {
   const isHost = effectiveHostId === currentUserId;
 
   useEffect(() => {
-    if (sessionEnded && !isHost && currentUserId) {
+    if (sessionEnded && currentUserId) {
       setShowPostSessionModal(true);
     }
-  }, [sessionEnded, isHost, currentUserId]);
+  }, [sessionEnded, currentUserId]);
 
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showStreamInput, setShowStreamInput] = useState(false);
@@ -231,7 +231,7 @@ export function ChatRoom() {
     if (!id) return;
     endSession({ sessionId: id, shouldAnalyze: true }, {
       onSuccess: () => {
-        navigate(`/session/${id}/summary?analyzing=true`);
+        // No immediate redirect, wait for modal
       },
       onError: (err) => {
         console.error('Failed to analyze session:', err);
@@ -244,7 +244,7 @@ export function ChatRoom() {
     setShowEndModal(false);
     endSession({ sessionId: id, shouldAnalyze }, {
       onSuccess: () => {
-        navigate(`/session/${id}/summary${shouldAnalyze ? '?analyzing=true' : ''}`);
+        // No immediate redirect, wait for modal
       },
       onError: (err) => {
         console.error('Failed to end session:', err);

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, FileText, CheckCircle2 } from 'lucide-react';
+import { Loader2, FileText, CheckCircle2, Share2, Users, MessageSquare, Lock, Globe } from 'lucide-react';
 import { useChatContext } from '../contexts/ChatContext';
+import { useUpdateSharing } from '../api/sessions';
 
 interface PostSessionModalProps {
     isOpen: boolean;
@@ -15,6 +16,13 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
     const [userRating, setUserRating] = useState<number | null>(initialRating ?? null);
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
+    const updateSharing = useUpdateSharing();
+    const [sharing, setSharing] = useState({
+        sharePersonalSummary: false,
+        shareGroupSummary: false,
+        shareSessionLog: false
+    });
+
     if (!isOpen) return null;
 
     const handleRate = async (rating: number) => {
@@ -26,6 +34,17 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
             console.error('Failed to update rating:', error);
         } finally {
             setIsSubmittingRating(false);
+        }
+    };
+
+    const handleToggleSharing = (key: keyof typeof sharing) => {
+        const newValue = !sharing[key];
+        setSharing(prev => ({ ...prev, [key]: newValue }));
+        if (sessionId) {
+            updateSharing.mutate({
+                sessionId,
+                data: { [key]: newValue }
+            });
         }
     };
 
@@ -44,22 +63,27 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-8">
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                     {/* Summary Status */}
                     <div className="space-y-4">
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] text-center">Tasting Summary</h3>
                         {isAnalyzing ? (
-                            <div className="flex flex-col items-center gap-3 py-4 bg-[var(--bg-input)] rounded-xl border border-[var(--border-primary)] border-dashed">
-                                <Loader2 className="text-orange-500 animate-spin" size={24} />
-                                <span className="text-sm font-medium text-[var(--text-secondary)]">Creating summary...</span>
+                            <div className="flex flex-col items-center gap-3 py-6 bg-[var(--bg-input)] rounded-xl border border-[var(--border-primary)] border-dashed animate-pulse">
+                                <Loader2 className="text-orange-500 animate-spin" size={28} />
+                                <div className="text-center">
+                                    <span className="text-sm font-bold text-[var(--text-primary)] block">Creating summary...</span>
+                                </div>
                             </div>
                         ) : summaryId ? (
                             <button
                                 onClick={() => navigate(`/session/${sessionId}/summary`)}
-                                className="w-full flex items-center justify-center gap-2 py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-orange-600/20 group"
+                                className="w-full flex flex-col items-center gap-1 py-4 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-orange-600/20 group animate-in zoom-in-95 duration-300"
                             >
-                                <FileText size={20} className="group-hover:scale-110 transition-transform" />
-                                View Session Summary
+                                <div className="flex items-center gap-2">
+                                    <FileText size={20} className="group-hover:scale-110 transition-transform" />
+                                    View Session Summary
+                                </div>
+                                <span className="text-[9px] uppercase tracking-widest opacity-70">Summary Ready</span>
                             </button>
                         ) : (
                             <div className="text-center py-4 text-sm text-[var(--text-muted)] italic">
@@ -69,7 +93,7 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                     </div>
 
                     {/* Rating Prompt */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
                         <div className="flex items-center justify-between">
                             <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Assign Score</h3>
                             <input
@@ -103,11 +127,57 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                                 <span>100</span>
                             </div>
                         </div>
-                        {userRating !== null && (
-                            <p className="text-center text-[10px] font-bold text-orange-500 uppercase animate-in fade-in slide-in-from-top-1">
-                                Score assigned!
-                            </p>
-                        )}
+                    </div>
+
+                    {/* Sharing Settings */}
+                    <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Sharing Settings</h3>
+                        <div className="space-y-2">
+                            {[
+                                {
+                                    key: 'sharePersonalSummary',
+                                    label: 'Personal Notes',
+                                    desc: 'Let others see your individual tasting notes.',
+                                    icon: Share2
+                                },
+                                {
+                                    key: 'shareGroupSummary',
+                                    label: 'Shared Summary',
+                                    desc: 'Contribute to the collective shared summary.',
+                                    icon: Users
+                                },
+                                {
+                                    key: 'shareSessionLog',
+                                    label: 'Public Chat Log',
+                                    desc: 'Make the chat history public for this session.',
+                                    icon: MessageSquare
+                                }
+                            ].map((item) => (
+                                <button
+                                    key={item.key}
+                                    onClick={() => handleToggleSharing(item.key as any)}
+                                    className={`w-full flex items-start gap-3 p-3 rounded-xl border transition-all text-left ${sharing[item.key as keyof typeof sharing]
+                                        ? 'bg-orange-500/5 border-orange-500/30 ring-1 ring-orange-500/20'
+                                        : 'bg-[var(--bg-input)] border-[var(--border-primary)] hover:border-[var(--border-secondary)]'
+                                        }`}
+                                >
+                                    <div className={`mt-0.5 p-2 rounded-lg ${sharing[item.key as keyof typeof sharing] ? 'bg-orange-500 text-white' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'}`}>
+                                        <item.icon size={16} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold text-[var(--text-primary)]">{item.label}</span>
+                                            {sharing[item.key as keyof typeof sharing] ? (
+                                                <Globe size={12} className="text-orange-500" />
+                                            ) : (
+                                                <Lock size={12} className="text-[var(--text-muted)]" />
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] text-[var(--text-secondary)] mt-0.5 leading-relaxed">{item.desc}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

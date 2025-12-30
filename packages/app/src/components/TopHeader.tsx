@@ -19,7 +19,7 @@ export function TopHeader() {
     const navClass = (active: boolean) =>
         `text-sm font-medium transition-colors py-5 border-b-2 flex items-center gap-2 ${active
             ? 'text-orange-500 border-orange-500'
-            : 'text-[var(--text-secondary)] border-transparent hover:text-white'
+            : 'text-[var(--text-secondary)] border-transparent hover:text-[var(--text-primary)]'
         }`;
 
     return (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Loader2 } from 'lucide-react';
 import { useSessionSummary, useUpdateSummary, useUpdateSharing, usePublicSummary } from '../api/sessions';
 import { useCurrentUser } from '../api/auth';
 import type { Participant } from '../types';
@@ -52,16 +52,31 @@ interface SummaryProps {
 export function Summary({ publicMode = false }: SummaryProps) {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const isAnalyzingParam = searchParams.get('analyzing') === 'true';
     const queryClient = useQueryClient();
 
     const { data: currentUserData } = useCurrentUser();
     const currentUser = currentUserData?.user;
 
-    const { data: sessionSummaryData, isLoading: sessionSummaryLoading } = useSessionSummary(id || '');
+    // Enable polling if we're in analyzing mode and summary isn't found yet
+    const [shouldPoll, setShouldPoll] = useState(isAnalyzingParam);
+
+    const { data: sessionSummaryData, isLoading: sessionSummaryLoading } = useSessionSummary(
+        id || '',
+        shouldPoll ? 3000 : false
+    );
     const { data: publicSessionData, isLoading: publicSessionLoading } = usePublicSummary(id || '');
 
     const summaryData = publicMode ? publicSessionData?.summary : sessionSummaryData?.summary;
     const isLoading = publicMode ? publicSessionLoading : sessionSummaryLoading;
+
+    // Stop polling once summary is found
+    useEffect(() => {
+        if (summaryData && shouldPoll) {
+            setShouldPoll(false);
+        }
+    }, [summaryData, shouldPoll]);
 
     const updateSummary = useUpdateSummary();
     const updateSharing = useUpdateSharing();
@@ -126,11 +141,30 @@ export function Summary({ publicMode = false }: SummaryProps) {
         }
     };
 
-    if (isLoading) {
+    if (isLoading || (shouldPoll && !summary)) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-main)]">
-                <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-6"></div>
-                <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Loading Summary...</h2>
+                <div className="w-20 h-20 relative mb-8">
+                    <div className="absolute inset-0 border-4 border-orange-500/10 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Loader2 className="text-orange-500 animate-pulse" size={32} />
+                    </div>
+                </div>
+                <h2 className="text-2xl font-black text-[var(--text-primary)] mb-3 tracking-tight">
+                    {shouldPoll ? 'Generating Your Tasting Notes...' : 'Loading Summary...'}
+                </h2>
+                <p className="text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
+                    {shouldPoll
+                        ? 'Our AI is synthesizing everyone\'s perspectives into a collective summary. This usually takes about 10-15 seconds.'
+                        : 'Fetching the latest session data for you.'}
+                </p>
+                {shouldPoll && (
+                    <div className="mt-8 flex items-center gap-2 px-4 py-2 bg-orange-500/5 border border-orange-500/20 rounded-full">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div>
+                        <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">AI Synthesis in Progress</span>
+                    </div>
+                )}
             </div>
         );
     }

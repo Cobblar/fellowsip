@@ -118,7 +118,7 @@ export function Settings() {
                             onClick={() => setActiveTab('friends')}
                             className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'friends'
                                 ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-[var(--text-secondary)] hover:text-white'
+                                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                 }`}
                         >
                             <Users size={14} />
@@ -133,7 +133,7 @@ export function Settings() {
                             onClick={() => setActiveTab('settings')}
                             className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'settings'
                                 ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-[var(--text-secondary)] hover:text-white'
+                                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                                 }`}
                         >
                             <SettingsIcon size={14} />

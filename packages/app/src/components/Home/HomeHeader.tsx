@@ -45,7 +45,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                         </button>
                         <button
                             onClick={() => { setShowJoinInput(false); setJoinSessionId(''); }}
-                            className="text-[var(--text-secondary)] hover:text-white text-sm px-2"
+                            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm px-2"
                         >
                             Cancel
                         </button>

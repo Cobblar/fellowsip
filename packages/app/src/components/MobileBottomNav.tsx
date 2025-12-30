@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Wine, Users, User } from 'lucide-react';
+import { Home, FileText, Users, User } from 'lucide-react';
 
 export function MobileBottomNav() {
     const navigate = useNavigate();
@@ -26,7 +26,7 @@ export function MobileBottomNav() {
                 <span className="text-[10px] font-medium">Home</span>
             </button>
             <button onClick={() => navigate('/my-cellar')} className={navItemClass(isActive('/my-cellar'))}>
-                <Wine size={20} />
+                <FileText size={20} />
                 <span className="text-[10px] font-medium">Summaries</span>
             </button>
             <button onClick={() => navigate('/summaries')} className={navItemClass(isActive('/summaries'))}>

@@ -43,7 +43,7 @@ export const ActiveSessions: React.FC<ActiveSessionsProps> = ({
                                                     {productEmoji}
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white">{session.name}</h3>
+                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)]">{session.name}</h3>
                                                     <p className="text-xs text-[var(--text-secondary)]">{session.productType || 'Tasting'}</p>
                                                 </div>
                                             </div>

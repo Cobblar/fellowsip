@@ -50,7 +50,7 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
                 <div className="absolute top-0 right-0 p-4">
                     <div className="flex flex-col items-center">
                         <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Rating</span>
-                        <div className="text-3xl font-black text-white flex items-baseline gap-1">
+                        <div className="text-3xl font-black text-[var(--text-primary)] flex items-baseline gap-1">
                             {isEditingNotes ? (
                                 <input
                                     type="number"
@@ -73,7 +73,7 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
                         {!publicMode && selectedMemberId === currentUser?.id && (
                             <button
                                 onClick={onEdit}
-                                className="p-1 hover:bg-[var(--bg-input)] rounded transition-colors text-[var(--text-muted)] hover:text-white"
+                                className="p-1 hover:bg-[var(--bg-input)] rounded transition-colors text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                             >
                                 <Edit2 size={12} />
                             </button>
@@ -191,7 +191,7 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
                                                                 e.stopPropagation();
                                                                 onTasterClick(taster.userId);
                                                             }}
-                                                            className="text-sm font-bold text-white cursor-pointer hover:text-orange-500 transition-colors"
+                                                            className="text-sm font-bold text-[var(--text-primary)] cursor-pointer hover:text-orange-500 transition-colors"
                                                         >
                                                             {taster.displayName || 'Anonymous'}
                                                         </p>

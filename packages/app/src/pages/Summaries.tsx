@@ -138,7 +138,7 @@ export function Summaries() {
                                             <PlayCircle size={20} />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">{session.name}</h3>
+                                            <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">{session.name}</h3>
                                             <p className="text-xs text-[var(--text-secondary)]">{session.productType || 'Tasting'}</p>
                                         </div>
                                     </div>
@@ -270,7 +270,7 @@ export function Summaries() {
                                                     {productEmoji}
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">{item.session?.name}</h3>
+                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">{item.session?.name}</h3>
                                                     <p className="text-xs text-[var(--text-secondary)]">{item.session.productType || 'Tasting'}</p>
                                                 </div>
                                             </div>

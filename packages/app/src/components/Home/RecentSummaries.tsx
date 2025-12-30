@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Wine, Calendar } from 'lucide-react';
+import { ChevronRight, FileText, Calendar } from 'lucide-react';
 import { getProductIcon } from '../../utils/productIcons';
 
 interface RecentSummariesProps {
@@ -41,7 +41,7 @@ export const RecentSummaries: React.FC<RecentSummariesProps> = ({
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white text-sm">
+                                                <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] text-sm">
                                                     {item.session.productName || item.session.name}
                                                 </h3>
                                                 {item.session.startedAt && (new Date().getTime() - new Date(item.session.startedAt).getTime() < 24 * 60 * 60 * 1000) && (
@@ -82,7 +82,7 @@ export const RecentSummaries: React.FC<RecentSummariesProps> = ({
                 </div>
             ) : (
                 <div className="text-center py-8 bg-[var(--bg-main)]/30 rounded-lg border border-dashed border-[var(--border-primary)] px-4">
-                    <Wine size={32} className="mx-auto text-[var(--text-muted)] mb-3" />
+                    <FileText size={32} className="mx-auto text-[var(--text-muted)] mb-3" />
                     <p className="text-sm text-[var(--text-secondary)]">No summaries yet. Complete a tasting session to see your notes here.</p>
                 </div>
             )}

@@ -30,7 +30,7 @@ export const SharingControls: React.FC<SharingControlsProps> = ({
                         >
                             <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.sharePersonalSummary ? 'left-6' : 'left-1'}`}></div>
                         </div>
-                        <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Personal Notes</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Share Personal Notes</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
                         <div
@@ -39,7 +39,7 @@ export const SharingControls: React.FC<SharingControlsProps> = ({
                         >
                             <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.shareGroupSummary ? 'left-6' : 'left-1'}`}></div>
                         </div>
-                        <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Group Summary</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Share Group Summary</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer group">
                         <div
@@ -48,7 +48,7 @@ export const SharingControls: React.FC<SharingControlsProps> = ({
                         >
                             <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.shareSessionLog ? 'left-6' : 'left-1'}`}></div>
                         </div>
-                        <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Session Log</span>
+                        <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Share Session Log</span>
                     </label>
                 </div>
             </div>

@@ -25,7 +25,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                     <BarChart3 size={18} className="text-orange-500" />
                     <h2 className="text-xs font-bold uppercase tracking-widest text-[var(--text-primary)]">Tasting Summary</h2>
                 </div>
-                <button onClick={onCloseSidebar} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+                <button onClick={onCloseSidebar} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden">
                     <X size={16} />
                 </button>
             </div>

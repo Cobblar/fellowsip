@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar, Wine, LogOut, ChevronRight, Settings, Star, ExternalLink, Search, MessageSquare, FileText } from 'lucide-react';
+import { User, Calendar, LogOut, ChevronRight, Settings, Star, ExternalLink, Search, MessageSquare, FileText } from 'lucide-react';
 import { api } from '../api/client';
 import { useCurrentUser, useUpdateProfile } from '../api/auth';
 import { useToggleHighlight, useUpdateSharing, useUserSessions } from '../api/sessions';
+import { getProductIcon } from '../utils/productIcons';
 
 export function Profile() {
     const navigate = useNavigate();
@@ -216,11 +217,11 @@ export function Profile() {
                                         className="flex items-center gap-4 cursor-pointer min-w-0 flex-1"
                                         onClick={() => navigate(session.summaryId ? `/session/${session.id}/summary` : `/session/${session.id}`)}
                                     >
-                                        <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-orange-500 shrink-0">
-                                            <Wine size={18} />
+                                        <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl shrink-0">
+                                            {getProductIcon(session.productType)}
                                         </div>
                                         <div className="min-w-0">
-                                            <h4 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-white truncate">{session.name}</h4>
+                                            <h4 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] truncate">{session.name}</h4>
                                             <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mt-1">
                                                 <span className="flex items-center gap-1">
                                                     <Calendar size={10} />
@@ -272,7 +273,7 @@ export function Profile() {
                                                 >
                                                     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.sharePersonalSummary ? 'left-5' : 'left-1'}`}></div>
                                                 </div>
-                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Personal</span>
+                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Personal</span>
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer group">
                                                 <div
@@ -284,7 +285,7 @@ export function Profile() {
                                                 >
                                                     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.shareGroupSummary ? 'left-5' : 'left-1'}`}></div>
                                                 </div>
-                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Group</span>
+                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Group</span>
                                             </label>
                                             <label className="flex items-center gap-2 cursor-pointer group">
                                                 <div
@@ -296,7 +297,7 @@ export function Profile() {
                                                 >
                                                     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.shareSessionLog ? 'left-5' : 'left-1'}`}></div>
                                                 </div>
-                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Log</span>
+                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Log</span>
                                             </label>
                                         </div>
 

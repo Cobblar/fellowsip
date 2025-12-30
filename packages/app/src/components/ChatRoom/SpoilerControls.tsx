@@ -36,7 +36,7 @@ export const SpoilerDefaultsModal: React.FC<Pick<SpoilerControlsProps, 'showSpoi
                         <Eye size={20} className="text-purple-500" />
                         <h3 className="text-lg font-bold text-[var(--text-primary)]">Default Spoiler Settings</h3>
                     </div>
-                    <button onClick={() => setShowSpoilerDefaults(false)} className="text-[var(--text-secondary)] hover:text-white">
+                    <button onClick={() => setShowSpoilerDefaults(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                         <X size={20} />
                     </button>
                 </div>

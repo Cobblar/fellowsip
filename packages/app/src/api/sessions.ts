@@ -226,11 +226,12 @@ export function usePublicSummary(id: string) {
 }
 
 // Get private session summary
-export function useSessionSummary(id: string) {
+export function useSessionSummary(id: string, refetchInterval?: number | false) {
   return useQuery({
     queryKey: [...sessionKeys.detail(id), 'summary'],
     queryFn: () => api.get<{ summary: any }>(`/sessions/${id}/summary`),
     enabled: !!id,
+    refetchInterval,
   });
 }
 

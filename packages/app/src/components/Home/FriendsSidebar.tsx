@@ -70,13 +70,13 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                     ? 'bg-orange-500 text-white'
                                     : friends.length === 0
                                         ? 'bg-orange-500 text-white animate-pulse'
-                                        : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/5'
+                                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                                     }`}
                                 title="Add Friend"
                             >
                                 <UserPlus size={16} />
                             </button>
-                            <button onClick={() => setIsSidebarOpen(false)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+                            <button onClick={() => setIsSidebarOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden">
                                 <X size={20} />
                             </button>
                         </div>
@@ -117,7 +117,7 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                 </button>
                                 <button
                                     onClick={() => setIsAddingFriend(false)}
-                                    className="px-3 bg-[var(--bg-input)] hover:bg-[var(--bg-main)] text-[var(--text-secondary)] text-xs font-bold py-2 rounded-lg transition-colors"
+                                    className="px-3 bg-[var(--bg-input)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] text-xs font-bold py-2 rounded-lg transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -204,7 +204,7 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                         {activeFriends.map((item) => (
                                             <div
                                                 key={item.friendshipId}
-                                                className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20 hover:border-green-500/40 transition-colors cursor-pointer"
+                                                className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:bg-green-500/10 hover:border-green-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
                                                 onClick={() => onFriendClick(item.friend.id)}
                                             >
                                                 <div className="relative">
@@ -238,7 +238,7 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                         {inactiveFriends.map((item) => (
                                             <div
                                                 key={item.friendshipId}
-                                                className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-main)]/30 border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-colors"
+                                                className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
                                             >
                                                 <div className="relative">
                                                     {item.friend.avatarUrl ? (

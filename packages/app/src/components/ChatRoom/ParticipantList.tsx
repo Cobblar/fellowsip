@@ -121,7 +121,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                             )}
                         </div>
                     )}
-                    <button onClick={onCloseSidebar} className="text-[var(--text-secondary)] hover:text-white md:hidden">
+                    <button onClick={onCloseSidebar} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden">
                         <X size={16} />
                     </button>
                 </div>
@@ -303,7 +303,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                                         ) : (
                                             <button
                                                 onClick={() => setExpandedActionUserId(user.userId)}
-                                                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-white/5 rounded transition-all"
+                                                className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] rounded transition-all"
                                                 title="Actions"
                                             >
                                                 <MoreHorizontal size={12} />
