@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ChevronRight, Mail, Shield, Users, UserPlus, Check, X, Archive, Settings as SettingsIcon, Globe } from 'lucide-react';
+import { User, LogOut, ChevronRight, Mail, Shield, Users, UserPlus, Check, X, Archive, Settings as SettingsIcon } from 'lucide-react';
 import { api } from '../api/client';
 import { useFriends, usePendingRequests, useSendFriendRequest, useAcceptFriendRequest, useRejectFriendRequest, useRemoveFriend, useUpdateAutoMod } from '../api/friends';
 import { useCurrentUser, useUpdateProfile } from '../api/auth';
@@ -376,34 +376,8 @@ export function Settings() {
                                     </p>
                                 </div>
 
-                                <div className="pt-6 border-t border-[var(--border-primary)]">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-500/10 text-blue-400">
-                                                <Globe size={20} />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-sm font-bold text-white">Public Profile</h3>
-                                                <p className="text-xs text-[var(--text-secondary)]">Your profile is public by default. Share your tasting history with others.</p>
-                                            </div>
-                                        </div>
-                                    </div>
 
-                                    <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-xs text-blue-400">
-                                            <Globe size={14} />
-                                            <span>Anyone with the link can view your shared summaries</span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate(`/profile/${currentUser?.id}/public`)}
-                                            className="text-xs font-bold text-orange-500 hover:text-orange-400 uppercase tracking-wider flex items-center gap-1"
-                                        >
-                                            View My Public Profile
-                                            <ChevronRight size={14} />
-                                        </button>
-                                    </div>
-                                </div>
+
 
                                 {updateProfile.isSuccess && (
                                     <p className="text-green-500 text-xs">Profile updated successfully!</p>
