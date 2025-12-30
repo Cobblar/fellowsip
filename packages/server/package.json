@@ -33,6 +33,7 @@
     "typescript": "^5.7.2"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "drizzle-kit": "^0.30.1"
   }
 }
