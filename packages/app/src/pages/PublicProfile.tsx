@@ -1,18 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Wine, Calendar, ChevronRight, ArrowLeft, Star, Search, Coffee, Beer } from 'lucide-react';
+import { User, Wine, Calendar, ChevronRight, ArrowLeft, Star, Search } from 'lucide-react';
 import { usePublicProfile } from '../api/auth';
-
-const getProductIcon = (productType?: string) => {
-    switch (productType?.toLowerCase()) {
-        case 'coffee':
-            return Coffee;
-        case 'beer':
-            return Beer;
-        default:
-            return Wine;
-    }
-};
+import { getProductLucideIcon } from '../utils/productIcons';
 
 export function PublicProfile() {
     const { id } = useParams<{ id: string }>();
@@ -59,7 +49,7 @@ export function PublicProfile() {
     const regularSummaries = filteredSummaries.filter(s => !s.session?.isHighlighted);
 
     const SummaryCard = ({ s, featured = false }: { s: any; featured?: boolean }) => {
-        const Icon = getProductIcon(s.session?.productType);
+        const Icon = getProductLucideIcon(s.session?.productType);
         return (
             <div
                 onClick={() => navigate(`/session/${s.sessionId}/summary/public`)}

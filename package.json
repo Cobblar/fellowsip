@@ -4,7 +4,8 @@
   "private": true,
   "description": "A platform for real-time collaborative tastings with AI-generated summaries",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "packages/shared"
   ],
   "scripts": {
     "dev": "npm run dev:landing & npm run dev:server & npm run dev:app",

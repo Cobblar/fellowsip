@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { Users, User, Clock, ChevronRight, PlayCircle, Wine, Calendar, UserPlus, LogIn, Plus, X, Check } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useFriends, useFriendsSessions, useMyJoinRequests, useRequestToJoin, useSendFriendRequest, usePendingRequests, useAcceptFriendRequest, useRejectFriendRequest } from '../api/friends';
 import { useAllSummaries, useUserSessions } from '../api/sessions';
 import { useState, useEffect } from 'react';
-import { getProductIcon } from '../utils/productIcons';
-import { Hash } from 'lucide-react';
-import { AdPlaceholder } from '../components/AdPlaceholder';
 import { useCurrentUser } from '../api/auth';
 import { OnboardingModal } from '../components/OnboardingModal';
+
+// Sub-components
+import { FriendsSidebar } from '../components/Home/FriendsSidebar';
+import { ActiveSessions } from '../components/Home/ActiveSessions';
+import { RecentSummaries } from '../components/Home/RecentSummaries';
+import { HomeHeader } from '../components/Home/HomeHeader';
 
 export function Home() {
     const navigate = useNavigate();
@@ -78,6 +81,14 @@ export function Home() {
         }
     };
 
+    const handleFriendClick = (friendId: string) => {
+        const session = friendsSessions.find(s => s.host?.id === friendId);
+        if (session) {
+            navigate(`/session/${session.id}`);
+            setIsSidebarOpen(false);
+        }
+    };
+
     return (
         <div className="h-full flex overflow-hidden relative">
             {/* Mobile Sidebar Toggle */}
@@ -88,505 +99,57 @@ export function Home() {
                 <Users size={24} />
             </button>
 
-            {/* Sidebar Overlay (Mobile) */}
-            <div
-                className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
-                onClick={() => setIsSidebarOpen(false)}
+            <FriendsSidebar
+                isSidebarOpen={isSidebarOpen}
+                setIsSidebarOpen={setIsSidebarOpen}
+                friends={friends}
+                friendsLoading={friendsLoading}
+                isAddingFriend={isAddingFriend}
+                setIsAddingFriend={setIsAddingFriend}
+                friendEmail={friendEmail}
+                setFriendEmail={setFriendEmail}
+                onSendFriendRequest={(email) => sendFriendRequest.mutate(email, { onSuccess: () => setFriendEmail('') })}
+                sendFriendRequestPending={sendFriendRequest.isPending}
+                sendFriendRequestError={sendFriendRequest.error}
+                sendFriendRequestSuccess={sendFriendRequest.isSuccess}
+                pendingRequests={pendingRequests}
+                showPendingRequests={showPendingRequests}
+                setShowPendingRequests={setShowPendingRequests}
+                onAcceptRequest={(id) => acceptRequest.mutate(id)}
+                onRejectRequest={(id) => rejectRequest.mutate(id)}
+                acceptRequestPending={acceptRequest.isPending}
+                rejectRequestPending={rejectRequest.isPending}
+                activeFriends={activeFriends}
+                inactiveFriends={inactiveFriends}
+                onFriendClick={handleFriendClick}
             />
-
-            {/* Left Sidebar: Friends List */}
-            <aside className={`sidebar ${isSidebarOpen ? 'open' : ''} w-[280px] bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-hidden`}>
-                <div className="p-4 border-b border-[var(--border-primary)]">
-                    <div className={`flex items-center justify-between ${isAddingFriend ? 'mb-4' : ''}`}>
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
-                            <Users size={14} />
-                            Friends ({friends.length})
-                        </h2>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setIsAddingFriend(!isAddingFriend)}
-                                className={`p-1.5 rounded-lg transition-colors ${isAddingFriend
-                                    ? 'bg-orange-500 text-white'
-                                    : friends.length === 0
-                                        ? 'bg-orange-500 text-white animate-pulse'
-                                        : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/5'
-                                    }`}
-                                title="Add Friend"
-                            >
-                                <UserPlus size={16} />
-                            </button>
-                            <button onClick={() => setIsSidebarOpen(false)} className="text-[var(--text-secondary)] hover:text-white md:hidden">
-                                <X size={20} />
-                            </button>
-                        </div>
-                    </div>
-
-                    {isAddingFriend && (
-                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                            <div className="relative">
-                                <input
-                                    type="email"
-                                    placeholder="Friend's email..."
-                                    value={friendEmail}
-                                    onChange={(e) => setFriendEmail(e.target.value)}
-                                    className="w-full bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg py-2 px-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-orange-500 transition-colors"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && friendEmail) {
-                                            sendFriendRequest.mutate(friendEmail, {
-                                                onSuccess: () => {
-                                                    setFriendEmail('');
-                                                    // Don't close the box on success
-                                                }
-                                            });
-                                        }
-                                        if (e.key === 'Escape') {
-                                            setIsAddingFriend(false);
-                                        }
-                                    }}
-                                />
-                                {sendFriendRequest.isPending && (
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-orange-500"></div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        if (friendEmail) {
-                                            sendFriendRequest.mutate(friendEmail, {
-                                                onSuccess: () => {
-                                                    setFriendEmail('');
-                                                    // Don't close the box on success
-                                                }
-                                            });
-                                        }
-                                    }}
-                                    disabled={!friendEmail || sendFriendRequest.isPending}
-                                    className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold py-2 rounded-lg transition-colors"
-                                >
-                                    Add Friend
-                                </button>
-                                <button
-                                    onClick={() => setIsAddingFriend(false)}
-                                    className="px-3 bg-[var(--bg-input)] hover:bg-[var(--bg-main)] text-[var(--text-secondary)] text-xs font-bold py-2 rounded-lg transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                            {sendFriendRequest.isError && (
-                                <p className="text-[10px] text-red-500 px-1">
-                                    {(sendFriendRequest.error as any)?.message || 'Failed to send request'}
-                                </p>
-                            )}
-                            {sendFriendRequest.isSuccess && (
-                                <p className="text-[10px] text-green-500 px-1">
-                                    Request sent!
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                    {/* Pending Friend Requests */}
-                    {pendingRequests.length > 0 && (
-                        <div className="mb-4">
-                            <button
-                                onClick={() => setShowPendingRequests(!showPendingRequests)}
-                                className="w-full flex items-center justify-between p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg hover:bg-orange-500/20 transition-all"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <UserPlus size={16} className="text-orange-500" />
-                                    <span className="text-sm font-medium text-orange-500">
-                                        {pendingRequests.length} Friend Request{pendingRequests.length > 1 ? 's' : ''}
-                                    </span>
-                                </div>
-                                <ChevronRight size={14} className={`text-orange-500 transition-transform ${showPendingRequests ? 'rotate-90' : ''}`} />
-                            </button>
-                            {showPendingRequests && (
-                                <div className="mt-2 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    {pendingRequests.map((request) => (
-                                        <div
-                                            key={request.id}
-                                            className="flex items-center justify-between p-2 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
-                                        >
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <div className="w-7 h-7 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
-                                                    <User size={12} className="text-[var(--text-secondary)]" />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-xs font-medium text-[var(--text-primary)] truncate">
-                                                        {request.sender?.displayName || request.sender?.email}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0 ml-2">
-                                                <button
-                                                    onClick={() => acceptRequest.mutate(request.id)}
-                                                    disabled={acceptRequest.isPending}
-                                                    className="p-1.5 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors"
-                                                >
-                                                    <Check size={12} />
-                                                </button>
-                                                <button
-                                                    onClick={() => rejectRequest.mutate(request.id)}
-                                                    disabled={rejectRequest.isPending}
-                                                    className="p-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    {friendsLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
-                        </div>
-                    ) : friends.length > 0 ? (
-                        <div className="space-y-4">
-                            {/* Active Friends (In Session) */}
-                            {activeFriends.length > 0 && (
-                                <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-2 px-1">
-                                        In Session ({activeFriends.length})
-                                    </p>
-                                    <div className="space-y-2">
-                                        {activeFriends.map((item) => (
-                                            <div
-                                                key={item.friendshipId}
-                                                className="flex items-center gap-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20 hover:border-green-500/40 transition-colors cursor-pointer"
-                                                onClick={() => {
-                                                    const session = friendsSessions.find(s => s.host?.id === item.friend.id);
-                                                    if (session) {
-                                                        navigate(`/session/${session.id}`);
-                                                        setIsSidebarOpen(false);
-                                                    }
-                                                }}
-                                            >
-                                                <div className="relative">
-                                                    {item.friend.avatarUrl ? (
-                                                        <img src={item.friend.avatarUrl} alt="" className="w-9 h-9 rounded-full" />
-                                                    ) : (
-                                                        <div className="w-9 h-9 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                            <User size={16} className="text-[var(--text-secondary)]" />
-                                                        </div>
-                                                    )}
-                                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[var(--bg-sidebar)] rounded-full animate-pulse"></span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                                        {item.friend.displayName || item.friend.email}
-                                                    </p>
-                                                    <p className="text-[10px] text-green-500">In session</p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Inactive Friends */}
-                            {inactiveFriends.length > 0 && (
-                                <div>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 px-1">
-                                        Offline ({inactiveFriends.length})
-                                    </p>
-                                    <div className="space-y-2">
-                                        {inactiveFriends.map((item) => (
-                                            <div
-                                                key={item.friendshipId}
-                                                className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-main)]/30 border border-[var(--border-primary)]/50 hover:border-[var(--border-secondary)] transition-colors"
-                                            >
-                                                <div className="relative">
-                                                    {item.friend.avatarUrl ? (
-                                                        <img src={item.friend.avatarUrl} alt="" className="w-9 h-9 rounded-full opacity-60" />
-                                                    ) : (
-                                                        <div className="w-9 h-9 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                            <User size={16} className="text-[var(--text-secondary)]" />
-                                                        </div>
-                                                    )}
-                                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-gray-600 border-2 border-[var(--bg-sidebar)] rounded-full"></span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-[var(--text-secondary)] truncate">
-                                                        {item.friend.displayName || item.friend.email}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <User size={32} className="mx-auto text-[var(--text-muted)] mb-3" />
-                            <p className="text-sm text-[var(--text-secondary)]">No friends yet</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Ad Placeholder */}
-                <div className="p-4 border-t border-[var(--border-primary)] mt-auto">
-                    <AdPlaceholder />
-                </div>
-            </aside>
 
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto p-4 md:p-8">
                 <div className="max-w-5xl mx-auto space-y-8">
-                    {/* Welcome Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                        <h1 className="heading-xl">Welcome Back</h1>
-                        <div className="flex items-center gap-2">
-                            {showJoinInput ? (
-                                <div className="flex items-center gap-2 flex-1 md:flex-none">
-                                    <div className="relative flex-1 md:w-64">
-                                        <Hash size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
-                                        <input
-                                            type="text"
-                                            placeholder="Paste session ID..."
-                                            value={joinSessionId}
-                                            onChange={(e) => setJoinSessionId(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleJoinById()}
-                                            className="pl-9 pr-3 py-2 bg-[var(--bg-input)] border-[var(--border-primary)] text-sm w-full font-mono"
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleJoinById}
-                                        disabled={!joinSessionId.trim()}
-                                        className="btn-orange text-sm py-2 px-4"
-                                    >
-                                        Join
-                                    </button>
-                                    <button
-                                        onClick={() => { setShowJoinInput(false); setJoinSessionId(''); }}
-                                        className="text-[var(--text-secondary)] hover:text-white text-sm px-2"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    onClick={() => setShowJoinInput(true)}
-                                    className="btn-outline w-full md:w-auto justify-center"
-                                >
-                                    Join by ID
-                                </button>
-                            )}
-                            <button
-                                onClick={() => navigate('/create')}
-                                className="btn-orange w-full md:w-auto justify-center"
-                            >
-                                <Plus size={16} />
-                                New Session
-                            </button>
-                        </div>
-                    </div>
+                    <HomeHeader
+                        showJoinInput={showJoinInput}
+                        setShowJoinInput={setShowJoinInput}
+                        joinSessionId={joinSessionId}
+                        setJoinSessionId={setJoinSessionId}
+                        onJoinById={handleJoinById}
+                        onCreateSession={() => navigate('/create')}
+                    />
 
-                    {/* Active Sessions Section */}
-                    <section className="min-h-[200px] md:h-[320px] md:overflow-y-auto custom-scrollbar md:pr-2">
-                        <div className="min-h-full flex flex-col">
-                            {activeSessions.length > 0 && (
-                                <div className="mb-8">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                        <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">My Active Sessions</h2>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {activeSessions.map((session) => {
-                                            const productEmoji = getProductIcon(session.productType);
-                                            return (
-                                                <div
-                                                    key={session.id}
-                                                    onClick={() => navigate(`/session/${session.id}`)}
-                                                    className="card border-green-500/20 hover:border-green-500/50 transition-all cursor-pointer group bg-green-500/5 p-5"
-                                                >
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
-                                                                {productEmoji}
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white">{session.name}</h3>
-                                                                <p className="text-xs text-[var(--text-secondary)]">{session.productType || 'Tasting'}</p>
-                                                            </div>
-                                                        </div>
-                                                        <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-1 rounded font-bold uppercase">Live</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between pt-3 border-t border-[var(--border-primary)]/50">
-                                                        <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-                                                            <Clock size={12} />
-                                                            <span>Started {new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </div>
-                                                        <span className="text-xs font-bold text-green-500 flex items-center gap-1">
-                                                            Join <ChevronRight size={14} />
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
+                    <ActiveSessions
+                        activeSessions={activeSessions}
+                        friendsSessions={friendsSessions}
+                        getJoinStatus={getJoinStatus}
+                        onJoinSession={(sessionId) => navigate(`/session/${sessionId}`)}
+                        onRequestToJoin={handleRequestToJoin}
+                        requestToJoinPending={requestToJoin.isPending}
+                    />
 
-                            {friendsSessions.length > 0 && (
-                                <div className="mb-4">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Users size={14} className="text-blue-500" />
-                                        <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">Friend's Sessions</h2>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {friendsSessions.map((session) => {
-                                            const status = getJoinStatus(session.id);
-                                            const productEmoji = getProductIcon(session.productType);
-                                            return (
-                                                <div
-                                                    key={session.id}
-                                                    className="card border-blue-500/20 hover:border-blue-500/50 transition-all bg-blue-500/5 p-5"
-                                                >
-                                                    <div className="flex items-start justify-between mb-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
-                                                                {productEmoji}
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-bold text-[var(--text-primary)]">{session.name}</h3>
-                                                                <p className="text-xs text-[var(--text-secondary)]">
-                                                                    Hosted by {session.host?.displayName || 'Friend'}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <span className="text-[10px] bg-blue-500/20 text-blue-500 px-2 py-1 rounded font-bold uppercase">Live</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between pt-3 border-t border-[var(--border-primary)]/50">
-                                                        <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-                                                            <Clock size={12} />
-                                                            <span>Started {new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                        </div>
-                                                        {status === 'approved' ? (
-                                                            <button
-                                                                onClick={() => navigate(`/session/${session.id}`)}
-                                                                className="text-xs font-bold text-green-500 hover:text-green-400 flex items-center gap-1 animate-pulse-once"
-                                                            >
-                                                                <LogIn size={12} className="animate-bounce-in" />
-                                                                Join Session
-                                                            </button>
-                                                        ) : status === 'pending' ? (
-                                                            <span className="text-xs text-[var(--text-secondary)] flex items-center gap-1">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
-                                                                Request sent
-                                                            </span>
-                                                        ) : status === 'rejected' ? (
-                                                            <span className="text-xs text-red-400">Request declined</span>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => handleRequestToJoin(session.id)}
-                                                                disabled={requestToJoin.isPending}
-                                                                className="text-xs font-bold text-blue-500 hover:underline flex items-center gap-1"
-                                                            >
-                                                                <UserPlus size={12} />
-                                                                Request to Join
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeSessions.length === 0 && friendsSessions.length === 0 && (
-                                <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-main)]/30 rounded-lg border border-dashed border-[var(--border-primary)] py-8 px-4 text-center">
-                                    <PlayCircle size={48} className="text-[var(--text-muted)] mb-4" />
-                                    <h3 className="text-xl font-bold text-[var(--text-secondary)] mb-2">No Active Sessions</h3>
-                                    <p className="text-sm text-[var(--text-secondary)]">Start a new tasting session or wait for a friend to go live.</p>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    {/* Recent Summaries */}
-                    <section>
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">Recent Tastings</h2>
-                            <button
-                                onClick={() => navigate('/my-cellar')}
-                                className="text-xs text-orange-500 hover:underline flex items-center gap-1"
-                            >
-                                View all <ChevronRight size={14} />
-                            </button>
-                        </div>
-                        {summaries.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {summaries.slice(0, 3).map((item) => {
-                                    const productEmoji = getProductIcon(item.session.productType);
-                                    return (
-                                        <div
-                                            key={item.session.id}
-                                            onClick={() => navigate(`/session/${item.session.id}/summary`)}
-                                            className="card hover:border-gray-600 transition-all cursor-pointer group p-5"
-                                        >
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
-                                                        {productEmoji}
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <h3 className="font-bold text-[var(--text-primary)] group-hover:text-white text-sm">
-                                                                {item.session.productName || item.session.name}
-                                                            </h3>
-                                                            {item.session.startedAt && (new Date().getTime() - new Date(item.session.startedAt).getTime() < 24 * 60 * 60 * 1000) && (
-                                                                <span className="text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">New</span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-[10px] text-[var(--text-secondary)]">
-                                                            {item.session.productName ? item.session.name : (item.session.productType || 'Tasting')}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {(item.summary?.metadata?.rating || item.summary?.averageRating) && (
-                                                    <div className="text-right">
-                                                        <span className="text-lg font-bold text-orange-500">{item.summary?.metadata?.rating || item.summary?.averageRating}</span>
-                                                        <p className="text-[8px] text-[var(--text-muted)] uppercase font-bold">Score</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-1 mb-3 min-h-[40px]">
-                                                {item.summary.nose && (
-                                                    <p className="text-[10px] text-[var(--text-secondary)] line-clamp-1">
-                                                        <span className="text-[var(--text-muted)] uppercase font-bold mr-1">Nose:</span> {item.summary.nose}
-                                                    </p>
-                                                )}
-                                                {item.summary.palate && (
-                                                    <p className="text-[10px] text-[var(--text-secondary)] line-clamp-1">
-                                                        <span className="text-[var(--text-muted)] uppercase font-bold mr-1">Palate:</span> {item.summary.palate}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)] pt-3 border-t border-[var(--border-primary)]/50">
-                                                <Calendar size={12} />
-                                                <span>{item.session?.startedAt ? new Date(item.session.startedAt).toLocaleDateString() : ''}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8 bg-[var(--bg-main)]/30 rounded-lg border border-dashed border-[var(--border-primary)] px-4">
-                                <Wine size={32} className="mx-auto text-[var(--text-muted)] mb-3" />
-                                <p className="text-sm text-[var(--text-secondary)]">No summaries yet. Complete a tasting session to see your notes here.</p>
-                            </div>
-                        )}
-                    </section>
+                    <RecentSummaries
+                        summaries={summaries}
+                        onViewAll={() => navigate('/my-cellar')}
+                        onViewSummary={(sessionId) => navigate(`/session/${sessionId}/summary`)}
+                    />
                 </div>
             </div>
             <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />

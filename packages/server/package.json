@@ -30,7 +30,8 @@
     "postgres": "^3.4.5",
     "socket.io": "^4.8.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "@fellowsip/shared": "*"
   },
   "devDependencies": {
     "@types/node-cron": "^3.0.11",

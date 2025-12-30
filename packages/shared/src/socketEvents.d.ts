@@ -1,0 +1,158 @@
+import { ActiveUser, BannedUser, Message } from './entities.js';
+export interface JoinSessionPayload {
+    sessionId: string;
+}
+export interface SendMessagePayload {
+    sessionId: string;
+    content: string;
+    phase?: string;
+}
+export interface MessageHistoryEvent {
+    messages: Message[];
+    livestreamUrl?: string | null;
+    customTags?: string[];
+    hostId?: string | null;
+}
+export interface CustomTagsUpdatedEvent {
+    sessionId: string;
+    tags: string[];
+}
+export interface ActiveUsersEvent {
+    users: ActiveUser[];
+    moderators: string[];
+}
+export interface NewMessageEvent extends Message {
+}
+export interface UserJoinedEvent {
+    user: ActiveUser;
+    userCount: number;
+}
+export interface UserLeftEvent {
+    userId: string;
+    userCount: number;
+}
+export interface ErrorEvent {
+    message: string;
+}
+export interface DeleteMessagePayload {
+    sessionId: string;
+    messageId: string;
+}
+export interface EditMessagePayload {
+    sessionId: string;
+    messageId: string;
+    content: string;
+}
+export interface MakeModeratorPayload {
+    sessionId: string;
+    userId: string;
+}
+export interface RevealSpoilersPayload {
+    sessionId: string;
+    upToMessageId: string;
+}
+export interface MessageDeletedEvent {
+    messageId: string;
+    deletedBy: string;
+}
+export interface MessageUpdatedEvent {
+    messageId: string;
+    content: string;
+}
+export interface ModeratorAddedEvent {
+    userId: string;
+    displayName: string | null;
+}
+export interface SpoilersRevealedEvent {
+    messageIds: string[];
+    revealedBy: string;
+    isGlobal: boolean;
+}
+export interface UpdateRatingPayload {
+    sessionId: string;
+    rating: number;
+}
+export interface RatingUpdatedEvent {
+    userId: string;
+    rating: number;
+    averageRating: number | null;
+}
+export interface StartReadyCheckPayload {
+    sessionId: string;
+}
+export interface EndReadyCheckPayload {
+    sessionId: string;
+}
+export interface MarkReadyPayload {
+    sessionId: string;
+}
+export interface ReadyCheckStartedEvent {
+    sessionId: string;
+    startedBy: string;
+}
+export interface ReadyCheckEndedEvent {
+    sessionId: string;
+}
+export interface UserReadyEvent {
+    userId: string;
+    displayName: string | null;
+}
+export interface ReadyCheckStateEvent {
+    isActive: boolean;
+    readyUsers: string[];
+    totalUsers: number;
+}
+export interface MuteUserPayload {
+    sessionId: string;
+    userId: string;
+    eraseMessages?: boolean;
+}
+export interface UnmuteUserPayload {
+    sessionId: string;
+    userId: string;
+}
+export interface KickUserPayload {
+    sessionId: string;
+    userId: string;
+    eraseMessages?: boolean;
+}
+export interface UnkickUserPayload {
+    sessionId: string;
+    userId: string;
+}
+export interface UserMutedEvent {
+    userId: string;
+    displayName: string | null;
+}
+export interface UserUnmutedEvent {
+    userId: string;
+    displayName: string | null;
+}
+export interface UserKickedEvent {
+    userId: string;
+    displayName: string | null;
+}
+export interface UserUnkickedEvent {
+    userId: string;
+    displayName: string | null;
+}
+export interface YouWereKickedEvent {
+    sessionId: string;
+    message: string;
+}
+export interface YouWereMutedEvent {
+    sessionId: string;
+    message: string;
+}
+export interface YouWereUnmutedEvent {
+    sessionId: string;
+}
+export interface BannedUsersListEvent {
+    mutedUsers: BannedUser[];
+    kickedUsers: BannedUser[];
+}
+export interface MessagesErasedEvent {
+    userId: string;
+    messageIds: string[];
+}
+//# sourceMappingURL=socketEvents.d.ts.map

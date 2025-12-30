@@ -1,3 +1,5 @@
+import { Wine, Beer, Coffee, Coffee as Tea, GlassWater as Whisky, Sparkles as Other, Cookie as Chocolate, Box as Sake } from 'lucide-react';
+
 // Product type emoji icons
 export const PRODUCT_ICONS: Record<string, string> = {
     'Wine': '🍷',
@@ -7,13 +9,33 @@ export const PRODUCT_ICONS: Record<string, string> = {
     'Coffee': '☕',
     'Tea': '🍵',
     'Chocolate': '🍫',
-    'Cheese': '🧀',
     'Other': '✨',
 };
 
 export function getProductIcon(productType: string | null | undefined): string {
     if (!productType) return '🥃';
     return PRODUCT_ICONS[productType] || '🥃';
+}
+
+// Product type Lucide icons
+export const PRODUCT_LUCIDE_ICONS: Record<string, any> = {
+    'Wine': Wine,
+    'Whisky': Whisky,
+    'Beer': Beer,
+    'Sake': Sake,
+    'Coffee': Coffee,
+    'Tea': Tea,
+    'Chocolate': Chocolate,
+    'Other': Other,
+};
+
+export function getProductLucideIcon(productType: string | null | undefined): any {
+    if (!productType) return Wine;
+    // Handle case-insensitive matching if needed
+    const normalizedType = Object.keys(PRODUCT_LUCIDE_ICONS).find(
+        key => key.toLowerCase() === productType.toLowerCase()
+    );
+    return (normalizedType ? PRODUCT_LUCIDE_ICONS[normalizedType] : Wine);
 }
 
 // Color classes for each product type (for background accents, not emoji coloring)

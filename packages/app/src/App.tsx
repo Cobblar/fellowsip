@@ -35,9 +35,30 @@ function AppContent() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/profile/:id" element={<PublicProfile />} />
-      <Route path="/session/:id/summary/public" element={<Summary publicMode />} />
-      <Route path="/session/:id/log/public" element={<PublicSessionLog />} />
+      <Route
+        path="/profile/:id"
+        element={
+          <div className="flex-1 overflow-y-auto">
+            <PublicProfile />
+          </div>
+        }
+      />
+      <Route
+        path="/session/:id/summary/public"
+        element={
+          <div className="flex-1 overflow-y-auto">
+            <Summary publicMode />
+          </div>
+        }
+      />
+      <Route
+        path="/session/:id/log/public"
+        element={
+          <div className="flex-1 overflow-hidden">
+            <PublicSessionLog />
+          </div>
+        }
+      />
 
       {/* Protected Routes */}
       <Route

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicSessionLog } from '../api/sessions';
 import type { ActiveUser, Message, BannedUser } from '../types';
