@@ -3,8 +3,8 @@ module.exports = {
         {
             name: 'fellowsip-server',
             script: 'npm',
-            args: 'run dev:server',
-            cwd: './',
+            args: 'run dev',
+            cwd: './packages/server',
             env: {
                 NODE_ENV: 'production',
                 PORT: 3000
@@ -13,8 +13,8 @@ module.exports = {
         {
             name: 'fellowsip-app',
             script: 'npm',
-            args: 'run dev:app',
-            cwd: './',
+            args: 'run dev',
+            cwd: './packages/app',
             env: {
                 NODE_ENV: 'production'
             }
@@ -22,8 +22,8 @@ module.exports = {
         {
             name: 'fellowsip-landing',
             script: 'npm',
-            args: 'run dev:landing',
-            cwd: './',
+            args: 'run dev',
+            cwd: './packages/landing',
             env: {
                 NODE_ENV: 'production'
             }
