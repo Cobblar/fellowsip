@@ -1,0 +1,36 @@
+#!/bin/bash
+# Post-receive hook for Fellowsip deployment
+# Copy this to /opt/git/fellowsip.git/hooks/post-receive on the production server
+
+set -e
+
+APP_DIR="/opt/apps/fellowsip"
+GIT_DIR="/opt/git/fellowsip.git"
+
+echo "=========================================="
+echo "Deploying Fellowsip..."
+echo "=========================================="
+
+# Pull the latest code
+cd $APP_DIR
+git --work-tree=$APP_DIR --git-dir=$GIT_DIR checkout -f main
+
+# Install dependencies
+echo "Installing dependencies..."
+npm install
+
+# Run database migrations
+echo "Running database migrations..."
+npm run db:migrate --prefix packages/server
+
+# Build the application
+echo "Building application..."
+npm run build
+
+# Restart PM2 processes
+echo "Restarting PM2 processes..."
+pm2 restart ecosystem.config.js
+
+echo "=========================================="
+echo "Deployment complete!"
+echo "=========================================="
