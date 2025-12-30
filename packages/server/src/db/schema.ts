@@ -12,6 +12,8 @@ export const users = pgTable('users', {
     notifications?: boolean;
     [key: string]: any;
   }>(),
+  isPublic: boolean('is_public').notNull().default(false),
+  bio: text('bio'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 });
@@ -155,6 +157,9 @@ export const sessionParticipants = pgTable('session_participants', {
     .references(() => users.id, { onDelete: 'cascade' }),
   rating: real('rating'),
   isBanned: boolean('is_banned').notNull().default(false),
+  sharePersonalSummary: boolean('share_personal_summary').notNull().default(false),
+  shareGroupSummary: boolean('share_group_summary').notNull().default(false),
+  isHighlighted: boolean('is_highlighted').notNull().default(false),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({
   sessionIdx: index('session_participants_session_id_idx').on(table.sessionId),

@@ -6,6 +6,6 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    allowedHosts: ['app.cobbler.cc', '.cobbler.cc'],
+    allowedHosts: ['app.cobbler.cc', '.cobbler.cc', 'localhost', '127.0.0.1'],
   },
 });

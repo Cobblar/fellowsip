@@ -55,6 +55,12 @@ export function TopHeader() {
                         >
                             Sessions
                         </button>
+                        <button
+                            onClick={() => navigate('/profile')}
+                            className={navClass(isActive('/profile'))}
+                        >
+                            Profile
+                        </button>
                     </nav>
                 </div>
 
@@ -68,7 +74,7 @@ export function TopHeader() {
                     </button>
                     <NotificationDropdown />
                     <button
-                        onClick={() => navigate('/profile')}
+                        onClick={() => navigate('/settings')}
                         className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-secondary)] cursor-pointer hover:border-orange-500 transition-colors overflow-hidden"
                     >
                         {user?.avatarUrl ? (

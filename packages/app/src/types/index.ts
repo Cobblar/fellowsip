@@ -2,6 +2,9 @@ export interface User {
   id: string;
   displayName: string | null;
   avatarUrl: string | null;
+  email?: string;
+  isPublic?: boolean;
+  bio?: string | null;
 }
 
 export interface Session {
@@ -21,6 +24,9 @@ export interface Session {
   host?: User;
   summaryId?: string;
   userRating?: number | null;
+  sharePersonalSummary?: boolean;
+  shareGroupSummary?: boolean;
+  isHighlighted?: boolean;
 }
 
 export interface Message {
@@ -39,6 +45,15 @@ export interface ActiveUser {
   displayName: string | null;
   avatarUrl: string | null;
   rating?: number | null;
+}
+
+export interface Participant {
+  userId: string;
+  rating: number | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  sharePersonalSummary?: boolean;
+  shareGroupSummary?: boolean;
 }
 
 // Socket event payloads

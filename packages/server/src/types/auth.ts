@@ -11,6 +11,7 @@ export interface DatabaseUserAttributes {
     recentTags?: string[];
     [key: string]: any;
   } | null;
+  bio: string | null;
 }
 
 export type { User, Session };

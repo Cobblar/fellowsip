@@ -1,52 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar, Wine, LogOut, ChevronRight, Mail, Shield, Users, UserPlus, Check, X, Archive, Settings } from 'lucide-react';
+import { User, Calendar, Wine, LogOut, ChevronRight, Settings, Star, ExternalLink, Search } from 'lucide-react';
 import { api } from '../api/client';
-import { useFriends, usePendingRequests, useSendFriendRequest, useAcceptFriendRequest, useRejectFriendRequest, useRemoveFriend, useUpdateAutoMod } from '../api/friends';
 import { useCurrentUser, useUpdateProfile } from '../api/auth';
-import type { Session } from '../types';
+import { useToggleHighlight, useUpdateSharing, useUserSessions } from '../api/sessions';
 
 export function Profile() {
     const navigate = useNavigate();
-    const [sessions, setSessions] = useState<Session[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [friendEmail, setFriendEmail] = useState('');
-    const [activeTab, setActiveTab] = useState<'history' | 'friends' | 'settings'>('history');
-    const [showPendingRequests, setShowPendingRequests] = useState(false);
-    const [newDisplayName, setNewDisplayName] = useState('');
+    const [newBio, setNewBio] = useState('');
+    const [isEditingBio, setIsEditingBio] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const { data: friendsData } = useFriends();
-    const { data: pendingData } = usePendingRequests();
-    const sendRequest = useSendFriendRequest();
-    const acceptRequest = useAcceptFriendRequest();
-    const rejectRequest = useRejectFriendRequest();
-    const removeFriend = useRemoveFriend();
-    const updateAutoMod = useUpdateAutoMod();
+    const { data: sessionsData, isLoading: sessionsLoading } = useUserSessions();
     const { data: currentUserData } = useCurrentUser();
     const updateProfile = useUpdateProfile();
+    const toggleHighlight = useToggleHighlight();
+    const updateSharing = useUpdateSharing();
 
     const currentUser = currentUserData?.user;
 
-    const friends = friendsData?.friends || [];
-    const pendingRequests = pendingData?.requests || [];
-
     useEffect(() => {
-        const fetchSessions = async () => {
-            try {
-                const sessionRes = await api.get<{ sessions: Session[] }>('/auth/profile/sessions');
-                setSessions(sessionRes.sessions);
-            } catch (error) {
-                console.error('Failed to fetch sessions:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchSessions();
-    }, []);
-
-    useEffect(() => {
-        if (currentUser?.displayName) {
-            setNewDisplayName(currentUser.displayName);
+        if (currentUser) {
+            setNewBio(currentUser.bio || '');
         }
     }, [currentUser]);
 
@@ -60,82 +35,142 @@ export function Profile() {
         }
     };
 
-    const handleUpdateDisplayName = async (e: React.FormEvent) => {
+    const handleUpdateBio = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newDisplayName.trim()) return;
-
         try {
-            await updateProfile.mutateAsync({ displayName: newDisplayName.trim() });
+            await updateProfile.mutateAsync({ bio: newBio.trim() });
+            setIsEditingBio(false);
         } catch (error) {
-            console.error('Failed to update display name:', error);
+            console.error('Failed to update bio:', error);
         }
     };
 
-    const handleSendFriendRequest = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!friendEmail.trim()) return;
-
-        try {
-            await sendRequest.mutateAsync(friendEmail);
-            setFriendEmail('');
-        } catch (error) {
-            console.error('Failed to send friend request:', error);
-        }
+    const handleCopyPublicLink = () => {
+        const url = `${window.location.origin}/profile/${currentUser?.id}`;
+        navigator.clipboard.writeText(url);
+        // Could add a toast here
     };
 
-    if (isLoading) {
+    const sessions = sessionsData?.sessions || [];
+    const synthesizedSessions = sessions.filter(s => s.summaryId);
+    const filteredSessions = synthesizedSessions.filter(s =>
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.productName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.productType || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (sessionsLoading) {
         return <div className="p-8 text-[var(--text-secondary)]">Loading profile...</div>;
     }
 
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto">
-            <div className="mb-8">
-                <h1 className="heading-xl mb-2">Account Settings</h1>
-                <p className="text-sm text-[var(--text-secondary)]">Manage your profile, friends, and tasting history.</p>
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="heading-xl mb-2">My Profile</h1>
+                    <p className="text-sm text-[var(--text-secondary)]">Manage your public presence and shared tastings.</p>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleCopyPublicLink}
+                        className="btn-secondary text-xs py-2 px-3"
+                    >
+                        Copy Public Link
+                    </button>
+                    <button
+                        onClick={() => navigate(`/profile/${currentUser?.id}`)}
+                        className="btn-orange text-xs py-2"
+                    >
+                        <ExternalLink size={14} />
+                        View Public Profile
+                    </button>
+                </div>
             </div>
 
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">
                 {/* Left: User Info */}
                 <div className="space-y-6">
-                    <div className="card p-6 md:p-8 flex flex-col items-center text-center">
-                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[var(--bg-input)] flex items-center justify-center mb-4 border-2 border-[var(--border-secondary)]">
-                            <User size={40} className="text-[var(--text-secondary)] md:size-12" />
-                        </div>
-                        <h2 className="heading-lg mb-1">{currentUser?.displayName || 'User'}</h2>
-                        <p className="text-xs text-[var(--text-secondary)] mb-6">{currentUser?.email}</p>
+                    <div className="card p-6 md:p-8">
+                        <div className="flex flex-col items-center text-center mb-6">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[var(--bg-input)] flex items-center justify-center mb-4 border-2 border-[var(--border-secondary)] overflow-hidden">
+                                {currentUser?.avatarUrl ? (
+                                    <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={40} className="text-[var(--text-secondary)] md:size-12" />
+                                )}
+                            </div>
+                            <h2 className="heading-lg mb-1">{currentUser?.displayName || 'User'}</h2>
+                            <p className="text-xs text-[var(--text-secondary)] mb-4">{currentUser?.email}</p>
 
-                        <div className="w-full grid grid-cols-3 gap-2 pt-6 border-t border-[var(--border-primary)]">
-                            <div>
-                                <p className="text-lg md:text-xl font-bold text-orange-500">{sessions.length}</p>
-                                <p className="text-[8px] md:text-[10px] text-[var(--text-muted)] uppercase font-bold">Sessions</p>
+                            <div className="w-full grid grid-cols-2 gap-2 py-4 border-y border-[var(--border-primary)]">
+                                <div>
+                                    <p className="text-lg md:text-xl font-bold text-orange-500">{sessions.length}</p>
+                                    <p className="text-[8px] md:text-[10px] text-[var(--text-muted)] uppercase font-bold">Total Sessions</p>
+                                </div>
+                                <div>
+                                    <p className="text-lg md:text-xl font-bold text-green-500">{synthesizedSessions.length}</p>
+                                    <p className="text-[8px] md:text-[10px] text-[var(--text-muted)] uppercase font-bold">Summaries</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-lg md:text-xl font-bold text-green-500">{sessions.filter(s => s.summaryId).length}</p>
-                                <p className="text-[8px] md:text-[10px] text-[var(--text-muted)] uppercase font-bold">Synthesized</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)]">Bio</h3>
+                                {!isEditingBio && (
+                                    <button
+                                        onClick={() => setIsEditingBio(true)}
+                                        className="text-[10px] text-orange-500 hover:text-orange-400 font-bold uppercase"
+                                    >
+                                        Edit
+                                    </button>
+                                )}
                             </div>
-                            <div>
-                                <p className="text-lg md:text-xl font-bold text-blue-500">{friends.length}</p>
-                                <p className="text-[8px] md:text-[10px] text-[var(--text-muted)] uppercase font-bold">Friends</p>
-                            </div>
+
+                            {isEditingBio ? (
+                                <form onSubmit={handleUpdateBio} className="space-y-3">
+                                    <textarea
+                                        value={newBio}
+                                        onChange={(e) => setNewBio(e.target.value)}
+                                        placeholder="Tell us about your tasting journey..."
+                                        className="w-full h-32 px-3 py-2 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg text-sm focus:outline-none focus:border-orange-500 transition-colors resize-none"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="submit"
+                                            disabled={updateProfile.isPending}
+                                            className="btn-orange flex-1 text-xs py-1.5"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsEditingBio(false);
+                                                setNewBio(currentUser?.bio || '');
+                                            }}
+                                            className="btn-secondary flex-1 text-xs py-1.5"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <p className="text-sm text-[var(--text-secondary)] italic leading-relaxed">
+                                    {currentUser?.bio || "No bio yet. Add one to tell others about your tasting journey!"}
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     <div className="card p-0 overflow-hidden">
                         <button
-                            onClick={() => navigate('/archive')}
+                            onClick={() => navigate('/settings')}
                             className="w-full flex items-center gap-3 p-4 hover:bg-[var(--bg-input)]/50 transition-colors text-sm text-[var(--text-secondary)]"
                         >
-                            <Archive size={16} className="text-[var(--text-secondary)]" />
-                            <span>Archived Sessions</span>
+                            <Settings size={16} className="text-[var(--text-secondary)]" />
+                            <span>Account Settings</span>
                             <ChevronRight size={14} className="ml-auto text-[var(--text-muted)]" />
-                        </button>
-                        <button className="w-full flex items-center gap-3 p-4 hover:bg-[var(--bg-input)]/50 transition-colors text-sm text-[var(--text-secondary)] border-t border-[var(--border-primary)]">
-                            <Mail size={16} className="text-[var(--text-secondary)]" />
-                            <span>Notifications</span>
-                        </button>
-                        <button className="w-full flex items-center gap-3 p-4 hover:bg-[var(--bg-input)]/50 transition-colors text-sm text-[var(--text-secondary)] border-t border-[var(--border-primary)]">
-                            <Shield size={16} className="text-[var(--text-secondary)]" />
-                            <span>Security</span>
                         </button>
                         <button
                             onClick={handleLogout}
@@ -150,334 +185,103 @@ export function Profile() {
                 {/* Right: Tabs */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Tab Navigation */}
-                    <div className="flex gap-4 border-b border-[var(--border-primary)] overflow-x-auto no-scrollbar">
-                        <button
-                            onClick={() => setActiveTab('history')}
-                            className={`pb-3 text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'history'
-                                ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-[var(--text-secondary)] hover:text-white'
-                                }`}
-                        >
-                            Recent History
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('friends')}
-                            className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'friends'
-                                ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-[var(--text-secondary)] hover:text-white'
-                                }`}
-                        >
-                            <Users size={14} />
-                            Friends
-                            {pendingRequests.length > 0 && (
-                                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-2">
-                                    {pendingRequests.length}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('settings')}
-                            className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'settings'
-                                ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-[var(--text-secondary)] hover:text-white'
-                                }`}
-                        >
-                            <Settings size={14} />
-                            Settings
-                        </button>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border-primary)] pb-4">
+                        <div className="flex gap-4 overflow-x-auto no-scrollbar">
+                            <button
+                                className="text-sm font-medium text-orange-500 border-b-2 border-orange-500 whitespace-nowrap pb-1"
+                            >
+                                Tasting History & Sharing
+                            </button>
+                        </div>
+                        <div className="relative">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search summaries..."
+                                className="pl-9 pr-4 py-1.5 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-full text-xs focus:outline-none focus:border-orange-500 transition-colors w-full md:w-64"
+                            />
+                        </div>
                     </div>
 
-                    {/* History Tab */}
-                    {activeTab === 'history' && (
-                        <div className="card p-4 md:p-6">
-                            <div className="space-y-4">
-                                {sessions.slice(0, 10).map((session) => (
-                                    <div
-                                        key={session.id}
-                                        onClick={() => navigate(session.summaryId ? `/session/${session.id}/summary` : `/session/${session.id}`)}
-                                        className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg hover:border-gray-600 cursor-pointer transition-all group"
-                                    >
-                                        <div className="flex items-center gap-3 md:gap-4">
-                                            <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-orange-500 shrink-0">
-                                                <Wine size={16} className="md:size-18" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h4 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-white truncate">{session.name}</h4>
-                                                <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mt-1">
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar size={10} />
-                                                        {new Date(session.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                    <span className="truncate">{session.productType || 'Tasting'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 md:gap-4 shrink-0 ml-2">
-                                            {session.summaryId ? (
-                                                <span className="text-[8px] md:text-[10px] text-green-500 font-bold uppercase tracking-tighter">Synthesized</span>
-                                            ) : (
-                                                <span className="text-[8px] md:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">In Progress</span>
-                                            )}
-                                            <ChevronRight size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] md:size-16" />
-                                        </div>
-                                    </div>
-                                ))}
-                                {sessions.length === 0 && (
-                                    <div className="text-center py-12 text-[var(--text-muted)] text-sm italic">
-                                        No sessions recorded yet.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Friends Tab */}
-                    {activeTab === 'friends' && (
-                        <div className="space-y-6">
-                            {/* Pending Requests Button */}
-                            {pendingRequests.length > 0 && (
-                                <button
-                                    onClick={() => setShowPendingRequests(!showPendingRequests)}
-                                    className="w-full card p-4 flex items-center justify-between hover:border-orange-500/50 transition-all"
+                    <div className="card p-4 md:p-6">
+                        <div className="space-y-4">
+                            {filteredSessions.map((session) => (
+                                <div
+                                    key={session.id}
+                                    className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg hover:border-gray-600 transition-all group gap-4"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center">
-                                            <UserPlus size={20} className="text-orange-500" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="text-sm font-bold text-[var(--text-primary)]">
-                                                {pendingRequests.length} Friend Request{pendingRequests.length > 1 ? 's' : ''}
-                                            </p>
-                                            <p className="text-xs text-[var(--text-secondary)]">
-                                                Tap to {showPendingRequests ? 'hide' : 'view'} requests
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight size={18} className={`text-[var(--text-muted)] transition-transform ${showPendingRequests ? 'rotate-90' : ''}`} />
-                                </button>
-                            )}
-
-                            {/* Expanded Pending Requests */}
-                            {showPendingRequests && pendingRequests.length > 0 && (
-                                <div className="card p-4 md:p-6 border-orange-500/30">
-                                    <div className="space-y-3">
-                                        {pendingRequests.map((request) => (
-                                            <div
-                                                key={request.id}
-                                                className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
-                                                        <User size={16} className="text-[var(--text-secondary)] md:size-18" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                                            {request.sender?.displayName || request.sender?.email}
-                                                        </p>
-                                                        <p className="text-xs text-[var(--text-secondary)] truncate">{request.sender?.email}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 shrink-0 ml-2">
-                                                    <button
-                                                        onClick={() => acceptRequest.mutate(request.id)}
-                                                        disabled={acceptRequest.isPending}
-                                                        className="p-2 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors"
-                                                    >
-                                                        <Check size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => rejectRequest.mutate(request.id)}
-                                                        disabled={rejectRequest.isPending}
-                                                        className="p-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Add Friend Form */}
-                            <div className="card p-4 md:p-6">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4">Add Friend</h3>
-                                <form onSubmit={handleSendFriendRequest} className="flex flex-col sm:flex-row gap-3">
-                                    <input
-                                        type="email"
-                                        placeholder="Enter friend's email address"
-                                        value={friendEmail}
-                                        onChange={(e) => setFriendEmail(e.target.value)}
-                                        className="flex-1 px-4 py-2 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg text-sm focus:outline-none focus:border-orange-500 transition-colors"
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={sendRequest.isPending || !friendEmail.trim()}
-                                        className="btn-orange disabled:opacity-50 justify-center"
+                                    <div
+                                        className="flex items-center gap-4 cursor-pointer min-w-0 flex-1"
+                                        onClick={() => navigate(session.summaryId ? `/session/${session.id}/summary` : `/session/${session.id}`)}
                                     >
-                                        <UserPlus size={16} />
-                                        {sendRequest.isPending ? 'Sending...' : 'Send Request'}
-                                    </button>
-                                </form>
-                                {sendRequest.isSuccess && (
-                                    <p className="text-green-500 text-xs mt-2">Friend request sent!</p>
-                                )}
-                                {sendRequest.isError && (
-                                    <p className="text-red-500 text-xs mt-2">
-                                        {(sendRequest.error as any)?.data?.error || 'Failed to send request'}
-                                    </p>
-                                )}
-                            </div>
-
-                            {/* Pending Requests */}
-                            {pendingRequests.length > 0 && (
-                                <div className="card p-4 md:p-6">
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4">
-                                        Pending Requests ({pendingRequests.length})
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {pendingRequests.map((request) => (
-                                            <div
-                                                key={request.id}
-                                                className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
-                                                        <User size={16} className="text-[var(--text-secondary)] md:size-18" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                                            {request.sender?.displayName || request.sender?.email}
-                                                        </p>
-                                                        <p className="text-xs text-[var(--text-secondary)] truncate">{request.sender?.email}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 shrink-0 ml-2">
-                                                    <button
-                                                        onClick={() => acceptRequest.mutate(request.id)}
-                                                        disabled={acceptRequest.isPending}
-                                                        className="p-2 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 transition-colors"
-                                                    >
-                                                        <Check size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => rejectRequest.mutate(request.id)}
-                                                        disabled={rejectRequest.isPending}
-                                                        className="p-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 transition-colors"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                </div>
+                                        <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-orange-500 shrink-0">
+                                            <Wine size={18} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-white truncate">{session.name}</h4>
+                                            <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] mt-1">
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar size={10} />
+                                                    {new Date(session.createdAt).toLocaleDateString()}
+                                                </span>
+                                                <span className="truncate">{session.productType || 'Tasting'}</span>
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
+
+                                    <div className="flex items-center gap-4 shrink-0">
+                                        <div className="flex items-center gap-2 border-r border-[var(--border-primary)] pr-4">
+                                            <button
+                                                onClick={() => toggleHighlight.mutate(session.id)}
+                                                className={`p-1.5 rounded transition-colors ${session.isHighlighted
+                                                    ? 'text-yellow-500 bg-yellow-500/10'
+                                                    : 'text-[var(--text-muted)] hover:text-yellow-500 hover:bg-yellow-500/5'
+                                                    }`}
+                                                title={session.isHighlighted ? "Highlighted on profile" : "Highlight on profile"}
+                                            >
+                                                <Star size={16} fill={session.isHighlighted ? "currentColor" : "none"} />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <div
+                                                    onClick={() => updateSharing.mutate({
+                                                        sessionId: session.id,
+                                                        data: { sharePersonalSummary: !session.sharePersonalSummary }
+                                                    })}
+                                                    className={`w-9 h-5 rounded-full relative transition-colors cursor-pointer ${session.sharePersonalSummary ? 'bg-orange-500' : 'bg-[var(--bg-input)]'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.sharePersonalSummary ? 'left-5' : 'left-1'}`}></div>
+                                                </div>
+                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Personal</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <div
+                                                    onClick={() => updateSharing.mutate({
+                                                        sessionId: session.id,
+                                                        data: { shareGroupSummary: !session.shareGroupSummary }
+                                                    })}
+                                                    className={`w-9 h-5 rounded-full relative transition-colors cursor-pointer ${session.shareGroupSummary ? 'bg-orange-500' : 'bg-[var(--bg-input)]'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.shareGroupSummary ? 'left-5' : 'left-1'}`}></div>
+                                                </div>
+                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Group</span>
+                                            </label>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredSessions.length === 0 && (
+                                <div className="text-center py-12 text-[var(--text-muted)] text-sm italic">
+                                    {searchQuery ? "No summaries match your search." : "No summaries recorded yet."}
                                 </div>
                             )}
-
-                            {/* Friends List */}
-                            <div className="card p-4 md:p-6">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4">
-                                    Your Friends ({friends.length})
-                                </h3>
-                                {friends.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {friends.map((item) => (
-                                            <div
-                                                key={item.friendshipId}
-                                                className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg group"
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                                                        {item.friend.avatarUrl ? (
-                                                            <img src={item.friend.avatarUrl} alt="" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <User size={16} className="text-[var(--text-secondary)] md:size-18" />
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                                            {item.friend.displayName || item.friend.email}
-                                                        </p>
-                                                        <p className="text-xs text-[var(--text-secondary)] truncate">{item.friend.email}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 md:gap-3 shrink-0 ml-2">
-                                                    <button
-                                                        onClick={() => updateAutoMod.mutate({
-                                                            friendshipId: item.friendshipId,
-                                                            autoMod: !item.autoMod
-                                                        })}
-                                                        disabled={updateAutoMod.isPending}
-                                                        className={`p-2 rounded transition-colors ${item.autoMod
-                                                            ? 'bg-blue-500/20 text-blue-400'
-                                                            : 'bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-blue-400 hover:bg-blue-500/10'
-                                                            }`}
-                                                        title={item.autoMod ? 'Auto-mod enabled (click to disable)' : 'Enable auto-mod (auto-promote to moderator when joining your sessions)'}
-                                                    >
-                                                        <Shield size={14} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => removeFriend.mutate(item.friendshipId)}
-                                                        disabled={removeFriend.isPending}
-                                                        className="text-xs text-[var(--text-secondary)] hover:text-red-500 transition-colors md:opacity-0 md:group-hover:opacity-100"
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8 text-[var(--text-muted)] text-sm italic">
-                                        No friends yet.
-                                    </div>
-                                )}
-                            </div>
                         </div>
-                    )}
-
-                    {/* Settings Tab */}
-                    {activeTab === 'settings' && (
-                        <div className="card p-4 md:p-6">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-6">Profile Settings</h3>
-
-                            <form onSubmit={handleUpdateDisplayName} className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-                                        Display Name
-                                    </label>
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <input
-                                            type="text"
-                                            placeholder="Enter your display name"
-                                            value={newDisplayName}
-                                            onChange={(e) => setNewDisplayName(e.target.value)}
-                                            className="flex-1 px-4 py-2 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg text-sm focus:outline-none focus:border-orange-500 transition-colors"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={updateProfile.isPending || !newDisplayName.trim() || newDisplayName === currentUser?.displayName}
-                                            className="btn-orange disabled:opacity-50 justify-center"
-                                        >
-                                            {updateProfile.isPending ? 'Updating...' : 'Update Name'}
-                                        </button>
-                                    </div>
-                                    <p className="text-[10px] text-[var(--text-muted)] mt-2 italic">
-                                        This is how other users will see you in chat rooms and friend lists.
-                                    </p>
-                                </div>
-
-                                {updateProfile.isSuccess && (
-                                    <p className="text-green-500 text-xs">Display name updated successfully!</p>
-                                )}
-                                {updateProfile.isError && (
-                                    <p className="text-red-500 text-xs">
-                                        {(updateProfile.error as any)?.data?.error || 'Failed to update display name'}
-                                    </p>
-                                )}
-                            </form>
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

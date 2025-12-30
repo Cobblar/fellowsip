@@ -50,6 +50,9 @@ export async function getUserSessions(userId: string) {
       host: users,
       summaryId: tastingSummaries.id,
       userRating: sessionParticipants.rating,
+      isHighlighted: sessionParticipants.isHighlighted,
+      sharePersonalSummary: sessionParticipants.sharePersonalSummary,
+      shareGroupSummary: sessionParticipants.shareGroupSummary,
     })
     .from(tastingSessions)
     .leftJoin(users, eq(tastingSessions.hostId, users.id))
@@ -244,6 +247,8 @@ export async function getSessionSummary(sessionId: string) {
     .select({
       userId: sessionParticipants.userId,
       rating: sessionParticipants.rating,
+      sharePersonalSummary: sessionParticipants.sharePersonalSummary,
+      shareGroupSummary: sessionParticipants.shareGroupSummary,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
     })
@@ -315,6 +320,9 @@ export async function getParticipatedSessions(userId: string) {
       host: users,
       summaryId: tastingSummaries.id,
       userRating: sessionParticipants.rating,
+      isHighlighted: sessionParticipants.isHighlighted,
+      sharePersonalSummary: sessionParticipants.sharePersonalSummary,
+      shareGroupSummary: sessionParticipants.shareGroupSummary,
     })
     .from(tastingSessions)
     .leftJoin(users, eq(tastingSessions.hostId, users.id))
@@ -420,6 +428,9 @@ export async function getAllUserSummaries(userId: string) {
           userId: sessionParticipants.userId,
           displayName: users.displayName,
           avatarUrl: users.avatarUrl,
+          sharePersonalSummary: sessionParticipants.sharePersonalSummary,
+          shareGroupSummary: sessionParticipants.shareGroupSummary,
+          isHighlighted: sessionParticipants.isHighlighted,
         })
         .from(sessionParticipants)
         .leftJoin(users, eq(sessionParticipants.userId, users.id))
@@ -596,4 +607,169 @@ export async function getArchivedSessions(userId: string) {
     .orderBy(desc(tastingSessions.createdAt));
 
   return sessions;
+}
+
+export async function updateParticipantSharing(
+  sessionId: string,
+  userId: string,
+  data: {
+    sharePersonalSummary?: boolean;
+    shareGroupSummary?: boolean;
+  }
+) {
+  const [updated] = await db
+    .update(sessionParticipants)
+    .set({
+      ...data,
+    })
+    .where(
+      and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId)
+      )
+    )
+    .returning();
+
+  return updated;
+}
+
+export async function toggleSessionHighlight(sessionId: string, userId: string) {
+  const participant = await db.query.sessionParticipants.findFirst({
+    where: and(
+      eq(sessionParticipants.sessionId, sessionId),
+      eq(sessionParticipants.userId, userId)
+    ),
+  });
+
+  if (!participant) {
+    throw new Error('Participant not found');
+  }
+
+  const [updated] = await db
+    .update(sessionParticipants)
+    .set({
+      isHighlighted: !participant.isHighlighted,
+    })
+    .where(
+      and(
+        eq(sessionParticipants.sessionId, sessionId),
+        eq(sessionParticipants.userId, userId)
+      )
+    )
+    .returning();
+
+  return updated;
+}
+
+export async function getPublicSummary(sessionId: string) {
+  const summary = await db.query.tastingSummaries.findFirst({
+    where: eq(tastingSummaries.sessionId, sessionId),
+  });
+
+  if (!summary) return null;
+
+  const session = await getSession(sessionId);
+  if (!session) return null;
+
+  // Fetch ALL participants for the session
+  const allParticipants = await db
+    .select({
+      userId: sessionParticipants.userId,
+      rating: sessionParticipants.rating,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+      sharePersonalSummary: sessionParticipants.sharePersonalSummary,
+      shareGroupSummary: sessionParticipants.shareGroupSummary,
+      isHighlighted: sessionParticipants.isHighlighted,
+    })
+    .from(sessionParticipants)
+    .leftJoin(users, eq(sessionParticipants.userId, users.id))
+    .where(eq(sessionParticipants.sessionId, sessionId));
+
+  // Check if at least someone shared something (either personal or group)
+  const hasAnySharer = allParticipants.some(
+    (p) => p.sharePersonalSummary || p.shareGroupSummary
+  );
+
+  if (!hasAnySharer) return null;
+
+  // Check if anyone shared the group summary
+  const hasGroupSharer = allParticipants.some((p) => p.shareGroupSummary);
+
+  // Filter tasterSummaries to ONLY include those who specifically shared their PERSONAL summary
+  const sharedTasterSummaries = summary.tasterSummaries?.filter((ts) =>
+    allParticipants.some((p) => p.userId === ts.userId && p.sharePersonalSummary === true)
+  ) || [];
+
+  // For participant list, only show those who shared something
+  const sharedParticipants = allParticipants.filter(
+    (p) => p.sharePersonalSummary || p.shareGroupSummary
+  );
+
+  // If no one shared the group summary, hide the group-level notes
+  const publicSummary = hasGroupSharer ? {
+    ...summary,
+    tasterSummaries: sharedTasterSummaries,
+  } : {
+    ...summary,
+    // Hide group-level notes when no one shared group summary
+    nose: null,
+    palate: null,
+    finish: null,
+    observations: null,
+    tasterSummaries: sharedTasterSummaries,
+  };
+
+  return {
+    ...publicSummary,
+    participants: sharedParticipants,
+    session: {
+      ...session.session,
+      host: session.host,
+    },
+  };
+}
+
+
+
+export async function getPublicUserSummaries(userId: string) {
+  // Find sessions where this user shared either personal or group summary
+  const sharedSessions = await db
+    .select({
+      sessionId: sessionParticipants.sessionId,
+    })
+    .from(sessionParticipants)
+    .where(
+      and(
+        eq(sessionParticipants.userId, userId),
+        or(
+          eq(sessionParticipants.sharePersonalSummary, true),
+          eq(sessionParticipants.shareGroupSummary, true)
+        )
+      )
+    );
+
+
+  if (sharedSessions.length === 0) return [];
+
+  const sessionIds = sharedSessions.map((s) => s.sessionId);
+
+  const summaries = await db
+    .select({
+      summary: tastingSummaries,
+      session: tastingSessions,
+      host: users,
+      isHighlighted: sessionParticipants.isHighlighted,
+    })
+    .from(tastingSummaries)
+    .innerJoin(tastingSessions, eq(tastingSummaries.sessionId, tastingSessions.id))
+    .leftJoin(users, eq(tastingSessions.hostId, users.id))
+    .innerJoin(sessionParticipants, and(
+      eq(sessionParticipants.sessionId, tastingSessions.id),
+      eq(sessionParticipants.userId, userId)
+    ))
+    .where(sql`${tastingSummaries.sessionId} IN ${sessionIds}`)
+    .orderBy(desc(tastingSummaries.createdAt));
+
+  return summaries;
 }

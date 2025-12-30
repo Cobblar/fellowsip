@@ -16,6 +16,9 @@ import {
   getArchivedSessions,
   updateSessionDetails,
   addCustomTag,
+  updateParticipantSharing,
+  getPublicSummary,
+  toggleSessionHighlight,
 } from '../services/sessions.js';
 import { getSessionMessages } from '../services/messages.js';
 import { emitSessionEnded, emitHostTransferred, emitToUser, emitLivestreamUpdated, emitCustomTagsUpdated } from '../sockets/socketManager.js';
@@ -96,6 +99,10 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           ...s.session,
           host: s.host,
           summaryId: s.summaryId,
+          userRating: s.userRating,
+          isHighlighted: s.isHighlighted,
+          sharePersonalSummary: s.sharePersonalSummary,
+          shareGroupSummary: s.shareGroupSummary,
         })),
       });
     } catch (error) {
@@ -397,6 +404,60 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('Fetch metadata error:', error);
       return reply.status(500).send({ error: 'Failed to fetch metadata' });
+    }
+  });
+  // Update participant sharing status (protected)
+  fastify.patch('/sessions/:id/sharing', { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const { id } = request.params as { id: string };
+      const data = request.body as {
+        sharePersonalSummary?: boolean;
+        shareGroupSummary?: boolean;
+      };
+
+      const participant = await updateParticipantSharing(id, user.id, {
+        sharePersonalSummary: data.sharePersonalSummary,
+        shareGroupSummary: data.shareGroupSummary,
+      });
+      return reply.send({ participant });
+    } catch (error) {
+      console.error('Update sharing error:', error);
+      return reply.status(500).send({ error: 'Failed to update sharing status' });
+    }
+  });
+
+  // Get public session summary (public)
+  fastify.get('/sessions/:id/summary/public', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const summary = await getPublicSummary(id);
+
+      if (!summary) {
+        return reply.status(404).send({ error: 'Summary not found or not public' });
+      }
+
+      return reply.send({ summary });
+    } catch (error) {
+      console.error('Get public summary error:', error);
+      return reply.status(500).send({ error: 'Failed to get public summary' });
+    }
+  });
+
+  // Toggle session highlight (protected)
+  fastify.patch('/sessions/:id/highlight', { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const { id } = request.params as { id: string };
+
+      const participant = await toggleSessionHighlight(id, user.id);
+      return reply.send({ participant });
+    } catch (error: any) {
+      console.error('Toggle highlight error:', error);
+      if (error.message === 'Participant not found') {
+        return reply.status(404).send({ error: error.message });
+      }
+      return reply.status(500).send({ error: 'Failed to toggle highlight' });
     }
   });
 }

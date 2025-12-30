@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { generateState, generateCodeVerifier } from 'arctic';
 import { requireAuth } from '../middleware/auth.js';
-import { getParticipatedSessions } from '../services/sessions.js';
+import { getParticipatedSessions, getPublicUserSummaries } from '../services/sessions.js';
 import { google } from '../auth/google.js';
 import { lucia } from '../auth/lucia.js';
 import { db, users, oauthAccounts } from '../db/index.js';
@@ -181,6 +181,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           email: (user as any).email,
           displayName: (user as any).displayName,
           avatarUrl: (user as any).avatarUrl,
+          bio: (user as any).bio,
         },
       });
     } catch (error) {
@@ -211,15 +212,24 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.patch('/auth/profile', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const user = (request as any).user;
-      const { displayName } = request.body as { displayName: string };
+      const { displayName, avatarUrl, bio } = request.body as {
+        displayName?: string;
+        avatarUrl?: string;
+        bio?: string;
+      };
 
-      if (!displayName || !displayName.trim()) {
-        return reply.status(400).send({ error: 'Display name is required' });
+      const updateData: any = {};
+      if (displayName !== undefined) updateData.displayName = displayName.trim();
+      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+      if (bio !== undefined) updateData.bio = bio.trim();
+
+      if (Object.keys(updateData).length === 0) {
+        return reply.status(400).send({ error: 'No data to update' });
       }
 
       const [updatedUser] = await db
         .update(users)
-        .set({ displayName: displayName.trim() })
+        .set(updateData)
         .where(eq(users.id, user.id))
         .returning();
 
@@ -241,6 +251,10 @@ export async function authRoutes(fastify: FastifyInstance) {
           ...s.session,
           host: s.host,
           summaryId: s.summaryId,
+          userRating: s.userRating,
+          isHighlighted: s.isHighlighted,
+          sharePersonalSummary: s.sharePersonalSummary,
+          shareGroupSummary: s.shareGroupSummary,
         })),
       });
     } catch (error) {
@@ -280,6 +294,46 @@ export async function authRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('Update preferences error:', error);
       return reply.status(500).send({ error: 'Failed to update preferences' });
+    }
+  });
+
+  // Get public user profile and their shared summaries
+  fastify.get('/users/:id/public', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+
+      // Fetch user info
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, id),
+      });
+
+      if (!user) {
+        return reply.status(404).send({ error: 'User not found' });
+      }
+
+      // Fetch shared summaries
+      const summaries = await getPublicUserSummaries(id);
+
+      return reply.send({
+        user: {
+          id: user.id,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          bio: user.bio,
+        },
+        summaries: summaries.map((s) => ({
+          ...s.summary,
+          session: {
+            ...s.session,
+            isHighlighted: s.isHighlighted,
+          },
+          host: s.host,
+        })),
+
+      });
+    } catch (error) {
+      console.error('Get public profile error:', error);
+      return reply.status(500).send({ error: 'Failed to get public profile' });
     }
   });
 }

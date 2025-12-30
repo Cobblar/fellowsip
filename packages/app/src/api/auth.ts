@@ -1,12 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
-
-interface User {
-    id: string;
-    email: string;
-    displayName: string | null;
-    avatarUrl: string | null;
-}
+import type { User } from '../types';
 
 interface SessionResponse {
     user: User;
@@ -31,10 +25,19 @@ export function useUpdateProfile() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: { displayName: string }) =>
+        mutationFn: (data: { displayName?: string; bio?: string }) =>
             api.patch<{ user: User }>('/auth/profile', data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: authKeys.session });
         },
+    });
+}
+
+// Get public user profile
+export function usePublicProfile(id: string) {
+    return useQuery({
+        queryKey: ['users', id, 'public'],
+        queryFn: () => api.get<{ user: User; summaries: any[] }>(`/users/${id}/public`),
+        enabled: !!id,
     });
 }

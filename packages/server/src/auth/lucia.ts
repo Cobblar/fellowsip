@@ -1,7 +1,14 @@
 import { Lucia } from 'lucia';
 import { PostgresJsAdapter } from '@lucia-auth/adapter-postgresql';
 import { client } from '../db/index.js';
-import type { DatabaseUserAttributes } from '../types/auth.js';
+// Lucia user attributes (what gets stored in the session)
+export interface DatabaseUserAttributes {
+  email: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  preferences: any;
+  bio: string | null;
+}
 
 // Create Lucia adapter with PostgreSQL
 const adapter = new PostgresJsAdapter(client, {
@@ -24,6 +31,7 @@ export const lucia = new Lucia(adapter, {
       displayName: attributes.display_name,
       avatarUrl: attributes.avatar_url,
       preferences: attributes.preferences,
+      bio: attributes.bio,
     };
   },
 });

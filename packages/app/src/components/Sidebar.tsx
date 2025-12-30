@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Wine, Clock, MessageSquare, Settings, User, Users as UsersIcon } from 'lucide-react';
+import { Plus, Wine, Clock, Settings, User, Users as UsersIcon } from 'lucide-react';
 import { useAllSummaries, useUserSessions } from '../api/sessions';
 import { useChatContext } from '../contexts/ChatContext';
 import { Session } from '../types';

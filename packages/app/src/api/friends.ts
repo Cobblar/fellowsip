@@ -199,7 +199,7 @@ export function useApproveJoinRequest() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ requestId, sessionId }: { requestId: string; sessionId: string }) =>
+        mutationFn: ({ requestId }: { requestId: string; sessionId: string }) =>
             api.post<{ message: string; request: any; sessionId: string }>(`/friends/join-requests/${requestId}/approve`, {}),
         onSuccess: (_, { sessionId }) => {
             queryClient.invalidateQueries({ queryKey: friendKeys.joinRequests(sessionId) });
@@ -212,7 +212,7 @@ export function useRejectJoinRequest() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ requestId, sessionId }: { requestId: string; sessionId: string }) =>
+        mutationFn: ({ requestId }: { requestId: string; sessionId: string }) =>
             api.post<{ message: string; request: any }>(`/friends/join-requests/${requestId}/reject`, {}),
         onSuccess: (_, { sessionId }) => {
             queryClient.invalidateQueries({ queryKey: friendKeys.joinRequests(sessionId) });

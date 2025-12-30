@@ -10,7 +10,7 @@ export default defineConfig({
   },
   vite: {
     server: {
-      allowedHosts: ['fellowsip.cobbler.cc', '.cobbler.cc']
+      allowedHosts: ['fellowsip.cobbler.cc', '.cobbler.cc', 'localhost', '127.0.0.1']
     }
   }
 });

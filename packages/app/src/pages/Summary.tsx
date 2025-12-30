@@ -1,17 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-    Calendar, Users, Clock,
-    Wine, Star, Edit2, Save, X, Zap, Link2, User, ChevronLeft
-} from 'lucide-react';
-import { api } from '../api/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { Wine, Calendar, Star, MessageSquare, Edit2, Save, X, Share2, Globe, Lock, Zap, Users, User, ChevronRight } from 'lucide-react';
+import { useSessionSummary, useUpdateSummary, useUpdateSharing, usePublicSummary } from '../api/sessions';
 import { useCurrentUser } from '../api/auth';
-import { useUpdateSummary } from '../api/sessions';
-import type { Session } from '../types';
+import type { Participant } from '../types';
 
 interface TasterSummary {
     userId: string;
-    userName: string;
     nose: string;
     palate: string;
     finish: string;
@@ -19,132 +15,90 @@ interface TasterSummary {
 }
 
 interface TastingSummary {
+    id: string;
+    sessionId: string;
     nose: string;
     palate: string;
     finish: string;
     observations: string;
-    tasterSummaries?: TasterSummary[];
     metadata: {
-        rating?: number;
-        tags?: string[];
         participants?: string[];
+        [key: string]: any;
     };
+    tasterSummaries?: TasterSummary[];
     participants?: Array<{
         userId: string;
         rating: number | null;
         displayName: string | null;
         avatarUrl: string | null;
+        sharePersonalSummary?: boolean;
+        shareGroupSummary?: boolean;
     }>;
     createdAt: string;
 }
 
+interface SummaryProps {
+    publicMode?: boolean;
+}
 
-export function Summary() {
+export function Summary({ publicMode = false }: SummaryProps) {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { data: userData } = useCurrentUser();
-    const updateSummaryMutation = useUpdateSummary();
+    const queryClient = useQueryClient();
 
-    const [summary, setSummary] = useState<TastingSummary | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
+    const { data: currentUserData } = useCurrentUser();
+    const currentUser = currentUserData?.user;
+
+    const { data: sessionSummaryData, isLoading: sessionSummaryLoading } = useSessionSummary(id || '');
+    const { data: publicSessionData, isLoading: publicSessionLoading } = usePublicSummary(id || '');
+
+    const summaryData = publicMode ? publicSessionData?.summary : sessionSummaryData?.summary;
+    const isLoading = publicMode ? publicSessionLoading : sessionSummaryLoading;
+
+    const updateSummary = useUpdateSummary();
+    const updateSharing = useUpdateSharing();
+
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editData, setEditData] = useState<Partial<TastingSummary> & { rating?: number }>({});
+    const [isEditingNotes, setIsEditingNotes] = useState(false);
+    const [editData, setEditData] = useState<Partial<TasterSummary> & { rating?: number }>({});
 
-    // Check if we should be showing the "analyzing" state
-    const queryParams = new URLSearchParams(window.location.search);
-    const [isAnalyzing, setIsAnalyzing] = useState(queryParams.get('analyzing') === 'true');
+    const session = summaryData;
+    const summary = summaryData as TastingSummary | undefined;
+    const participants = (summaryData?.participants || []) as Participant[];
+
+    const userParticipant = participants.find(p => p.userId === currentUser?.id);
 
     useEffect(() => {
-        if (summary && userData?.user?.id && !selectedMemberId) {
+        if (summary && currentUser?.id && !selectedMemberId) {
             const hasUserSummary = summary.tasterSummaries?.some(
-                s => s.userId === userData.user.id
+                (s: TasterSummary) => s.userId === currentUser.id
             );
             if (hasUserSummary) {
-                setSelectedMemberId(userData.user.id);
+                setSelectedMemberId(currentUser.id);
             }
         }
-    }, [summary, userData, selectedMemberId]);
-
-    useEffect(() => {
-        let pollInterval: NodeJS.Timeout;
-
-        const fetchData = async () => {
-            try {
-                const sessionRes = await api.get<{ session: Session }>(`/sessions/${id}`);
-                setSession(sessionRes.session);
-
-                try {
-                    const summaryRes = await api.get<{ summary: TastingSummary }>(`/sessions/${id}/summary`);
-                    if (summaryRes.summary) {
-                        setSummary(summaryRes.summary);
-                        setIsLoading(false);
-                        setIsAnalyzing(false);
-                        if (pollInterval) clearInterval(pollInterval);
-                    }
-                } catch (summaryErr: any) {
-                    // If 404, it might still be processing
-                    if (summaryErr.status === 404) {
-                        console.log('Summary not found yet');
-                        if (isAnalyzing) {
-                            setIsLoading(true);
-                        } else {
-                            setIsLoading(false);
-                        }
-                    } else {
-                        throw summaryErr;
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to fetch data:', err);
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
-
-        if (isAnalyzing) {
-            pollInterval = setInterval(fetchData, 3000);
-        }
-
-        return () => {
-            if (pollInterval) clearInterval(pollInterval);
-        };
-    }, [id, isAnalyzing]);
-
-    const handleAnalyzeNow = async () => {
-        try {
-            setIsAnalyzing(true);
-            setIsLoading(true);
-            await api.post(`/sessions/${id}/end`, { shouldAnalyze: true });
-        } catch (err) {
-            console.error('Failed to start synthesis:', err);
-            setIsAnalyzing(false);
-            setIsLoading(false);
-        }
-    };
+    }, [summary, currentUser, selectedMemberId]);
 
     const handleEdit = () => {
-        if (!summary) return;
+        if (!summary || publicMode) return;
 
-        const userSummary = summary.tasterSummaries?.find(s => s.userId === userData?.user?.id);
-        const userRating = summary.participants?.find(p => p.userId === userData?.user?.id)?.rating;
+        const userSummary = summary.tasterSummaries?.find((s: TasterSummary) => s.userId === currentUser?.id);
+        const userRating = participants.find(p => p.userId === currentUser?.id)?.rating;
 
         setEditData({
-            nose: userSummary?.nose || summary.nose,
-            palate: userSummary?.palate || summary.palate,
-            finish: userSummary?.finish || summary.finish,
-            observations: userSummary?.observations || summary.observations,
+            nose: userSummary?.nose || '',
+            palate: userSummary?.palate || '',
+            finish: userSummary?.finish || '',
+            observations: userSummary?.observations || '',
             rating: userRating ?? undefined
         });
-        setIsEditing(true);
+        setIsEditingNotes(true);
     };
 
     const handleSave = async () => {
-        if (!id) return;
+        if (!id || publicMode) return;
         try {
-            await updateSummaryMutation.mutateAsync({
+            await updateSummary.mutateAsync({
                 id,
                 data: {
                     nose: editData.nose,
@@ -155,288 +109,228 @@ export function Summary() {
                 }
             });
 
-            // Update local state
-            setSummary(prev => {
-                if (!prev) return null;
+            queryClient.invalidateQueries({ queryKey: ['session', id] });
+            queryClient.invalidateQueries({ queryKey: ['publicSummary', id] });
 
-                // Update participants array with new rating
-                const newParticipants = prev.participants?.map(p =>
-                    p.userId === userData?.user?.id
-                        ? { ...p, rating: editData.rating ?? p.rating }
-                        : p
-                );
-
-                return {
-                    ...prev,
-                    participants: newParticipants,
-                    // Note: We don't update group observations here as they are separate
-                    // but the backend updateSummaryMutation handles the logic
-                };
-            });
-
-            setIsEditing(false);
+            setIsEditingNotes(false);
         } catch (err) {
             console.error('Failed to update summary:', err);
         }
     };
 
-    if (isLoading && isAnalyzing && !summary) {
+    if (isLoading) {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-[var(--bg-main)]">
-                <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center mb-6 relative">
-                    <Zap size={40} className="text-orange-500 animate-pulse" />
-                    <div className="absolute inset-0 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin"></div>
-                </div>
-                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3">Synthesizing tasting notes...</h2>
-                <p className="text-[var(--text-secondary)] mb-8 max-w-md leading-relaxed">
-                    We're synthesizing the group's notes into a professional tasting profile. This usually takes about 10-15 seconds.
-                </p>
-                <div className="flex gap-4">
-                    <button onClick={() => navigate(`/session/${id}`)} className="btn-outline">
-                        Return to Chat
-                    </button>
-                    <div className="px-6 py-3 bg-[var(--bg-input)]/50 rounded-lg text-xs text-[var(--text-secondary)] border border-[var(--border-primary)]">
-                        Processing data...
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (isLoading && !summary) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-[var(--bg-main)]">
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-main)]">
                 <div className="w-16 h-16 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mb-6"></div>
                 <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">Loading Summary...</h2>
-                <p className="text-[var(--text-secondary)]">Please wait while we fetch the tasting analysis.</p>
             </div>
         );
     }
 
     if (!session || !summary) {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-[var(--bg-main)]">
-                <div className="w-20 h-20 bg-[var(--bg-input)]/50 rounded-full flex items-center justify-center mb-6">
-                    <Wine size={40} className="text-[var(--text-muted)]" />
-                </div>
-                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3">No Synthesis Yet</h2>
-                <p className="text-[var(--text-secondary)] mb-8 max-w-md leading-relaxed">
-                    This session was ended without synthesis. You can trigger the session synthesis now to generate a professional tasting profile.
-                </p>
-                <div className="flex gap-4">
-                    <button onClick={() => navigate('/')} className="btn-outline">
-                        Return Home
-                    </button>
-                    <button onClick={handleAnalyzeNow} className="btn-orange flex items-center gap-2">
-                        <Zap size={18} />
-                        Synthesize Now
-                    </button>
-                </div>
+            <div className="p-8 text-center">
+                <h2 className="heading-lg mb-2">Summary Not Found</h2>
+                <p className="text-[var(--text-secondary)] mb-6">This session may not have a summary yet or it is private.</p>
+                <button onClick={() => navigate('/')} className="btn-orange">Return Home</button>
             </div>
         );
     }
 
-
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-8">
-                <div className="flex items-start gap-4">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 -ml-2 text-[var(--text-secondary)] hover:text-white md:hidden flex-shrink-0"
-                        title="Go Back"
-                    >
-                        <ChevronLeft size={24} />
-                    </button>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="heading-xl">{session.productName || session.name}</h1>
-                            {session.productLink && (
-                                <a
-                                    href={session.productLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1.5 bg-[var(--bg-input)] rounded-full text-[var(--text-secondary)] hover:text-orange-500 transition-colors"
-                                    title="View Product Page"
-                                >
-                                    <Link2 size={16} />
-                                </a>
-                            )}
-                        </div>
-                        {session.productName && <p className="text-sm text-[var(--text-secondary)] mb-2">{session.name}</p>}
-                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-[var(--text-secondary)]">
-                            <div className="flex items-center gap-2">
-                                <Calendar size={14} />
-                                <span>{new Date(session.startedAt).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Clock size={14} />
-                                <span>
-                                    {new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    {' - '}
-                                    {session.endedAt
-                                        ? new Date(session.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                        : 'ongoing'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-[var(--text-muted)]">
-                                <span>
-                                    {(() => {
-                                        const start = new Date(session.startedAt).getTime();
-                                        const end = session.endedAt
-                                            ? new Date(session.endedAt).getTime()
-                                            : Date.now();
-                                        const durationMs = end - start;
-                                        const hours = Math.floor(durationMs / (1000 * 60 * 60));
-                                        const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-                                        if (hours > 0) {
-                                            return `(${hours}h ${minutes}m)`;
-                                        }
-                                        return `(${minutes}m)`;
-                                    })()}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Users size={14} />
-                                <span>{summary.metadata.participants?.length || 0} Tasters</span>
-                            </div>
-                        </div>
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <div className="flex items-center gap-2 text-orange-500 mb-2">
+                        <Wine size={20} />
+                        <span className="text-xs font-bold uppercase tracking-widest">Tasting Summary</span>
+                        {publicMode && (
+                            <span className="ml-2 px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-full flex items-center gap-1">
+                                <Globe size={10} />
+                                Public View
+                            </span>
+                        )}
+                    </div>
+                    <h1 className="heading-xl mb-2">{session.name}</h1>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--text-secondary)]">
+                        <span className="flex items-center gap-1.5">
+                            <Calendar size={14} />
+                            {new Date(session.createdAt).toLocaleDateString()}
+                        </span>
+                        {session.productType && (
+                            <span className="px-2 py-0.5 bg-[var(--bg-input)] rounded text-[10px] font-bold uppercase tracking-wider border border-[var(--border-primary)]">
+                                {session.productType}
+                            </span>
+                        )}
                     </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex rounded-md overflow-hidden border border-[var(--border-primary)]">
-                        <button className="px-4 py-2 bg-[var(--bg-input)] text-sm font-medium">Analysis</button>
+
+                {!publicMode && (
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={() => navigate(`/session/${session.id}`)}
-                            className="px-4 py-2 hover:bg-[var(--bg-input)] text-sm font-medium text-[var(--text-secondary)] transition-colors"
+                            onClick={() => {
+                                const url = `${window.location.origin}/session/${id}/summary/public`;
+                                navigator.clipboard.writeText(url);
+                                alert('Public link copied to clipboard!');
+                            }}
+                            className="btn-secondary text-xs py-2"
                         >
-                            Transcript
+                            <Share2 size={14} />
+                            Copy Public Link
                         </button>
                     </div>
-                    {isEditing ? (
-                        <div className="flex gap-2">
-                            <button onClick={() => setIsEditing(false)} className="btn-outline flex items-center gap-2">
-                                <X size={16} /> Cancel
-                            </button>
-                            <button onClick={handleSave} className="btn-orange">
-                                <Save size={16} /> Save Changes
-                            </button>
-                        </div>
-                    ) : (
-                        <button onClick={handleEdit} className="btn-orange">
-                            <Edit2 size={16} /> Edit Analysis
-                        </button>
-                    )}
-                </div>
+                )}
             </div>
 
-            {/* Main Analysis Grid */}
+            {/* Sharing Controls */}
+            {!publicMode && userParticipant && (
+                <div className="card p-4 mb-8 border-orange-500/20 bg-orange-500/5">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-500">
+                                <Share2 size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-white">Sharing Preferences</h3>
+                                <p className="text-xs text-[var(--text-secondary)]">Control what appears on your public profile.</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <div
+                                    onClick={() => updateSharing.mutate({
+                                        sessionId: id!,
+                                        data: { sharePersonalSummary: !userParticipant.sharePersonalSummary }
+                                    })}
+                                    className={`w-10 h-5 rounded-full relative transition-colors ${userParticipant.sharePersonalSummary ? 'bg-orange-500' : 'bg-[var(--bg-input)]'}`}
+                                >
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.sharePersonalSummary ? 'left-6' : 'left-1'}`}></div>
+                                </div>
+                                <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Personal Notes</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <div
+                                    onClick={() => updateSharing.mutate({
+                                        sessionId: id!,
+                                        data: { shareGroupSummary: !userParticipant.shareGroupSummary }
+                                    })}
+                                    className={`w-10 h-5 rounded-full relative transition-colors ${userParticipant.shareGroupSummary ? 'bg-orange-500' : 'bg-[var(--bg-input)]'}`}
+                                >
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.shareGroupSummary ? 'left-6' : 'left-1'}`}></div>
+                                </div>
+                                <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Group Summary</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-                {/* Left Column: Personal Summary & Tasters */}
+                {/* Left: Personal/Selected Note */}
                 <div className="space-y-8">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-500">
-                            <User size={20} />
+                            <MessageSquare size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-[var(--text-primary)]">Your Tasting Note</h2>
-                            <p className="text-xs text-[var(--text-secondary)]">Your personal synthesized experience</p>
+                            <h2 className="text-xl font-bold text-[var(--text-primary)]">Tasting Note</h2>
+                            <p className="text-xs text-[var(--text-secondary)]">
+                                {selectedMemberId === currentUser?.id ? 'Your personal perspective' : 'Participant perspective'}
+                            </p>
                         </div>
                     </div>
 
-                    <div className="card p-8 bg-orange-500/[0.02] border-orange-500/10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-2">
-                                <Star size={20} className="text-orange-500" />
-                                <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">Your Score</h3>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-4xl md:text-5xl font-black text-orange-500">
-                                    {isEditing ? (
+                    <div className="card p-6 md:p-8 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4">
+                            <div className="flex flex-col items-center">
+                                <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Rating</span>
+                                <div className="text-3xl font-black text-white flex items-baseline gap-1">
+                                    {isEditingNotes ? (
                                         <input
                                             type="number"
                                             min="0"
                                             max="100"
-                                            step="1"
-                                            value={editData.rating ?? ''}
-                                            onChange={(e) => setEditData({ ...editData, rating: parseFloat(e.target.value) })}
-                                            className="w-24 bg-transparent border-b-2 border-orange-500 text-center focus:outline-none"
+                                            value={editData.rating || ''}
+                                            onChange={(e) => setEditData({ ...editData, rating: parseInt(e.target.value) })}
+                                            className="w-20 bg-transparent border-b-2 border-orange-500 text-center focus:outline-none"
                                         />
                                     ) : (
-                                        summary.participants?.find(p => p.userId === userData?.user?.id)?.rating ?? '--'
+                                        participants.find(p => p.userId === (selectedMemberId || currentUser?.id))?.rating ?? '--'
                                     )}
                                 </div>
-                                {isEditing && (
-                                    <button
-                                        onClick={handleSave}
-                                        className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
-                                        title="Save Score"
-                                    >
-                                        <Save size={18} />
-                                    </button>
-                                )}
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            {!summary.tasterSummaries?.find(s => s.userId === userData?.user?.id) && !isEditing ? (
-                                <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg text-center">
-                                    <p className="text-sm text-[var(--text-secondary)] mb-2">
-                                        We couldn't generate a personalized profile for you based on your chat messages.
-                                    </p>
-                                    <p className="text-xs text-[var(--text-muted)]">
-                                        Try contributing more specific tasting notes (aroma, flavor, finish) in the chat next time!
-                                    </p>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-orange-500">Notes</h3>
+                                {!publicMode && selectedMemberId === currentUser?.id && (
                                     <button
                                         onClick={handleEdit}
-                                        className="mt-3 text-xs font-bold text-orange-500 hover:text-orange-400 uppercase tracking-wider"
+                                        className="p-1 hover:bg-[var(--bg-input)] rounded transition-colors text-[var(--text-muted)] hover:text-white"
                                     >
-                                        Add Notes Manually
+                                        <Edit2 size={12} />
                                     </button>
+                                )}
+                            </div>
+
+                            {!summary.tasterSummaries?.find((s: TasterSummary) => s.userId === (selectedMemberId || currentUser?.id)) && !isEditingNotes ? (
+                                <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg text-center">
+                                    <p className="text-sm text-[var(--text-secondary)] mb-2">No personalized profile found.</p>
                                 </div>
                             ) : (
                                 <>
                                     <div className="space-y-2">
                                         <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-500/60">Observations</h4>
-                                        {isEditing ? (
+                                        {isEditingNotes ? (
                                             <textarea
                                                 value={editData.observations}
                                                 onChange={(e) => setEditData({ ...editData, observations: e.target.value })}
-                                                className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm text-[var(--text-secondary)] min-h-[100px] rounded-lg p-3"
+                                                className="w-full bg-[var(--bg-input)] border border-[var(--border-primary)] rounded-lg p-3 text-sm focus:outline-none focus:border-orange-500 min-h-[100px]"
                                             />
                                         ) : (
                                             <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                                                {summary.tasterSummaries?.find(s => s.userId === userData?.user?.id)?.observations || summary.observations}
+                                                {summary.tasterSummaries?.find((s: TasterSummary) => s.userId === (selectedMemberId || currentUser?.id))?.observations || 'No observations recorded.'}
                                             </p>
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 gap-4">
                                         {[
-                                            { label: 'Nose', key: 'nose' as const, icon: '👃' },
-                                            { label: 'Palate', key: 'palate' as const, icon: '👅' },
-                                            { label: 'Finish', key: 'finish' as const, icon: '✨' }
-                                        ].map(({ label, key, icon }) => (
-                                            <div key={key} className="space-y-1.5">
-                                                <div className="flex items-center gap-1.5">
+                                            { key: 'nose' as const, label: 'Nose', icon: '👃' },
+                                            { key: 'palate' as const, label: 'Palate', icon: '👅' },
+                                            { key: 'finish' as const, label: 'Finish', icon: '✨' }
+                                        ].map(({ key, label, icon }) => (
+                                            <div key={key} className="p-4 bg-[var(--bg-input)]/50 rounded-xl border border-[var(--border-primary)]">
+                                                <div className="flex items-center gap-2 mb-2">
                                                     <span className="text-xs">{icon}</span>
                                                     <h5 className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{label}</h5>
                                                 </div>
-                                                {isEditing ? (
+                                                {isEditingNotes ? (
                                                     <textarea
                                                         value={editData[key]}
                                                         onChange={(e) => setEditData({ ...editData, [key]: e.target.value })}
-                                                        className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-xs text-[var(--text-secondary)] min-h-[60px] rounded-md p-2"
+                                                        className="w-full bg-transparent border-b border-orange-500/30 focus:border-orange-500 text-xs py-1 outline-none resize-none"
+                                                        rows={2}
                                                     />
                                                 ) : (
                                                     <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                                                        {summary.tasterSummaries?.find(s => s.userId === userData?.user?.id)?.[key] || (summary as any)[key]}
+                                                        {summary.tasterSummaries?.find((s: TasterSummary) => s.userId === (selectedMemberId || currentUser?.id))?.[key] || `No ${label.toLowerCase()} notes recorded.`}
                                                     </p>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
+                                    {isEditingNotes && (
+                                        <div className="flex gap-2 justify-end mt-4">
+                                            <button onClick={() => setIsEditingNotes(false)} className="btn-outline flex items-center gap-2">
+                                                <X size={16} /> Cancel
+                                            </button>
+                                            <button onClick={handleSave} className="btn-orange flex items-center gap-2">
+                                                <Save size={16} /> Save Notes
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -448,69 +342,72 @@ export function Summary() {
                             Individual Tasters
                         </h3>
                         <div className="grid grid-cols-1 gap-3">
-                            {summary.participants
-                                ?.filter(p => p.userId !== userData?.user?.id) // Filter out current user
-                                .reduce((acc: any[], current) => { // Deduplicate by userId
+                            {participants
+                                .filter((p: Participant) => {
+                                    // In public mode, only show those who shared their personal summary
+                                    if (publicMode) return p.sharePersonalSummary;
+                                    // In private mode, show everyone
+                                    return true;
+                                })
+                                .reduce((acc: Participant[], current: Participant) => {
                                     if (!acc.find(p => p.userId === current.userId)) {
                                         acc.push(current);
                                     }
                                     return acc;
                                 }, [])
-                                .map(participant => {
-                                    const isSelected = selectedMemberId === participant.userId;
-                                    const tasterNote = summary.tasterSummaries?.find(s => s.userId === participant.userId);
-
+                                .sort((a: Participant, b: Participant) => (b.rating || 0) - (a.rating || 0))
+                                .map(taster => {
+                                    const isSelected = selectedMemberId === taster.userId;
+                                    const isMe = taster.userId === currentUser?.id;
                                     return (
-                                        <div key={participant.userId} className="space-y-2">
-                                            <button
-                                                onClick={() => setSelectedMemberId(isSelected ? null : participant.userId)}
-                                                className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected ? 'bg-orange-500/5 border-orange-500/30' : 'bg-[var(--bg-card)] border-[var(--border-primary)] hover:border-[var(--text-muted)]'}`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    {participant.avatarUrl ? (
-                                                        <img src={participant.avatarUrl} alt="" className="w-8 h-8 rounded-full" />
-                                                    ) : (
-                                                        <div className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                            <User size={16} className="text-[var(--text-secondary)]" />
+                                        <div key={taster.userId} className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setSelectedMemberId(isSelected ? null : taster.userId)}
+                                                    className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected ? 'bg-orange-500/5 border-orange-500/30' : 'bg-[var(--bg-card)] border-[var(--border-primary)] hover:border-[var(--text-muted)]'}`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(`/profile/${taster.userId}/public`);
+                                                            }}
+                                                            className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+                                                        >
+                                                            {taster.avatarUrl ? (
+                                                                <img src={taster.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <User size={16} className="text-[var(--text-secondary)]" />
+                                                            )}
                                                         </div>
-                                                    )}
-                                                    <div className="text-left">
-                                                        <p className="text-sm font-bold text-[var(--text-primary)]">{participant.displayName || 'Anonymous'}</p>
-                                                        <p className="text-[10px] text-[var(--text-secondary)]">{participant.userId === userData?.user?.id ? 'You' : 'Participant'}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    {participant.rating !== null && (
-                                                        <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
-                                                            <Star size={12} fill="currentColor" />
-                                                            {participant.rating}
-                                                        </div>
-                                                    )}
-                                                    <div className={`p-1.5 rounded-full transition-transform ${isSelected ? 'rotate-180 bg-orange-500/20 text-orange-500' : 'text-[var(--text-muted)]'}`}>
-                                                        <Zap size={14} />
-                                                    </div>
-                                                </div>
-                                            </button>
-
-                                            {isSelected && tasterNote && (
-                                                <div className="p-6 bg-orange-500/[0.02] border border-orange-500/10 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                                                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed italic">\"{tasterNote.observations}\"</p>
-                                                    <div className="grid grid-cols-3 gap-4 pt-2 border-t border-orange-500/10">
-                                                        <div>
-                                                            <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Nose</p>
-                                                            <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.nose}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Palate</p>
-                                                            <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.palate}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[9px] font-bold uppercase text-orange-500/60 mb-1">Finish</p>
-                                                            <p className="text-[10px] text-[var(--text-secondary)]">{tasterNote.finish}</p>
+                                                        <div className="text-left">
+                                                            <div className="flex items-center gap-2">
+                                                                <p
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        navigate(`/profile/${taster.userId}/public`);
+                                                                    }}
+                                                                    className="text-sm font-bold text-white cursor-pointer hover:text-orange-500 transition-colors"
+                                                                >
+                                                                    {taster.displayName || 'Anonymous'}
+                                                                </p>
+                                                                {taster.sharePersonalSummary && <Globe size={10} className="text-blue-400" />}
+                                                                {!taster.sharePersonalSummary && !publicMode && <Lock size={10} className="text-[var(--text-muted)]" />}
+                                                            </div>
+                                                            <p className="text-[10px] text-[var(--text-secondary)]">{isMe ? 'You' : 'Participant'}</p>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                    <div className="flex items-center gap-3">
+                                                        {taster.rating !== null && (
+                                                            <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
+                                                                <Star size={12} fill="currentColor" />
+                                                                {taster.rating}
+                                                            </div>
+                                                        )}
+                                                        <ChevronRight size={14} className={`text-[var(--text-muted)] transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                                                    </div>
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -518,67 +415,66 @@ export function Summary() {
                     </div>
                 </div>
 
-                {/* Right Column: Group Summary & Descriptors */}
+                {/* Right: Group Synthesis */}
                 <div className="space-y-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500">
-                            <Users size={20} />
+                        <div className="w-10 h-10 bg-orange-500/10 rounded-full flex items-center justify-center text-orange-500">
+                            <Zap size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-[var(--text-primary)]">Group Perspective</h2>
-                            <p className="text-xs text-[var(--text-secondary)]">Combined insights from all participants</p>
+                            <h2 className="text-xl font-bold text-[var(--text-primary)]">Group Synthesis</h2>
+                            <p className="text-xs text-[var(--text-secondary)]">AI-synthesized collective perspective</p>
                         </div>
                     </div>
 
-                    <div className="card p-8 border-blue-500/10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-2">
-                                <Star size={20} className="text-blue-500" />
-                                <h3 className="text-sm font-bold uppercase tracking-widest text-[var(--text-secondary)]">Group Average</h3>
+                    <div className="card p-6 md:p-8 space-y-8">
+                        {publicMode && !summary.observations && !summary.nose && !summary.palate && !summary.finish ? (
+                            <div className="text-center py-8">
+                                <Lock size={24} className="mx-auto text-[var(--text-muted)] mb-3" />
+                                <p className="text-sm text-[var(--text-muted)]">Group synthesis is private for this session.</p>
+                                <p className="text-xs text-[var(--text-muted)] mt-1">Only individual tasting notes have been shared.</p>
                             </div>
-                            <div className="text-4xl md:text-5xl font-black text-blue-500">
-                                {(() => {
-                                    const ratings = summary.participants?.map(p => p.rating).filter((r): r is number => r !== null) || [];
-                                    if (ratings.length === 0) return '--';
-                                    return (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1);
-                                })()}
-                            </div>
-                        </div>
+                        ) : (
+                            <>
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-orange-500">Group Perspective</h3>
+                                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed italic">
+                                        "{summary.observations}"
+                                    </p>
+                                </div>
 
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-500/60">Synthesis</h4>
-                                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-                                    {summary.observations}
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                {[
-                                    { label: 'Nose', value: summary.nose, icon: '👃' },
-                                    { label: 'Palate', value: summary.palate, icon: '👅' },
-                                    { label: 'Finish', value: summary.finish, icon: '✨' }
-                                ].map(item => (
-                                    <div key={item.label} className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-xs">{item.icon}</span>
-                                            <h5 className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{item.label}</h5>
+                                <div className="grid grid-cols-1 gap-6">
+                                    {[
+                                        { key: 'nose' as const, label: 'Collective Nose', icon: '👃' },
+                                        { key: 'palate' as const, label: 'Collective Palate', icon: '👅' },
+                                        { key: 'finish' as const, label: 'Collective Finish', icon: '✨' }
+                                    ].map(({ key, label, icon }) => (
+                                        <div key={key} className="space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm">{icon}</span>
+                                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</h4>
+                                            </div>
+                                            <p className="text-sm text-[var(--text-primary)] leading-relaxed pl-6 border-l border-[var(--border-primary)]">
+                                                {summary[key]}
+                                            </p>
                                         </div>
-                                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{item.value}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
 
-                    <div className="card">
-                        <h2 className="heading-lg mb-4">Common Descriptors</h2>
-                        <div className="flex flex-wrap gap-2">
-                            {summary.metadata.tags?.map(tag => (
-                                <span key={tag} className="px-3 py-1.5 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded text-xs text-[var(--text-secondary)]">
-                                    #{tag}
-                                </span>
-                            )) || <span className="text-xs text-[var(--text-muted)] italic">No descriptors detected</span>}
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="card p-4 flex flex-col items-center justify-center text-center">
+                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Avg Rating</p>
+                            <p className="text-2xl font-black text-white">
+                                {Math.round(participants.reduce((acc, p) => acc + (p.rating || 0), 0) / (participants.filter(p => p.rating !== null).length || 1))}
+                            </p>
+                        </div>
+                        <div className="card p-4 flex flex-col items-center justify-center text-center">
+                            <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">Tasters</p>
+                            <p className="text-2xl font-black text-white">{participants.length}</p>
                         </div>
                     </div>
                 </div>

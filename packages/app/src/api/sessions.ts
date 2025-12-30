@@ -167,3 +167,49 @@ export function useArchivedSessions() {
     queryFn: () => api.get<SessionsResponse>('/sessions/archived'),
   });
 }
+
+// Update participant sharing status
+export function useUpdateSharing() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId, data }: { sessionId: string; data: { sharePersonalSummary?: boolean; shareGroupSummary?: boolean } }) =>
+      api.patch<{ participant: any }>(`/sessions/${sessionId}/sharing`, data),
+    onSuccess: (_, { sessionId }) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
+    },
+  });
+}
+
+// Get public session summary
+export function usePublicSummary(id: string) {
+  return useQuery({
+    queryKey: [...sessionKeys.detail(id), 'public'],
+    queryFn: () => api.get<{ summary: any }>(`/sessions/${id}/summary/public`),
+    enabled: !!id,
+  });
+}
+
+// Get private session summary
+export function useSessionSummary(id: string) {
+  return useQuery({
+    queryKey: [...sessionKeys.detail(id), 'summary'],
+    queryFn: () => api.get<{ summary: any }>(`/sessions/${id}/summary`),
+    enabled: !!id,
+  });
+}
+// Toggle session highlight
+export function useToggleHighlight() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) =>
+      api.patch<{ participant: any }>(`/sessions/${sessionId}/highlight`, {}),
+    onSuccess: (_, sessionId) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
+      queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: [...sessionKeys.all, 'summaries'] });
+    },
+  });
+}

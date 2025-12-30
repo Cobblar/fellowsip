@@ -721,11 +721,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isMuted,
             mutedUsers,
             kickedUsers,
-            muteUser: (userId: string, eraseMessages?: boolean) => {
-                if (socket && sessionId) {
-                    socket.emit('mute_user', { sessionId, userId, eraseMessages });
-                }
-            },
+            muteUser,
             unmuteUser,
             kickUser: kickUserFn,
             unkickUser,
