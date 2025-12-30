@@ -46,9 +46,8 @@ export function MessageList({
         // - 'hidden': Always hide spoilers (force entire message as spoiler)
         // - 'revealed': Always show spoilers
         // - 'normal' (auto): Respect individual message reveal state (revealedMessageIds)
-        const shouldRevealSpoilers = isForceRevealed || (phaseSetting === 'normal' && revealedMessageIds.has(message.id));
-        // Don't force hide own messages (unless manually tagged, which is handled by SpoilerText parsing)
-        const shouldForceHide = isForceHidden && !isOwnMessage;
+        const shouldRevealSpoilers = isForceRevealed || revealedMessageIds.has(message.id);
+        const shouldForceHide = isForceHidden;
 
         // System messages have special styling
         if (isSystemMessage) {

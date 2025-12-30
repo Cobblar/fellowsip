@@ -50,10 +50,10 @@ export const SpoilerDefaultsModal: React.FC<Pick<SpoilerControlsProps, 'showSpoi
                         <div key={p.id} className="flex flex-col gap-2">
                             <div className="flex items-center justify-between">
                                 <span className={`text-[10px] font-bold uppercase tracking-widest ${p.id === 'nose' ? 'text-orange-500' :
-                                        p.id === 'palate' ? 'text-blue-500' :
-                                            p.id === 'texture' ? 'text-emerald-500' :
-                                                p.id === 'finish' ? 'text-purple-500' :
-                                                    'text-[var(--text-secondary)]'
+                                    p.id === 'palate' ? 'text-blue-500' :
+                                        p.id === 'texture' ? 'text-emerald-500' :
+                                            p.id === 'finish' ? 'text-purple-500' :
+                                                'text-[var(--text-secondary)]'
                                     }`}>{p.label}</span>
                                 <span className="text-[9px] text-[var(--text-muted)] uppercase">Default</span>
                             </div>
@@ -63,7 +63,7 @@ export const SpoilerDefaultsModal: React.FC<Pick<SpoilerControlsProps, 'showSpoi
                                     { id: 'normal', label: 'Auto', icon: Hash },
                                     { id: 'revealed', label: 'Show', icon: Eye }
                                 ].map((v) => {
-                                    const isActive = spoilerDefaults[p.id] === v.id;
+                                    const isActive = (spoilerDefaults[p.id] || 'normal') === v.id;
                                     const Icon = v.icon;
                                     return (
                                         <button
@@ -137,11 +137,11 @@ export const SpoilerControlsPanel: React.FC<SpoilerControlsProps> = ({
                     <div key={p.id} className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                             <span className={`text-[10px] font-bold uppercase tracking-widest ${p.id === 'nose' ? 'text-orange-500' :
-                                    p.id === 'palate' ? 'text-blue-500' :
-                                        p.id === 'texture' ? 'text-emerald-500' :
-                                            p.id === 'finish' ? 'text-purple-500' :
-                                                customTags.includes(p.id) ? 'text-pink-500' :
-                                                    'text-[var(--text-secondary)]'
+                                p.id === 'palate' ? 'text-blue-500' :
+                                    p.id === 'texture' ? 'text-emerald-500' :
+                                        p.id === 'finish' ? 'text-purple-500' :
+                                            customTags.includes(p.id) ? 'text-pink-500' :
+                                                'text-[var(--text-secondary)]'
                                 }`}>{p.label}</span>
                             <span className="text-[9px] text-[var(--text-muted)] uppercase">Visibility</span>
                         </div>
@@ -151,7 +151,8 @@ export const SpoilerControlsPanel: React.FC<SpoilerControlsProps> = ({
                                 { id: 'normal', label: 'Auto', icon: Hash },
                                 { id: 'revealed', label: 'Show', icon: Eye }
                             ].map((v) => {
-                                const isActive = phaseVisibility[p.id] === v.id;
+                                const currentVal = phaseVisibility[p.id] || 'normal';
+                                const isActive = currentVal === v.id;
                                 const Icon = v.icon;
                                 return (
                                     <button
@@ -189,7 +190,7 @@ export const SpoilerControlsPanel: React.FC<SpoilerControlsProps> = ({
                             { id: 'normal', label: 'Auto', icon: Hash },
                             { id: 'revealed', label: 'Show', icon: Eye }
                         ].map((v) => {
-                            const allMatch = Object.values(phaseVisibility).every(val => val === v.id);
+                            const allMatch = categories.every(cat => (phaseVisibility[cat.id] || 'normal') === v.id);
                             const Icon = v.icon;
                             return (
                                 <button

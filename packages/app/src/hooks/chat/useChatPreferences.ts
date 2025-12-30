@@ -127,12 +127,12 @@ export const useChatPreferences = (sessionId: string | null) => {
     }, []);
 
     const setAllPhaseVisibility = useCallback((visibility: 'normal' | 'hidden' | 'revealed') => {
-        setPhaseVisibilityState({
-            nose: visibility,
-            palate: visibility,
-            finish: visibility,
-            texture: visibility,
-            untagged: visibility,
+        setPhaseVisibilityState((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((key) => {
+                next[key] = visibility;
+            });
+            return next;
         });
     }, []);
 
