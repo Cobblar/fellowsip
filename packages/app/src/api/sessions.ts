@@ -173,11 +173,45 @@ export function useUpdateSharing() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, data }: { sessionId: string; data: { sharePersonalSummary?: boolean; shareGroupSummary?: boolean } }) =>
+    mutationFn: ({ sessionId, data }: { sessionId: string; data: { sharePersonalSummary?: boolean; shareGroupSummary?: boolean; shareSessionLog?: boolean } }) =>
       api.patch<{ participant: any }>(`/sessions/${sessionId}/sharing`, data),
-    onSuccess: (_, { sessionId }) => {
+    onSuccess: (response, { sessionId }) => {
+      const updatedParticipant = response.participant;
+
       queryClient.invalidateQueries({ queryKey: sessionKeys.detail(sessionId) });
       queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
+
+      // Manually update lists to ensure UI reflects changes immediately
+      queryClient.setQueriesData<SessionsResponse>({ queryKey: sessionKeys.lists() }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          sessions: old.sessions.map((session) =>
+            session.id === sessionId
+              ? { ...session, ...updatedParticipant }
+              : session
+          ),
+        };
+      });
+
+      // Manually update summary details
+      queryClient.setQueryData<{ summary: any }>(
+        [...sessionKeys.detail(sessionId), 'summary'],
+        (old) => {
+          if (!old || !old.summary) return old;
+          return {
+            ...old,
+            summary: {
+              ...old.summary,
+              participants: old.summary.participants?.map((p: any) =>
+                p.userId === updatedParticipant.userId
+                  ? { ...p, ...updatedParticipant }
+                  : p
+              ),
+            },
+          };
+        }
+      );
     },
   });
 }
@@ -196,6 +230,15 @@ export function useSessionSummary(id: string) {
   return useQuery({
     queryKey: [...sessionKeys.detail(id), 'summary'],
     queryFn: () => api.get<{ summary: any }>(`/sessions/${id}/summary`),
+    enabled: !!id,
+  });
+}
+
+// Get public session log
+export function usePublicSessionLog(id: string) {
+  return useQuery({
+    queryKey: [...sessionKeys.detail(id), 'public-log'],
+    queryFn: () => api.get<{ messages: any[] }>(`/sessions/${id}/log/public`),
     enabled: !!id,
   });
 }

@@ -33,7 +33,9 @@ interface TastingSummary {
         avatarUrl: string | null;
         sharePersonalSummary?: boolean;
         shareGroupSummary?: boolean;
+        shareSessionLog?: boolean;
     }>;
+    sessionLogAvailable?: boolean;
     createdAt: string;
 }
 
@@ -54,6 +56,9 @@ export function Summary({ publicMode = false }: SummaryProps) {
 
     const summaryData = publicMode ? publicSessionData?.summary : sessionSummaryData?.summary;
     const isLoading = publicMode ? publicSessionLoading : sessionSummaryLoading;
+
+    // const { data: publicLogData } = usePublicSessionLog(id!);
+    // const publicMessages = publicLogData?.messages || [];
 
     const updateSummary = useUpdateSummary();
     const updateSharing = useUpdateSharing();
@@ -168,6 +173,13 @@ export function Summary({ publicMode = false }: SummaryProps) {
                 {!publicMode && (
                     <div className="flex items-center gap-2">
                         <button
+                            onClick={() => navigate(`/session/${id}`)}
+                            className="btn-secondary text-xs py-2"
+                        >
+                            <MessageSquare size={14} />
+                            View Session Log
+                        </button>
+                        <button
                             onClick={() => {
                                 const url = `${window.location.origin}/session/${id}/summary/public`;
                                 navigator.clipboard.writeText(url);
@@ -180,7 +192,30 @@ export function Summary({ publicMode = false }: SummaryProps) {
                         </button>
                     </div>
                 )}
+
             </div>
+
+            {/* Public Session Log Link */}
+            {publicMode && summary?.sessionLogAvailable && (
+                <div className="mt-12 pt-8 border-t border-[var(--border-primary)] text-center">
+                    <div className="inline-block p-6 bg-[var(--bg-card)] rounded-xl border border-[var(--border-primary)]">
+                        <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 mx-auto mb-4">
+                            <MessageSquare size={24} />
+                        </div>
+                        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2">Session Log Available</h2>
+                        <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
+                            The chat history for this session has been made public by all participants.
+                        </p>
+                        <button
+                            onClick={() => navigate(`/session/${id}/log/public`)}
+                            className="btn-primary flex items-center gap-2 mx-auto"
+                        >
+                            <MessageSquare size={18} />
+                            View Public Session Log
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Sharing Controls */}
             {!publicMode && userParticipant && (
@@ -219,6 +254,18 @@ export function Summary({ publicMode = false }: SummaryProps) {
                                     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.shareGroupSummary ? 'left-6' : 'left-1'}`}></div>
                                 </div>
                                 <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Group Summary</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <div
+                                    onClick={() => updateSharing.mutate({
+                                        sessionId: id!,
+                                        data: { shareSessionLog: !userParticipant.shareSessionLog }
+                                    })}
+                                    className={`w-10 h-5 rounded-full relative transition-colors ${userParticipant.shareSessionLog ? 'bg-blue-500' : 'bg-[var(--bg-input)]'}`}
+                                >
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${userParticipant.shareSessionLog ? 'left-6' : 'left-1'}`}></div>
+                                </div>
+                                <span className="text-xs font-medium text-[var(--text-secondary)] group-hover:text-white transition-colors">Share Session Log</span>
                             </label>
                         </div>
                     </div>

@@ -27,7 +27,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
     const lowerContent = content.toLowerCase();
     if (lowerContent.includes('nose') || lowerContent.includes('smell')) {
       setPhase('nose');
-    } else if (lowerContent.includes('palate') || lowerContent.includes('palette') || lowerContent.includes('flavor')) {
+    } else if (lowerContent.includes('palate') || lowerContent.includes('palette') || lowerContent.includes('flavor') || lowerContent.includes('taste') || lowerContent.includes('tasting')) {
       setPhase('palate');
     } else if (lowerContent.includes('finish')) {
       setPhase('finish');

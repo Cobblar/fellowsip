@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar, Wine, LogOut, ChevronRight, Settings, Star, ExternalLink, Search } from 'lucide-react';
+import { User, Calendar, Wine, LogOut, ChevronRight, Settings, Star, ExternalLink, Search, MessageSquare, FileText } from 'lucide-react';
 import { api } from '../api/client';
 import { useCurrentUser, useUpdateProfile } from '../api/auth';
 import { useToggleHighlight, useUpdateSharing, useUserSessions } from '../api/sessions';
@@ -243,6 +243,22 @@ export function Profile() {
                                             >
                                                 <Star size={16} fill={session.isHighlighted ? "currentColor" : "none"} />
                                             </button>
+                                            <button
+                                                onClick={() => navigate(`/session/${session.id}`)}
+                                                className="p-1.5 rounded transition-colors text-[var(--text-muted)] hover:text-blue-500 hover:bg-blue-500/5"
+                                                title="View Session Log"
+                                            >
+                                                <MessageSquare size={16} />
+                                            </button>
+                                            {session.summaryId && (
+                                                <button
+                                                    onClick={() => navigate(`/session/${session.id}/summary`)}
+                                                    className="p-1.5 rounded transition-colors text-[var(--text-muted)] hover:text-orange-500 hover:bg-orange-500/5"
+                                                    title="View Summary"
+                                                >
+                                                    <FileText size={16} />
+                                                </button>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center gap-3">
@@ -269,6 +285,18 @@ export function Profile() {
                                                     <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.shareGroupSummary ? 'left-5' : 'left-1'}`}></div>
                                                 </div>
                                                 <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Group</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <div
+                                                    onClick={() => updateSharing.mutate({
+                                                        sessionId: session.id,
+                                                        data: { shareSessionLog: !session.shareSessionLog }
+                                                    })}
+                                                    className={`w-9 h-5 rounded-full relative transition-colors cursor-pointer ${session.shareSessionLog ? 'bg-blue-500' : 'bg-[var(--bg-input)]'}`}
+                                                >
+                                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${session.shareSessionLog ? 'left-5' : 'left-1'}`}></div>
+                                                </div>
+                                                <span className="text-[10px] text-[var(--text-secondary)] group-hover:text-white transition-colors">Log</span>
                                             </label>
                                         </div>
 

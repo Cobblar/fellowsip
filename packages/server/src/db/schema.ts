@@ -160,6 +160,7 @@ export const sessionParticipants = pgTable('session_participants', {
   sharePersonalSummary: boolean('share_personal_summary').notNull().default(false),
   shareGroupSummary: boolean('share_group_summary').notNull().default(false),
   isHighlighted: boolean('is_highlighted').notNull().default(false),
+  shareSessionLog: boolean('share_session_log').notNull().default(false),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({
   sessionIdx: index('session_participants_session_id_idx').on(table.sessionId),

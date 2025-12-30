@@ -19,6 +19,7 @@ import {
   updateParticipantSharing,
   getPublicSummary,
   toggleSessionHighlight,
+  getPublicSessionLog,
 } from '../services/sessions.js';
 import { getSessionMessages } from '../services/messages.js';
 import { emitSessionEnded, emitHostTransferred, emitToUser, emitLivestreamUpdated, emitCustomTagsUpdated } from '../sockets/socketManager.js';
@@ -103,6 +104,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
           isHighlighted: s.isHighlighted,
           sharePersonalSummary: s.sharePersonalSummary,
           shareGroupSummary: s.shareGroupSummary,
+          shareSessionLog: s.shareSessionLog,
         })),
       });
     } catch (error) {
@@ -414,11 +416,13 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       const data = request.body as {
         sharePersonalSummary?: boolean;
         shareGroupSummary?: boolean;
+        shareSessionLog?: boolean;
       };
 
       const participant = await updateParticipantSharing(id, user.id, {
         sharePersonalSummary: data.sharePersonalSummary,
         shareGroupSummary: data.shareGroupSummary,
+        shareSessionLog: data.shareSessionLog,
       });
       return reply.send({ participant });
     } catch (error) {
@@ -441,6 +445,18 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('Get public summary error:', error);
       return reply.status(500).send({ error: 'Failed to get public summary' });
+    }
+  });
+
+  // Get public session log (public)
+  fastify.get('/sessions/:id/log/public', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const messages = await getPublicSessionLog(id);
+      return reply.send({ messages });
+    } catch (error) {
+      console.error('Get public session log error:', error);
+      return reply.status(500).send({ error: 'Failed to get public session log' });
     }
   });
 

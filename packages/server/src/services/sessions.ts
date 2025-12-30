@@ -1,4 +1,4 @@
-import { db, tastingSessions, users, tastingSummaries, sessionParticipants } from '../db/index.js';
+import { db, tastingSessions, users, tastingSummaries, sessionParticipants, messages } from '../db/index.js';
 import { eq, and, desc, sql, or, exists, ne } from 'drizzle-orm';
 
 export async function createSession(
@@ -53,6 +53,7 @@ export async function getUserSessions(userId: string) {
       isHighlighted: sessionParticipants.isHighlighted,
       sharePersonalSummary: sessionParticipants.sharePersonalSummary,
       shareGroupSummary: sessionParticipants.shareGroupSummary,
+      shareSessionLog: sessionParticipants.shareSessionLog,
     })
     .from(tastingSessions)
     .leftJoin(users, eq(tastingSessions.hostId, users.id))
@@ -249,6 +250,7 @@ export async function getSessionSummary(sessionId: string) {
       rating: sessionParticipants.rating,
       sharePersonalSummary: sessionParticipants.sharePersonalSummary,
       shareGroupSummary: sessionParticipants.shareGroupSummary,
+      shareSessionLog: sessionParticipants.shareSessionLog,
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
     })
@@ -430,6 +432,7 @@ export async function getAllUserSummaries(userId: string) {
           avatarUrl: users.avatarUrl,
           sharePersonalSummary: sessionParticipants.sharePersonalSummary,
           shareGroupSummary: sessionParticipants.shareGroupSummary,
+          shareSessionLog: sessionParticipants.shareSessionLog,
           isHighlighted: sessionParticipants.isHighlighted,
         })
         .from(sessionParticipants)
@@ -615,6 +618,7 @@ export async function updateParticipantSharing(
   data: {
     sharePersonalSummary?: boolean;
     shareGroupSummary?: boolean;
+    shareSessionLog?: boolean;
   }
 ) {
   const [updated] = await db
@@ -680,6 +684,7 @@ export async function getPublicSummary(sessionId: string) {
       avatarUrl: users.avatarUrl,
       sharePersonalSummary: sessionParticipants.sharePersonalSummary,
       shareGroupSummary: sessionParticipants.shareGroupSummary,
+      shareSessionLog: sessionParticipants.shareSessionLog,
       isHighlighted: sessionParticipants.isHighlighted,
     })
     .from(sessionParticipants)
@@ -720,9 +725,13 @@ export async function getPublicSummary(sessionId: string) {
     tasterSummaries: sharedTasterSummaries,
   };
 
+  // Check if session log is available (ALL participants must share)
+  const sessionLogAvailable = allParticipants.length > 0 && allParticipants.every(p => p.shareSessionLog);
+
   return {
     ...publicSummary,
     participants: sharedParticipants,
+    sessionLogAvailable,
     session: {
       ...session.session,
       host: session.host,
@@ -730,6 +739,40 @@ export async function getPublicSummary(sessionId: string) {
   };
 }
 
+export async function getPublicSessionLog(sessionId: string) {
+  // 1. Check if ALL participants have shared the session log
+  const allParticipants = await db
+    .select({
+      shareSessionLog: sessionParticipants.shareSessionLog,
+    })
+    .from(sessionParticipants)
+    .where(eq(sessionParticipants.sessionId, sessionId));
+
+  if (allParticipants.length === 0) return [];
+
+  const allShared = allParticipants.every(p => p.shareSessionLog);
+  if (!allShared) return [];
+
+  // 2. Fetch messages if allowed
+  const sessionMessages = await db
+    .select({
+      id: messages.id,
+      content: messages.content,
+      phase: messages.phase,
+      createdAt: messages.createdAt,
+      user: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      }
+    })
+    .from(messages)
+    .leftJoin(users, eq(messages.userId, users.id))
+    .where(eq(messages.sessionId, sessionId))
+    .orderBy(messages.createdAt);
+
+  return sessionMessages;
+}
 
 
 export async function getPublicUserSummaries(userId: string) {

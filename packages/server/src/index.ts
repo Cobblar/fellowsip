@@ -74,3 +74,4 @@ const start = async () => {
 };
 
 start();
+// Force restart for shareSessionLog fix (Summary page) - Attempt 2

@@ -17,6 +17,7 @@ import { Settings } from './pages/Settings';
 import { Summaries } from './pages/Summaries';
 import { Archive } from './pages/Archive';
 import { PublicProfile } from './pages/PublicProfile';
+import { PublicSessionLog } from './pages/PublicSessionLog';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ function AppContent() {
       {/* Public Routes */}
       <Route path="/profile/:id" element={<PublicProfile />} />
       <Route path="/session/:id/summary/public" element={<Summary publicMode />} />
+      <Route path="/session/:id/log/public" element={<PublicSessionLog />} />
 
       {/* Protected Routes */}
       <Route

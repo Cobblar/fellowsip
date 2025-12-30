@@ -58,7 +58,7 @@ interface ChatContextType {
     unmodUser: (userId: string) => void;
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+export const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const socket = useSocket();

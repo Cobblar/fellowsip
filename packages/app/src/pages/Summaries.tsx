@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, Clock, ChevronRight, ChevronDown, PlayCircle, Plus, Users, UserPlus, LogIn, Archive } from 'lucide-react';
+import { Search, Calendar, Clock, ChevronRight, ChevronDown, PlayCircle, Plus, Users, UserPlus, LogIn, Archive, MessageSquare, FileText } from 'lucide-react';
 import { useAllSummaries, useUserSessions, useArchiveSession } from '../api/sessions';
 import { useFriendsSessions, useRequestToJoin, useMyJoinRequests } from '../api/friends';
 import { getProductIcon } from '../utils/productIcons';
@@ -261,7 +261,7 @@ export function Summaries() {
                                 return (
                                     <div
                                         key={item.session.id}
-                                        onClick={() => navigate(`/session/${item.session.id}/summary`)}
+                                        onClick={() => navigate(`/session/${item.session.id}`)}
                                         className="card hover:border-gray-600 transition-all cursor-pointer group"
                                     >
                                         <div className="flex items-start justify-between mb-4">
@@ -310,12 +310,27 @@ export function Summaries() {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        navigate(`/session/${item.session.id}/summary`);
+                                                        navigate(`/session/${item.session.id}`);
                                                     }}
-                                                    className="text-[10px] text-orange-500 font-bold hover:underline flex items-center gap-1"
+                                                    className="text-[10px] text-blue-500 font-bold hover:underline flex items-center gap-1"
+                                                    title="View session log"
                                                 >
-                                                    View Summary <ChevronRight size={14} />
+                                                    <MessageSquare size={12} />
+                                                    Log
                                                 </button>
+                                                {item.summary && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/session/${item.session.id}/summary`);
+                                                        }}
+                                                        className="text-[10px] text-orange-500 font-bold hover:underline flex items-center gap-1"
+                                                        title="View summary"
+                                                    >
+                                                        <FileText size={12} />
+                                                        Summary
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

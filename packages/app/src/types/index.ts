@@ -26,6 +26,7 @@ export interface Session {
   userRating?: number | null;
   sharePersonalSummary?: boolean;
   shareGroupSummary?: boolean;
+  shareSessionLog?: boolean;
   isHighlighted?: boolean;
 }
 
@@ -54,6 +55,7 @@ export interface Participant {
   avatarUrl: string | null;
   sharePersonalSummary?: boolean;
   shareGroupSummary?: boolean;
+  shareSessionLog?: boolean;
 }
 
 // Socket event payloads

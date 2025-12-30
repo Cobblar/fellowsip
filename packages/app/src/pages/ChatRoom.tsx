@@ -133,14 +133,15 @@ export function ChatRoom() {
 
   useEffect(() => {
     // Show post-session modal for non-hosts when session ends
-    if (sessionEnded && !isHost) {
+    // Only show if user is logged in (currentUserId exists)
+    if (sessionEnded && !isHost && currentUserId) {
       setShowPostSessionModal(true);
     }
-  }, [sessionEnded, isHost]);
+  }, [sessionEnded, isHost, currentUserId]);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showStreamInput, setShowStreamInput] = useState(false);
   const [streamInputValue, setStreamInputValue] = useState('');
-  const [activeSidebar, setActiveSidebar] = useState<'tasters' | 'summary' | null>(null);
+  const [activeSidebar, setActiveSidebar] = useState<'tasters' | 'summary' | null>(currentUserId ? null : 'summary');
   const [isTastersMenuOpen, setIsTastersMenuOpen] = useState(false);
   const [showManageBans, setShowManageBans] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
