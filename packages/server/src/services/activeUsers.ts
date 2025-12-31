@@ -12,12 +12,19 @@ export function addUserToSession(sessionId: string, user: SocketUser) {
   users.set(user.socketId, user);
 }
 
-export function updateUserRating(sessionId: string, userId: string, rating: number) {
+export function updateUserRating(sessionId: string, userId: string, rating: number, productIndex: number = 0) {
   const users = sessionUsers.get(sessionId);
   if (users) {
     for (const user of users.values()) {
       if (user.userId === userId) {
-        user.rating = rating;
+        if (!user.ratings) {
+          user.ratings = {};
+        }
+        user.ratings[productIndex] = rating;
+        // Keep legacy rating for backward compatibility (first product)
+        if (productIndex === 0) {
+          user.rating = rating;
+        }
       }
     }
   }

@@ -1,4 +1,4 @@
-import { db, sessionParticipants } from '../db/index.js';
+import { db, sessionParticipants, productRatings } from '../db/index.js';
 import { eq, and, sql } from 'drizzle-orm';
 
 export async function addSessionParticipant(sessionId: string, userId: string) {
@@ -11,34 +11,87 @@ export async function addSessionParticipant(sessionId: string, userId: string) {
         .onConflictDoNothing();
 }
 
-export async function updateParticipantRating(sessionId: string, userId: string, rating: number) {
+export async function updateParticipantRating(sessionId: string, userId: string, rating: number, productIndex: number = 0) {
+    // Update the new productRatings table
     await db
-        .insert(sessionParticipants)
+        .insert(productRatings)
         .values({
             sessionId,
             userId,
+            productIndex,
             rating,
         })
         .onConflictDoUpdate({
-            target: [sessionParticipants.sessionId, sessionParticipants.userId],
-            set: { rating },
+            target: [productRatings.sessionId, productRatings.userId, productRatings.productIndex],
+            set: { rating, updatedAt: sql`now()` },
         });
+
+    // Also update the legacy rating in sessionParticipants if it's the first product
+    if (productIndex === 0) {
+        await db
+            .update(sessionParticipants)
+            .set({ rating })
+            .where(
+                and(
+                    eq(sessionParticipants.sessionId, sessionId),
+                    eq(sessionParticipants.userId, userId)
+                )
+            );
+    }
 }
 
-export async function getAverageRating(sessionId: string): Promise<number | null> {
+export async function getAverageRating(sessionId: string, productIndex: number = 0): Promise<number | null> {
     const result = await db
         .select({
-            avgRating: sql<number>`avg(${sessionParticipants.rating})`,
+            avgRating: sql<number>`avg(${productRatings.rating})`,
         })
-        .from(sessionParticipants)
+        .from(productRatings)
         .where(
             and(
-                eq(sessionParticipants.sessionId, sessionId),
-                sql`${sessionParticipants.rating} is not null`
+                eq(productRatings.sessionId, sessionId),
+                eq(productRatings.productIndex, productIndex)
             )
         );
 
     return result[0]?.avgRating ? parseFloat(result[0].avgRating.toString()) : null;
+}
+
+export async function getAverageRatings(sessionId: string): Promise<Record<number, number | null>> {
+    const results = await db
+        .select({
+            productIndex: productRatings.productIndex,
+            avgRating: sql<number>`avg(${productRatings.rating})`,
+        })
+        .from(productRatings)
+        .where(eq(productRatings.sessionId, sessionId))
+        .groupBy(productRatings.productIndex);
+
+    const ratings: Record<number, number | null> = {};
+    results.forEach(r => {
+        ratings[r.productIndex] = r.avgRating ? parseFloat(r.avgRating.toString()) : null;
+    });
+    return ratings;
+}
+
+export async function getUserProductRatings(sessionId: string, userId: string): Promise<Record<number, number | null>> {
+    const results = await db
+        .select({
+            productIndex: productRatings.productIndex,
+            rating: productRatings.rating,
+        })
+        .from(productRatings)
+        .where(
+            and(
+                eq(productRatings.sessionId, sessionId),
+                eq(productRatings.userId, userId)
+            )
+        );
+
+    const ratings: Record<number, number | null> = {};
+    results.forEach(r => {
+        ratings[r.productIndex] = r.rating;
+    });
+    return ratings;
 }
 
 export async function banParticipant(sessionId: string, userId: string) {

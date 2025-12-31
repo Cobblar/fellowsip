@@ -7,12 +7,13 @@ export const useChatMessageLogic = (socket: Socket | null, sessionId: string | n
     const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(new Set());
     const [globallyRevealedMessageIds, setGloballyRevealedMessageIds] = useState<Set<string>>(new Set());
 
-    const sendMessage = useCallback((content: string, phase?: string) => {
+    const sendMessage = useCallback((content: string, phase?: string, productIndex: number = 0) => {
         if (socket && sessionId && content.trim() && !sessionEnded) {
             socket.emit('send_message', {
                 sessionId,
                 content: content.trim(),
                 phase,
+                productIndex,
             });
         }
     }, [socket, sessionId, sessionEnded]);
@@ -36,9 +37,15 @@ export const useChatMessageLogic = (socket: Socket | null, sessionId: string | n
         }
     }, [socket, sessionId]);
 
-    const revealAllSpoilers = useCallback(() => {
+    const revealAllSpoilers = useCallback((productIndex?: number) => {
         if (socket && sessionId && messages.length > 0) {
-            const lastMessageId = messages[messages.length - 1].id;
+            const filteredMessages = productIndex !== undefined
+                ? messages.filter(m => m.productIndex === productIndex)
+                : messages;
+
+            if (filteredMessages.length === 0) return;
+
+            const lastMessageId = filteredMessages[filteredMessages.length - 1].id;
             socket.emit('reveal_spoilers', {
                 sessionId,
                 upToMessageId: lastMessageId,
@@ -61,6 +68,10 @@ export const useChatMessageLogic = (socket: Socket | null, sessionId: string | n
 
         const handleMessageHistory = (data: MessageHistoryEvent) => {
             setMessages(data.messages);
+            if (data.products) {
+                // We might want to store products in state if needed, 
+                // but they are also in the session data from useSession
+            }
         };
 
         const handleNewMessage = (message: NewMessageEvent) => {

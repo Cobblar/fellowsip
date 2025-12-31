@@ -1,4 +1,4 @@
-import { ActiveUser, BannedUser, Message } from './entities.js';
+import { ActiveUser, BannedUser, Message, Product } from './entities.js';
 
 // Socket event payloads
 export interface JoinSessionPayload {
@@ -9,6 +9,7 @@ export interface SendMessagePayload {
     sessionId: string;
     content: string;
     phase?: string;
+    productIndex?: number;
 }
 
 export interface MessageHistoryEvent {
@@ -16,6 +17,7 @@ export interface MessageHistoryEvent {
     livestreamUrl?: string | null;
     customTags?: string[];
     hostId?: string | null;
+    products?: Product[];
 }
 
 export interface CustomTagsUpdatedEvent {
@@ -91,12 +93,15 @@ export interface SpoilersRevealedEvent {
 export interface UpdateRatingPayload {
     sessionId: string;
     rating: number;
+    productIndex?: number;
 }
 
 export interface RatingUpdatedEvent {
     userId: string;
     rating: number;
+    productIndex: number;
     averageRating: number | null;
+    averageRatings?: Record<number, number | null>;
 }
 
 // Ready check payloads

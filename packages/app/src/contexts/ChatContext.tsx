@@ -16,7 +16,7 @@ interface ChatContextType {
     moderators: string[];
     isConnected: boolean;
     error: string | null;
-    sendMessage: (content: string, phase?: string) => void;
+    sendMessage: (content: string, phase?: string, productIndex?: number) => void;
     injectDebugHistory: () => void;
     deleteMessage: (messageId: string) => void;
     editMessage: (messageId: string, content: string) => void;
@@ -29,8 +29,9 @@ interface ChatContextType {
     hostId: string | null;
     revealedMessageIds: Set<string>;
     globallyRevealedMessageIds: Set<string>;
-    updateRating: (rating: number) => void;
+    updateRating: (rating: number, productIndex?: number) => void;
     averageRating: number | null;
+    averageRatings: Record<number, number | null>;
     phaseVisibility: Record<string, 'normal' | 'hidden' | 'revealed'>;
     setPhaseVisibility: (phase: string, visibility: 'normal' | 'hidden' | 'revealed') => void;
     setAllPhaseVisibility: (visibility: 'normal' | 'hidden' | 'revealed') => void;
@@ -122,6 +123,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveUsers,
         setModerators,
         setAverageRating,
+        averageRatings,
     } = useChatSessionLogic(socket, sessionId, setMessages);
 
     const {
@@ -253,6 +255,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             globallyRevealedMessageIds,
             updateRating,
             averageRating,
+            averageRatings,
             phaseVisibility,
             setPhaseVisibility,
             setAllPhaseVisibility,

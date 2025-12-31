@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid, jsonb, index, primaryKey, boolean, real, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, jsonb, index, primaryKey, boolean, real, uniqueIndex, integer } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // Users table - for authentication and user profiles
@@ -58,6 +58,12 @@ export const tastingSessions = pgTable('tasting_sessions', {
   endedAt: timestamp('ended_at', { withTimezone: true }),
   lastActivityAt: timestamp('last_activity_at', { withTimezone: true }).notNull().default(sql`now()`),
   customTags: jsonb('custom_tags').$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  products: jsonb('products').$type<Array<{
+    index: number;
+    productType: string | null;
+    productLink: string | null;
+    productName: string | null;
+  }>>().notNull().default(sql`'[]'::jsonb`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({
@@ -76,6 +82,7 @@ export const messages = pgTable('messages', {
     .references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
   phase: text('phase'),
+  productIndex: integer('product_index').notNull().default(0),
   isHidden: boolean('is_hidden').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({
@@ -88,8 +95,8 @@ export const tastingSummaries = pgTable('tasting_summaries', {
   id: uuid('id').defaultRandom().primaryKey(),
   sessionId: uuid('session_id')
     .notNull()
-    .unique()
     .references(() => tastingSessions.id, { onDelete: 'cascade' }),
+  productIndex: integer('product_index').notNull().default(0),
   nose: text('nose'),
   palate: text('palate'),
   finish: text('finish'),
@@ -108,6 +115,26 @@ export const tastingSummaries = pgTable('tasting_summaries', {
     participants?: string[];
     [key: string]: any;
   }>(),
+  generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().default(sql`now()`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+}, (table) => ({
+  uniqueSessionProduct: uniqueIndex('unique_session_product_idx').on(table.sessionId, table.productIndex),
+}));
+
+// Comparison Summaries table - for side-by-side analysis
+export const comparisonSummaries = pgTable('comparison_summaries', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .unique()
+    .references(() => tastingSessions.id, { onDelete: 'cascade' }),
+  comparativeNotes: text('comparative_notes'),
+  rankings: jsonb('rankings').$type<Array<{
+    productIndex: number;
+    rank: number;
+    notes: string;
+  }>>(),
+  metadata: jsonb('metadata').$type<any>(),
   generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().default(sql`now()`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
 });
@@ -168,6 +195,25 @@ export const sessionParticipants = pgTable('session_participants', {
   uniqueParticipant: uniqueIndex('unique_session_participant_idx').on(table.sessionId, table.userId),
 }));
 
+// Product Ratings table - for distinct scoring of each product in a session
+export const productRatings = pgTable('product_ratings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => tastingSessions.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  productIndex: integer('product_index').notNull().default(0),
+  rating: real('rating').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
+}, (table) => ({
+  sessionIdIdx: index('product_ratings_session_id_idx').on(table.sessionId),
+  userIdIdx: index('product_ratings_user_id_idx').on(table.userId),
+  uniqueUserProductRating: uniqueIndex('unique_user_product_rating_idx').on(table.sessionId, table.userId, table.productIndex),
+}));
+
 // Relations for better querying
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -178,6 +224,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   receivedFriendRequests: many(friendships, { relationName: 'receiver' }),
   sessionJoinRequests: many(sessionJoinRequests),
   participatedSessions: many(sessionParticipants),
+  productRatings: many(productRatings),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -200,9 +247,11 @@ export const tastingSessionsRelations = relations(tastingSessions, ({ one, many 
     references: [users.id],
   }),
   messages: many(messages),
-  summary: one(tastingSummaries),
+  summaries: many(tastingSummaries),
+  comparisonSummary: one(comparisonSummaries),
   joinRequests: many(sessionJoinRequests),
   participants: many(sessionParticipants),
+  productRatings: many(productRatings),
 }));
 
 export const messagesRelations = relations(messages, ({ one }) => ({
@@ -219,6 +268,13 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 export const tastingSummariesRelations = relations(tastingSummaries, ({ one }) => ({
   session: one(tastingSessions, {
     fields: [tastingSummaries.sessionId],
+    references: [tastingSessions.id],
+  }),
+}));
+
+export const comparisonSummariesRelations = relations(comparisonSummaries, ({ one }) => ({
+  session: one(tastingSessions, {
+    fields: [comparisonSummaries.sessionId],
     references: [tastingSessions.id],
   }),
 }));
@@ -254,6 +310,17 @@ export const sessionParticipantsRelations = relations(sessionParticipants, ({ on
   }),
   user: one(users, {
     fields: [sessionParticipants.userId],
+    references: [users.id],
+  }),
+}));
+
+export const productRatingsRelations = relations(productRatings, ({ one }) => ({
+  session: one(tastingSessions, {
+    fields: [productRatings.sessionId],
+    references: [tastingSessions.id],
+  }),
+  user: one(users, {
+    fields: [productRatings.userId],
     references: [users.id],
   }),
 }));
@@ -309,6 +376,9 @@ export type NewMessage = typeof messages.$inferInsert;
 export type TastingSummary = typeof tastingSummaries.$inferSelect;
 export type NewTastingSummary = typeof tastingSummaries.$inferInsert;
 
+export type ComparisonSummary = typeof comparisonSummaries.$inferSelect;
+export type NewComparisonSummary = typeof comparisonSummaries.$inferInsert;
+
 export type Friendship = typeof friendships.$inferSelect;
 export type NewFriendship = typeof friendships.$inferInsert;
 
@@ -320,4 +390,7 @@ export type NewNotification = typeof notifications.$inferInsert;
 
 export type SessionParticipant = typeof sessionParticipants.$inferSelect;
 export type NewSessionParticipant = typeof sessionParticipants.$inferInsert;
+
+export type ProductRating = typeof productRatings.$inferSelect;
+export type NewProductRating = typeof productRatings.$inferInsert;
 

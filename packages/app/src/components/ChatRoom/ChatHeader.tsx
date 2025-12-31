@@ -32,6 +32,8 @@ interface ChatHeaderProps {
     onShowEndModal: () => void;
     onOpenSummarySidebar: () => void;
     currentUserId: string | null;
+    activeProductIndex?: number;
+    averageRatings?: Record<number, number | null>;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -65,6 +67,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     onShowEndModal,
     onOpenSummarySidebar,
     currentUserId,
+    activeProductIndex = 0,
+    averageRatings = {},
 }) => {
     return (
         <header className="border-bottom border-[var(--border-primary)] flex items-center justify-between px-4 md:px-6 py-3 bg-[var(--bg-main)]">
@@ -101,12 +105,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                 {copied === 'id' ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
                             </button>
                         </div>
-                        {averageRating !== null && (
+                        {(averageRatings?.[activeProductIndex || 0] ?? (activeProductIndex === 0 ? averageRating : null)) !== null && (
                             <>
                                 <span className="text-[var(--text-muted)]">•</span>
                                 <div className="flex items-center gap-1.5">
                                     <Star size={10} className="text-orange-500 fill-orange-500 md:w-3 md:h-3" />
-                                    <span className="text-[10px] md:text-xs font-bold text-[var(--text-primary)]">{averageRating.toFixed(1)} Avg</span>
+                                    <span className="text-[10px] md:text-xs font-bold text-[var(--text-primary)]">
+                                        {(averageRatings?.[activeProductIndex || 0] ?? averageRating)?.toFixed(1)} Avg
+                                    </span>
                                 </div>
                             </>
                         )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Loader2, ChevronLeft } from 'lucide-react';
 import { useCreateSession } from '../api/sessions';
@@ -10,39 +10,51 @@ const PRODUCT_TYPES = ['Wine', 'Whisky', 'Beer', 'Sake', 'Coffee', 'Tea', 'Choco
 export function CreateSession() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const [productType, setProductType] = useState('');
-  const [productLink, setProductLink] = useState('');
-  const [productName, setProductName] = useState('');
+  const [products, setProducts] = useState<Array<{
+    productType: string;
+    productLink: string;
+    productName: string;
+    isFetchingMetadata: boolean;
+  }>>([{ productType: '', productLink: '', productName: '', isFetchingMetadata: false }]);
   const [livestreamUrl, setLivestreamUrl] = useState('');
-  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const createSession = useCreateSession();
 
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      if (!productLink || !productLink.startsWith('http')) return;
+  const fetchMetadata = async (index: number, link: string) => {
+    if (!link || !link.startsWith('http')) return;
 
-      setIsFetchingMetadata(true);
-      try {
-        const res = await api.get<{ title: string }>(`/sessions/metadata?url=${encodeURIComponent(productLink)}`);
-        if (res.title && !productName) {
-          // Clean up common title suffixes
-          const cleanTitle = res.title
-            .split(' | ')[0]
-            .split(' - ')[0]
-            .split(' : ')[0]
-            .trim();
-          setProductName(cleanTitle);
-        }
-      } catch (err) {
-        console.error('Failed to fetch metadata:', err);
-      } finally {
-        setIsFetchingMetadata(false);
+    setProducts(prev => prev.map((p, i) => i === index ? { ...p, isFetchingMetadata: true } : p));
+    try {
+      const res = await api.get<{ title: string }>(`/sessions/metadata?url=${encodeURIComponent(link)}`);
+      if (res.title) {
+        const cleanTitle = res.title.split(' | ')[0].split(' - ')[0].split(' : ')[0].trim();
+        setProducts(prev => prev.map((p, i) => (i === index && !p.productName) ? { ...p, productName: cleanTitle } : p));
       }
-    };
+    } catch (err) {
+      console.error('Failed to fetch metadata:', err);
+    } finally {
+      setProducts(prev => prev.map((p, i) => i === index ? { ...p, isFetchingMetadata: false } : p));
+    }
+  };
 
-    const timer = setTimeout(fetchMetadata, 1000);
-    return () => clearTimeout(timer);
-  }, [productLink]);
+  const updateProduct = (index: number, updates: any) => {
+    setProducts(prev => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...updates };
+      return next;
+    });
+  };
+
+  const addProduct = () => {
+    if (products.length < 3) {
+      setProducts([...products, { productType: '', productLink: '', productName: '', isFetchingMetadata: false }]);
+    }
+  };
+
+  const removeProduct = (index: number) => {
+    if (products.length > 1) {
+      setProducts(products.filter((_, i) => i !== index));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,9 +63,11 @@ export function CreateSession() {
     try {
       const result = await createSession.mutateAsync({
         name: name.trim(),
-        productType: productType || undefined,
-        productLink: productLink.trim() || undefined,
-        productName: productName.trim() || undefined,
+        products: products.map(p => ({
+          productType: p.productType || null,
+          productLink: p.productLink.trim() || null,
+          productName: p.productName.trim() || null,
+        })),
         livestreamUrl: livestreamUrl.trim() || undefined,
       });
       navigate(`/session/${result.session.id}`);
@@ -91,67 +105,95 @@ export function CreateSession() {
           />
         </div>
 
-        <div className="card">
-          <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 block">What are you tasting?</label>
+        {products.map((product, index) => (
+          <div key={index} className="card relative group">
+            {products.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeProduct(index)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+              >
+                <ChevronLeft size={16} className="rotate-45" />
+              </button>
+            )}
+            <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 block">
+              {products.length > 1 ? `Product ${index + 1}` : 'What are you tasting?'}
+            </label>
 
-          <div className="space-y-6">
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Product Name (Optional)</label>
-              <div className="relative">
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Product Name (Optional)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={product.productName}
+                    onChange={(e) => updateProduct(index, { productName: e.target.value })}
+                    placeholder="e.g., 2018 Dayi 7542 Raw Pu-erh"
+                    className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2.5 pr-10"
+                  />
+                  {product.isFetchingMetadata && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 size={14} className="text-orange-500 animate-spin" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3 block">Product Category</label>
+                <div className="grid grid-cols-4 gap-3">
+                  {PRODUCT_TYPES.map((type) => {
+                    const emoji = getProductIcon(type);
+                    const isSelected = product.productType === type;
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => updateProduct(index, { productType: isSelected ? '' : type })}
+                        className={`flex flex-col items-center gap-2.5 p-3 rounded-lg border transition-all ${isSelected
+                          ? 'bg-orange-500/10 border-orange-500 text-orange-500'
+                          : 'bg-[var(--bg-main)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-secondary)]'
+                          }`}
+                      >
+                        <span className="text-2xl">{emoji}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{type}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Product Link (Optional)</label>
                 <input
-                  type="text"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                  placeholder="e.g., 2018 Dayi 7542 Raw Pu-erh"
-                  className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2.5 pr-10"
+                  type="url"
+                  value={product.productLink}
+                  onChange={(e) => {
+                    updateProduct(index, { productLink: e.target.value });
+                    if (e.target.value.startsWith('http')) {
+                      setTimeout(() => fetchMetadata(index, e.target.value), 1000);
+                    }
+                  }}
+                  placeholder="https://example.com/product"
+                  className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2.5"
                 />
-                {isFetchingMetadata && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <Loader2 size={14} className="text-orange-500 animate-spin" />
-                  </div>
-                )}
+                <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
+                  Paste a link to auto-fill the product name.
+                </p>
               </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-3 block">Product Category</label>
-              <div className="grid grid-cols-4 gap-3">
-                {PRODUCT_TYPES.map((type) => {
-                  const emoji = getProductIcon(type);
-                  const isSelected = productType === type;
-                  return (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setProductType(isSelected ? '' : type)}
-                      className={`flex flex-col items-center gap-2.5 p-3 rounded-lg border transition-all ${isSelected
-                        ? 'bg-orange-500/10 border-orange-500 text-orange-500'
-                        : 'bg-[var(--bg-main)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-secondary)]'
-                        }`}
-                    >
-                      <span className="text-2xl">{emoji}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{type}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2 block">Product Link (Optional)</label>
-              <input
-                type="url"
-                value={productLink}
-                onChange={(e) => setProductLink(e.target.value)}
-                placeholder="https://example.com/product"
-                className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2.5"
-              />
-              <p className="mt-1.5 text-[10px] text-[var(--text-muted)]">
-                Paste a link to auto-fill the product name.
-              </p>
             </div>
           </div>
-        </div>
+        ))}
+
+        {products.length < 3 && (
+          <button
+            type="button"
+            onClick={addProduct}
+            className="w-full py-4 border-2 border-dashed border-[var(--border-primary)] rounded-xl text-[var(--text-secondary)] hover:border-orange-500 hover:text-orange-500 transition-all flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-xs"
+          >
+            + Add Another Product to Compare
+          </button>
+        )}
 
         <div className="card">
           <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 block">Livestream URL (Optional)</label>

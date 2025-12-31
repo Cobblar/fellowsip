@@ -18,6 +18,7 @@ import { Summaries } from './pages/Summaries';
 import { Archive } from './pages/Archive';
 import { PublicProfile } from './pages/PublicProfile';
 import { PublicSessionLog } from './pages/PublicSessionLog';
+import { ComparisonSummary } from './pages/ComparisonSummary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ function AppContent() {
                     <Route path="/join/:id" element={<JoinSession />} />
                     <Route path="/session/:id" element={<ChatRoom />} />
                     <Route path="/session/:id/summary" element={<Summary />} />
+                    <Route path="/session/:id/comparison" element={<ComparisonSummary />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/summaries" element={<Summaries />} />

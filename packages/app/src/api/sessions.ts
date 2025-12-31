@@ -4,9 +4,11 @@ import type { Session, Message } from '../types';
 
 interface CreateSessionData {
   name: string;
-  productType?: string;
-  productLink?: string;
-  productName?: string;
+  products?: Array<{
+    productType?: string | null;
+    productLink?: string | null;
+    productName?: string | null;
+  }>;
   livestreamUrl?: string;
 }
 
@@ -226,12 +228,21 @@ export function usePublicSummary(id: string) {
 }
 
 // Get private session summary
-export function useSessionSummary(id: string, refetchInterval?: number | false) {
+export function useSessionSummary(id: string, productIndex: number = 0, refetchInterval?: number | false) {
   return useQuery({
-    queryKey: [...sessionKeys.detail(id), 'summary'],
-    queryFn: () => api.get<{ summary: any }>(`/sessions/${id}/summary`),
+    queryKey: [...sessionKeys.detail(id), 'summary', productIndex],
+    queryFn: () => api.get<{ summary: any }>(`/sessions/${id}/summary?productIndex=${productIndex}`),
     enabled: !!id,
     refetchInterval,
+  });
+}
+
+// Get comparison summary
+export function useComparisonSummary(id: string) {
+  return useQuery({
+    queryKey: [...sessionKeys.detail(id), 'comparison'],
+    queryFn: () => api.get<{ comparison: any }>(`/sessions/${id}/comparison`),
+    enabled: !!id,
   });
 }
 

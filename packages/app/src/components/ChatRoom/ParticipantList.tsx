@@ -30,6 +30,7 @@ interface ParticipantListProps {
     setExpandedActionUserId: (userId: string | null) => void;
     isTransferring: boolean;
     onCloseSidebar: () => void;
+    activeProductIndex?: number;
 }
 
 export const ParticipantList: React.FC<ParticipantListProps> = ({
@@ -61,6 +62,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
     setExpandedActionUserId,
     isTransferring,
     onCloseSidebar,
+    activeProductIndex = 0,
 }) => {
     return (
         <div className="p-4 flex-1 overflow-y-auto">
@@ -311,10 +313,10 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                                         )}
                                     </div>
                                 )}
-                                {user.rating && (
+                                {(user.ratings?.[activeProductIndex || 0] || (activeProductIndex === 0 && user.rating)) && (
                                     <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-500/10 rounded text-[10px] font-bold text-orange-500">
                                         <Star size={8} fill="currentColor" />
-                                        {user.rating}
+                                        {user.ratings?.[activeProductIndex || 0] || user.rating}
                                     </div>
                                 )}
                                 {readyCheckActive && isUserReady && (

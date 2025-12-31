@@ -448,3 +448,127 @@ input:focus {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Chat Carousel Styles */
+.chat-carousel-container {
+  perspective: 1500px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px 0;
+}
+
+.chat-card {
+  position: absolute;
+  width: 85%;
+  max-width: 800px;
+  height: 95%;
+  background: var(--bg-main);
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.chat-card.active {
+  left: 50%;
+  transform: translateX(-50%) translateZ(0);
+  opacity: 1;
+  z-index: 10;
+  cursor: default;
+  border-color: var(--accent-primary);
+}
+
+.chat-card.left {
+  left: 20px;
+  transform: translateX(0) translateZ(-300px) rotateY(10deg);
+  opacity: 1;
+  z-index: 5;
+  filter: brightness(0.7);
+}
+
+.chat-card.right {
+  left: calc(100% - 20px);
+  transform: translateX(-100%) translateZ(-300px) rotateY(-10deg);
+  opacity: 1;
+  z-index: 5;
+  filter: brightness(0.7);
+}
+
+.chat-card.hidden-left {
+  left: -100%;
+  transform: translateZ(-500px) rotateY(20deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-card.hidden-right {
+  left: 200%;
+  transform: translateZ(-500px) rotateY(-20deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Card Header in Carousel */
+.chat-card-header {
+  padding: 12px 20px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chat-card-header .product-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-card-header .product-icon {
+  font-size: 20px;
+}
+
+.chat-card-header .product-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 768px) {
+  .chat-carousel-container {
+    display: block;
+    perspective: none;
+    padding: 0;
+  }
+
+  .chat-card {
+    position: relative;
+    width: 100%;
+    height: auto;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    transform: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    display: none;
+  }
+
+  .chat-card.active {
+    display: flex;
+  }
+}

@@ -2,9 +2,12 @@ import { db, tastingSummaries, sessionParticipants, users, tastingSessions } fro
 import { eq, and, desc, or, exists, ne, sql } from 'drizzle-orm';
 import { getSession } from './sessionBase.js';
 
-export async function getSessionSummary(sessionId: string) {
+export async function getSessionSummary(sessionId: string, productIndex: number = 0) {
     const summary = await db.query.tastingSummaries.findFirst({
-        where: eq(tastingSummaries.sessionId, sessionId),
+        where: and(
+            eq(tastingSummaries.sessionId, sessionId),
+            eq(tastingSummaries.productIndex, productIndex)
+        ),
     });
 
     if (!summary) return null;
@@ -99,6 +102,7 @@ export async function getAllUserSummaries(userId: string) {
 
 export async function updateSessionSummary(
     sessionId: string,
+    productIndex: number = 0,
     data: {
         nose?: string;
         palate?: string;
@@ -107,7 +111,7 @@ export async function updateSessionSummary(
         rating?: number;
     }
 ) {
-    const existing = await getSessionSummary(sessionId);
+    const existing = await getSessionSummary(sessionId, productIndex);
     if (!existing) {
         throw new Error('Summary not found');
     }
@@ -129,7 +133,10 @@ export async function updateSessionSummary(
             observations: data.observations ?? existing.observations,
             metadata,
         })
-        .where(eq(tastingSummaries.sessionId, sessionId))
+        .where(and(
+            eq(tastingSummaries.sessionId, sessionId),
+            eq(tastingSummaries.productIndex, productIndex)
+        ))
         .returning();
 
     return updated;

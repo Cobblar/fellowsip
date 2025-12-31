@@ -20,6 +20,7 @@ import {
   getPublicSummary,
   toggleSessionHighlight,
   getPublicSessionLog,
+  getComparisonSummary,
 } from '../services/sessions.js';
 import { getSessionMessages } from '../services/messages.js';
 import { emitSessionEnded, emitHostTransferred, emitToUser, emitLivestreamUpdated, emitCustomTagsUpdated } from '../sockets/socketManager.js';
@@ -30,11 +31,13 @@ export async function sessionRoutes(fastify: FastifyInstance) {
   fastify.post('/sessions', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const user = (request as any).user;
-      const { name, productType, productLink, productName, livestreamUrl, customTags } = request.body as {
+      const { name, products, livestreamUrl, customTags } = request.body as {
         name: string;
-        productType?: string;
-        productLink?: string;
-        productName?: string;
+        products?: Array<{
+          productType?: string;
+          productLink?: string;
+          productName?: string;
+        }>;
         livestreamUrl?: string;
         customTags?: string[];
       };
@@ -46,9 +49,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       const session = await createSession(
         user.id,
         name,
-        productType || null,
-        productLink || null,
-        productName || null,
+        products || [],
         livestreamUrl || null,
         customTags || []
       );
@@ -250,7 +251,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
   fastify.get('/sessions/:id/summary', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const summary = await getSessionSummary(id);
+      const { productIndex } = request.query as { productIndex?: string };
+      const summary = await getSessionSummary(id, productIndex ? parseInt(productIndex) : 0);
 
       if (!summary) {
         return reply.status(404).send({ error: 'Summary not found' });
@@ -260,6 +262,18 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     } catch (error) {
       console.error('Get summary error:', error);
       return reply.status(500).send({ error: 'Failed to get summary' });
+    }
+  });
+
+  // Get comparison summary
+  fastify.get('/sessions/:id/comparison', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const comparison = await getComparisonSummary(id);
+      return reply.send({ comparison });
+    } catch (error) {
+      console.error('Get comparison error:', error);
+      return reply.status(500).send({ error: 'Failed to get comparison summary' });
     }
   });
 
@@ -306,7 +320,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
   fastify.patch('/sessions/:id/summary', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const data = request.body as {
+      const { productIndex, ...data } = request.body as {
+        productIndex?: number;
         nose?: string;
         palate?: string;
         finish?: string;
@@ -314,7 +329,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         rating?: number;
       };
 
-      const summary = await updateSessionSummary(id, data);
+      const summary = await updateSessionSummary(id, productIndex || 0, data);
 
       // Also update the participant's rating if provided
       const user = (request as any).user;

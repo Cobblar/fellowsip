@@ -5,8 +5,11 @@ interface SummaryPanelProps {
     wordFrequencies: { word: string; count: number }[];
     currentUserId: string | null;
     activeUsers: any[];
-    updateRating: (rating: number) => void;
+    updateRating: (rating: number, productIndex?: number) => void;
     onCloseSidebar: () => void;
+    products?: any[];
+    activeProductIndex?: number;
+    averageRatings?: Record<number, number | null>;
 }
 
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({
@@ -15,8 +18,14 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
     activeUsers,
     updateRating,
     onCloseSidebar,
+    products = [],
+    activeProductIndex = 0,
+    averageRatings = {},
 }) => {
-    const userRating = activeUsers.find(u => u.userId === currentUserId)?.rating ?? '';
+    const currentUser = activeUsers.find(u => u.userId === currentUserId);
+    const userRating = currentUser?.ratings?.[activeProductIndex] ?? currentUser?.rating ?? '';
+    const avgRating = averageRatings[activeProductIndex] ?? null;
+    const activeProduct = products[activeProductIndex];
 
     return (
         <div className="space-y-6">
@@ -66,7 +75,16 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                         <Star size={16} className="text-orange-500" />
-                        <h3 className="text-sm font-bold text-[var(--text-primary)]">Your Score</h3>
+                        <div className="flex flex-col">
+                            <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                                {activeProduct?.productName ? `${activeProduct.productName} Score` : 'Your Score'}
+                            </h3>
+                            {avgRating !== null && (
+                                <span className="text-[10px] text-[var(--text-muted)]">
+                                    Group Avg: <span className="text-orange-500 font-bold">{avgRating.toFixed(1)}</span>
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <input
                         type="number"
@@ -76,7 +94,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                         onChange={(e) => {
                             const val = e.target.value === '' ? null : parseInt(e.target.value);
                             if (val === null || (val >= 0 && val <= 100)) {
-                                updateRating(val ?? 0);
+                                updateRating(val ?? 0, activeProductIndex);
                             }
                         }}
                         className="w-14 bg-[var(--bg-input)] border border-[var(--border-primary)] rounded py-0.5 px-1 text-sm font-bold text-orange-500 text-center focus:outline-none focus:border-orange-500 transition-colors no-spinner"
@@ -89,7 +107,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                         max="100"
                         step="1"
                         value={typeof userRating === 'number' ? userRating : 0}
-                        onChange={(e) => updateRating(parseInt(e.target.value))}
+                        onChange={(e) => updateRating(parseInt(e.target.value), activeProductIndex)}
                         className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-orange-500 mb-2"
                     />
                     <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-medium">

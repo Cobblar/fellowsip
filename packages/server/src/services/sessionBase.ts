@@ -5,19 +5,36 @@ import { addSessionParticipant } from './participants.js';
 export async function createSession(
     hostId: string,
     name: string,
-    productType: string | null = null,
-    productLink: string | null = null,
-    productName: string | null = null,
+    products: Array<{
+        productType?: string | null;
+        productLink?: string | null;
+        productName?: string | null;
+    }> = [],
     livestreamUrl: string | null = null,
     customTags: string[] = []
 ) {
+    // Normalize products array (max 3, add indices)
+    const normalizedProducts = products.slice(0, 3).map((p, i) => ({
+        index: i,
+        productType: p.productType || null,
+        productLink: p.productLink || null,
+        productName: p.productName || null,
+    }));
+
+    // If no products provided, create a single empty product slot
+    if (normalizedProducts.length === 0) {
+        normalizedProducts.push({ index: 0, productType: null, productLink: null, productName: null });
+    }
+
     const [session] = await db
         .insert(tastingSessions)
         .values({
             name,
-            productType,
-            productLink,
-            productName,
+            products: normalizedProducts,
+            // Keep legacy fields for backward compatibility (use first product)
+            productType: normalizedProducts[0]?.productType || null,
+            productLink: normalizedProducts[0]?.productLink || null,
+            productName: normalizedProducts[0]?.productName || null,
             livestreamUrl,
             customTags,
             hostId,

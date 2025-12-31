@@ -12,9 +12,6 @@ import {
   getReadyUsers,
 } from '../services/activeUsers.js';
 import { isAutoModFriend } from '../services/friends.js';
-import { db } from '../db/index.js';
-import { sessionParticipants } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
 import { registerUserSocket, unregisterUserSocket } from './socketManager.js';
 import type { JoinSessionPayload } from '../types/socket.js';
 
@@ -132,23 +129,16 @@ export function setupSocketHandlers(io: Server) {
         // Add user to active users
         await addSessionParticipant(sessionId, userId!);
 
-        const participants = await db
-          .select({ rating: sessionParticipants.rating })
-          .from(sessionParticipants)
-          .where(
-            and(
-              eq(sessionParticipants.sessionId, sessionId),
-              eq(sessionParticipants.userId, userId!)
-            )
-          );
-        const currentRating = participants[0]?.rating;
+        const { getUserProductRatings } = await import('../services/participants.js');
+        const productRatingsData = await getUserProductRatings(sessionId, userId!);
 
         addUserToSession(sessionId, {
           userId: userId!,
           socketId: socket.id,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
-          rating: currentRating,
+          rating: productRatingsData[0] ?? null,
+          ratings: productRatingsData,
         });
 
         // Auto-mod logic

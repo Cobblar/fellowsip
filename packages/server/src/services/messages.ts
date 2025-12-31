@@ -1,7 +1,7 @@
 import { db, messages, users } from '../db/index.js';
 import { eq, desc, and } from 'drizzle-orm';
 
-export async function createMessage(sessionId: string, userId: string, content: string, phase?: string) {
+export async function createMessage(sessionId: string, userId: string, content: string, phase?: string, productIndex: number = 0) {
   const [message] = await db
     .insert(messages)
     .values({
@@ -9,6 +9,7 @@ export async function createMessage(sessionId: string, userId: string, content: 
       userId,
       content,
       phase,
+      productIndex,
     })
     .returning();
 
@@ -25,7 +26,16 @@ export async function createMessage(sessionId: string, userId: string, content: 
   return messageWithUser;
 }
 
-export async function getSessionMessages(sessionId: string, limit: number = 100) {
+export async function getSessionMessages(sessionId: string, limit: number = 100, productIndex?: number) {
+  const conditions = [
+    eq(messages.sessionId, sessionId),
+    eq(messages.isHidden, false)
+  ];
+
+  if (productIndex !== undefined) {
+    conditions.push(eq(messages.productIndex, productIndex));
+  }
+
   const results = await db
     .select({
       message: messages,
@@ -33,10 +43,7 @@ export async function getSessionMessages(sessionId: string, limit: number = 100)
     })
     .from(messages)
     .leftJoin(users, eq(messages.userId, users.id))
-    .where(and(
-      eq(messages.sessionId, sessionId),
-      eq(messages.isHidden, false) // Filter out hidden messages
-    ))
+    .where(and(...conditions))
     .orderBy(desc(messages.createdAt))
     .limit(limit);
 

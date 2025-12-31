@@ -3,7 +3,7 @@ import { db } from '../db/index.js';
 import { users as usersTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { createMessage, getSessionMessages, getMessage, updateMessage } from '../services/messages.js';
-import { updateSessionActivity, updateParticipantRating, getAverageRating } from '../services/sessions.js';
+import { updateSessionActivity, updateParticipantRating, getAverageRating, getAverageRatings } from '../services/sessions.js';
 import { isUserMuted, updateUserRating } from '../services/activeUsers.js';
 import { checkRateLimit } from './socketRateLimiting.js';
 import type {
@@ -18,7 +18,7 @@ import type {
 export function setupMessageHandlers(io: Server, socket: Socket, userId: string, user: any) {
     socket.on('send_message', async (payload: SendMessagePayload) => {
         try {
-            const { sessionId, content, phase } = payload;
+            const { sessionId, content, phase, productIndex } = payload;
 
             if (!content.trim()) {
                 socket.emit('error', { message: 'Message cannot be empty' });
@@ -49,13 +49,14 @@ export function setupMessageHandlers(io: Server, socket: Socket, userId: string,
                 return;
             }
 
-            const messageData = await createMessage(sessionId, userId, content, phase);
+            const messageData = await createMessage(sessionId, userId, content, phase, productIndex || 0);
             const messagePayload = {
                 id: messageData.message.id,
                 sessionId: messageData.message.sessionId,
                 userId: messageData.message.userId,
                 content: messageData.message.content,
                 phase: messageData.message.phase,
+                productIndex: messageData.message.productIndex,
                 createdAt: messageData.message.createdAt,
                 user: {
                     id: messageData.user?.id || '',
@@ -137,15 +138,20 @@ export function setupMessageHandlers(io: Server, socket: Socket, userId: string,
     });
 
     socket.on('update_rating', async (payload: UpdateRatingPayload) => {
-        const { sessionId, rating } = payload;
+        const { sessionId, rating, productIndex = 0 } = payload;
         try {
-            await updateParticipantRating(sessionId, userId, rating);
-            updateUserRating(sessionId, userId, rating);
-            const averageRating = await getAverageRating(sessionId);
+            await updateParticipantRating(sessionId, userId, rating, productIndex);
+            updateUserRating(sessionId, userId, rating, productIndex);
+
+            const averageRating = await getAverageRating(sessionId, productIndex);
+            const averageRatings = await getAverageRatings(sessionId);
+
             const event: RatingUpdatedEvent = {
                 userId,
                 rating,
+                productIndex,
                 averageRating,
+                averageRatings,
             };
             io.to(sessionId).emit('rating_updated', event);
         } catch (err) {

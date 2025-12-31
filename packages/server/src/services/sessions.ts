@@ -6,6 +6,7 @@ export * from './sessionBase.js';
 export * from './participants.js';
 export * from './summaries.js';
 export * from './publicSessions.js';
+export * from './comparisonSummaries.js';
 
 // Functions that involve multiple areas or are core to session listing
 export async function getUserSessions(userId: string) {

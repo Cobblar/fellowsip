@@ -7,6 +7,13 @@ export interface User {
     bio?: string | null;
 }
 
+export interface Product {
+    index: number;
+    productType: string | null;
+    productLink: string | null;
+    productName: string | null;
+}
+
 export interface Session {
     id: string;
     name: string;
@@ -21,9 +28,11 @@ export interface Session {
     createdAt: string | Date;
     updatedAt: string | Date;
     customTags: string[];
+    products: Product[];
     host?: User;
     summaryId?: string;
     userRating?: number | null;
+    userRatings?: Record<number, number | null>;
     sharePersonalSummary?: boolean;
     shareGroupSummary?: boolean;
     shareSessionLog?: boolean;
@@ -35,7 +44,8 @@ export interface Message {
     sessionId: string;
     userId: string;
     content: string;
-    phase?: string | null;
+    phase?: string;
+    productIndex?: number;
     createdAt: string | Date;
     user: {
         id: string;
@@ -50,11 +60,13 @@ export interface ActiveUser {
     displayName: string | null;
     avatarUrl: string | null;
     rating?: number | null;
+    ratings?: Record<number, number | null>;
 }
 
 export interface Participant {
     userId: string;
     rating: number | null;
+    ratings?: Record<number, number | null>;
     displayName: string | null;
     avatarUrl: string | null;
     sharePersonalSummary?: boolean;

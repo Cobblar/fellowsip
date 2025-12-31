@@ -7,6 +7,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
     const [moderators, setModerators] = useState<string[]>([]);
     const [hostId, setHostId] = useState<string | null>(null);
     const [averageRating, setAverageRating] = useState<number | null>(null);
+    const [averageRatings, setAverageRatings] = useState<Record<number, number | null>>({});
     const [livestreamUrl, setLivestreamUrl] = useState<string | null>(null);
     const [customTags, setCustomTags] = useState<string[]>([]);
     const [sessionEnded, setSessionEnded] = useState(false);
@@ -14,11 +15,12 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [summaryId, setSummaryId] = useState<string | null>(null);
 
-    const updateRating = useCallback((rating: number) => {
+    const updateRating = useCallback((rating: number, productIndex: number = 0) => {
         if (socket && sessionId) {
             socket.emit('update_rating', {
                 sessionId,
                 rating,
+                productIndex,
             });
         }
     }, [socket, sessionId]);
@@ -33,9 +35,19 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
 
         const handleRatingUpdated = (data: RatingUpdatedEvent) => {
             setActiveUsers((prev) => prev.map(user =>
-                user.userId === data.userId ? { ...user, rating: data.rating } : user
+                user.userId === data.userId ? {
+                    ...user,
+                    rating: data.productIndex === 0 ? data.rating : user.rating,
+                    ratings: {
+                        ...(user.ratings || {}),
+                        [data.productIndex]: data.rating
+                    }
+                } : user
             ));
             setAverageRating(data.averageRating);
+            if (data.averageRatings) {
+                setAverageRatings(data.averageRatings);
+            }
         };
 
         const handleLivestreamUpdated = (data: { sessionId: string; url: string | null }) => {
@@ -117,6 +129,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         moderators,
         hostId,
         averageRating,
+        averageRatings,
         livestreamUrl,
         customTags,
         sessionEnded,

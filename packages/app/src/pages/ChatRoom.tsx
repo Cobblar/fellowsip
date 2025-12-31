@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Star } from 'lucide-react';
+import { getProductIcon } from '../utils/productIcons';
 import { useSession, useEndSession, useTransferHost } from '../api/sessions';
 import { useSessionJoinRequests, useApproveJoinRequest, useRejectJoinRequest } from '../api/friends';
 import { useChatContext } from '../contexts/ChatContext';
@@ -58,6 +59,7 @@ export function ChatRoom() {
     globallyRevealedMessageIds,
     updateRating,
     averageRating,
+    averageRatings,
     phaseVisibility,
     setPhaseVisibility,
     setAllPhaseVisibility,
@@ -129,6 +131,7 @@ export function ChatRoom() {
   const [showEndModal, setShowEndModal] = useState(false);
   const [showPostSessionModal, setShowPostSessionModal] = useState(false);
   const [showSpoilerDefaults, setShowSpoilerDefaults] = useState(false);
+  const [activeProductIndex, setActiveProductIndex] = useState(0);
 
   const session = sessionData?.session;
   const isSessionEnded = sessionEnded || session?.status === 'ended';
@@ -333,6 +336,7 @@ export function ChatRoom() {
           setExpandedActionUserId={setExpandedActionUserId}
           isTransferring={isTransferring}
           onCloseSidebar={() => setActiveSidebar(null)}
+          activeProductIndex={activeProductIndex}
         />
 
         <JoinRequestsPanel
@@ -383,6 +387,8 @@ export function ChatRoom() {
           onShowEndModal={() => setShowEndModal(true)}
           onOpenSummarySidebar={() => setActiveSidebar('summary')}
           currentUserId={currentUserId}
+          activeProductIndex={activeProductIndex}
+          averageRatings={averageRatings}
         />
 
         {isSessionEnded && (
@@ -407,57 +413,119 @@ export function ChatRoom() {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="text-center">
-              <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
-                Session started {session ? new Date(session.startedAt).toLocaleDateString([], {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric'
-                }) + ' at ' + new Date(session.startedAt).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                }) : ''}
-              </span>
-            </div>
-            <MessageList
-              messages={messages}
-              currentUserId={currentUserId || undefined}
-              canDelete={canModerate}
-              onDeleteMessage={deleteMessage}
-              onEditMessage={editMessage}
-              revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
-              phaseVisibility={phaseVisibility}
-              summaryId={summaryId}
-            />
-          </div>
-        </div>
+        <div className="flex-1 chat-carousel-container">
+          {(session?.products && session.products.length > 0 ? session.products : [{ index: 0, productType: null, productName: null }]).map((product, idx) => {
+            const isActive = activeProductIndex === idx;
+            const isLeft = activeProductIndex === idx + 1;
+            const isRight = activeProductIndex === idx - 1;
+            const isHiddenLeft = idx < activeProductIndex - 1;
+            const isHiddenRight = idx > activeProductIndex + 1;
 
-        <div className="p-4 md:p-6 bg-[var(--bg-main)]">
-          <div className="max-w-3xl mx-auto">
-            {isSessionEnded ? (
-              <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
-                This session has ended. Chat is disabled.
-              </div>
-            ) : isMuted ? (
-              <div className="text-center py-3 text-sm text-yellow-500 bg-yellow-500/5 rounded-lg border border-yellow-500/20 flex items-center justify-center gap-2">
-                <AlertCircle size={16} />
-                You have been muted in this session.
-              </div>
-            ) : (
-              <>
-                {error && error.includes('Rate limit') && (
-                  <div className="mb-2 text-center py-2 text-xs text-orange-500 bg-orange-500/10 rounded-lg border border-orange-500/20 flex items-center justify-center gap-2">
-                    <AlertCircle size={14} />
-                    {error}
+            let cardClass = "chat-card";
+            if (isActive) cardClass += " active";
+            else if (isLeft) cardClass += " left";
+            else if (isRight) cardClass += " right";
+            else if (isHiddenLeft) cardClass += " hidden-left";
+            else if (isHiddenRight) cardClass += " hidden-right";
+
+            return (
+              <div
+                key={idx}
+                className={cardClass}
+                onClick={() => !isActive && setActiveProductIndex(idx)}
+              >
+                {/* Card Header (Desktop only) */}
+                {!isMobile && (
+                  <div className="chat-card-header">
+                    <div className="product-info">
+                      <span className="product-icon">{getProductIcon(product.productType || '')}</span>
+                      <span className="product-name">{product.productName || `Product ${idx + 1}`}</span>
+                    </div>
+                    {isActive && averageRatings[idx] !== null && (
+                      <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-500/10 rounded text-[10px] font-bold text-orange-500">
+                        <Star size={10} fill="currentColor" />
+                        {averageRatings[idx]?.toFixed(1)} Avg
+                      </div>
+                    )}
                   </div>
                 )}
-                <MessageInput onSend={sendMessage} disabled={!isConnected || (error?.includes('Rate limit') ?? false)} />
-              </>
-            )}
-          </div>
+
+                <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar">
+                  <div className="max-w-3xl mx-auto space-y-6">
+                    {isActive && (
+                      <div className="text-center">
+                        <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
+                          Session started {session ? new Date(session.startedAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : ''}
+                        </span>
+                      </div>
+                    )}
+                    <MessageList
+                      messages={messages.filter(m => m.productIndex === idx)}
+                      currentUserId={currentUserId || undefined}
+                      canDelete={canModerate}
+                      onDeleteMessage={deleteMessage}
+                      onEditMessage={editMessage}
+                      revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
+                      phaseVisibility={phaseVisibility}
+                      summaryId={summaryId}
+                    />
+                  </div>
+                </div>
+
+                <div className={`p-4 md:p-6 bg-[var(--bg-main)] border-t border-[var(--border-primary)] ${!isActive ? 'pointer-events-none opacity-50' : ''}`}>
+                  <div className="max-w-3xl mx-auto">
+                    {isSessionEnded ? (
+                      <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
+                        This session has ended. Chat is disabled.
+                      </div>
+                    ) : isMuted ? (
+                      <div className="text-center py-3 text-sm text-yellow-500 bg-yellow-500/5 rounded-lg border border-yellow-500/20 flex items-center justify-center gap-2">
+                        <AlertCircle size={16} />
+                        You have been muted in this session.
+                      </div>
+                    ) : (
+                      <>
+                        {isActive && error && error.includes('Rate limit') && (
+                          <div className="mb-2 text-center py-2 text-xs text-orange-500 bg-orange-500/10 rounded-lg border border-orange-500/20 flex items-center justify-center gap-2">
+                            <AlertCircle size={14} />
+                            {error}
+                          </div>
+                        )}
+                        <MessageInput
+                          onSend={(content, phase) => sendMessage(content, phase, idx)}
+                          disabled={!isConnected || !isActive || (error?.includes('Rate limit') ?? false)}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
+
+        {session?.products && session.products.length > 1 && isMobile && (
+          <div className="grid grid-cols-3 gap-2 px-4 py-2 bg-[var(--bg-sidebar)] border-t border-[var(--border-primary)]">
+            {session.products.map((product, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveProductIndex(idx)}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${activeProductIndex === idx
+                  ? 'bg-orange-500/10 border-orange-500 text-orange-500'
+                  : 'bg-[var(--bg-main)] border-[var(--border-primary)] text-[var(--text-muted)]'
+                  }`}
+              >
+                <span className="text-lg">{getProductIcon(product.productType || '')}</span>
+                <span className="text-[8px] font-bold uppercase truncate w-full text-center">
+                  {product.productName || `P${idx + 1}`}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <aside className={`sidebar md:relative md:translate-x-0 right-0 md:left-auto ${activeSidebar === 'summary' ? 'open' : ''} w-[320px] md:w-[380px] bg-[var(--bg-main)] overflow-y-auto p-6 space-y-6 border-l border-[var(--border-primary)]`}>
@@ -467,6 +535,9 @@ export function ChatRoom() {
           activeUsers={activeUsers}
           updateRating={updateRating}
           onCloseSidebar={() => setActiveSidebar(null)}
+          products={session?.products}
+          activeProductIndex={activeProductIndex}
+          averageRatings={averageRatings}
         />
 
         <SpoilerControlsPanel

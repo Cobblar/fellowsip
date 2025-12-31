@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Loader2 } from 'lucide-react';
-import { useSessionSummary, useUpdateSummary, useUpdateSharing, usePublicSummary } from '../api/sessions';
+import { useSessionSummary, useUpdateSummary, useUpdateSharing, usePublicSummary, useSession, useComparisonSummary } from '../api/sessions';
+import { getProductIcon } from '../utils/productIcons';
 import { useCurrentUser } from '../api/auth';
 import type { Participant } from '../types';
 
@@ -59,14 +60,20 @@ export function Summary({ publicMode = false }: SummaryProps) {
     const { data: currentUserData } = useCurrentUser();
     const currentUser = currentUserData?.user;
 
+    const [activeProductIndex, setActiveProductIndex] = useState(0);
+    const { data: sessionData } = useSession(id || '');
+    const session = sessionData?.session;
+
     // Enable polling if we're in analyzing mode and summary isn't found yet
     const [shouldPoll, setShouldPoll] = useState(isAnalyzingParam);
 
     const { data: sessionSummaryData, isLoading: sessionSummaryLoading } = useSessionSummary(
         id || '',
+        activeProductIndex,
         shouldPoll ? 3000 : false
     );
     const { data: publicSessionData, isLoading: publicSessionLoading } = usePublicSummary(id || '');
+    const { data: comparisonData } = useComparisonSummary(id || '');
 
     const summaryData = publicMode ? publicSessionData?.summary : sessionSummaryData?.summary;
     const isLoading = publicMode ? publicSessionLoading : sessionSummaryLoading;
@@ -85,8 +92,8 @@ export function Summary({ publicMode = false }: SummaryProps) {
     const [isEditingNotes, setIsEditingNotes] = useState(false);
     const [editData, setEditData] = useState<Partial<TasterSummary> & { rating?: number }>({});
 
-    const session = summaryData;
     const summary = summaryData as TastingSummary | undefined;
+    const comparison = comparisonData?.comparison;
     const participants = (summaryData?.participants || []) as Participant[];
 
     const userParticipant = participants.find(p => p.userId === currentUser?.id);
@@ -188,7 +195,7 @@ export function Summary({ publicMode = false }: SummaryProps) {
     return (
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
             <SummaryHeader
-                session={session}
+                session={session || summaryData}
                 publicMode={publicMode}
                 onViewSessionLog={() => navigate(`/session/${id}`)}
                 onCopyPublicLink={() => {
@@ -197,6 +204,49 @@ export function Summary({ publicMode = false }: SummaryProps) {
                     alert('Public link copied to clipboard!');
                 }}
             />
+
+            {session?.products && session.products.length > 1 && (
+                <div className="flex gap-2 p-1 bg-[var(--bg-sidebar)] rounded-lg border border-[var(--border-primary)] mb-8 max-w-2xl mx-auto">
+                    {session.products.map((product, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => setActiveProductIndex(idx)}
+                            className={`flex-1 py-3 px-4 rounded-md text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeProductIndex === idx
+                                ? 'bg-orange-500 text-white shadow-lg'
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-main)]'
+                                }`}
+                        >
+                            <span>{getProductIcon(product.productType || '')}</span>
+                            <span className="truncate">
+                                {product.productName || `Product ${idx + 1}`}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {comparison && (
+                <div
+                    onClick={() => navigate(`/session/${id}/comparison`)}
+                    className="mb-12 p-6 bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 rounded-2xl cursor-pointer hover:border-orange-500/40 transition-all group"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+                                <MessageSquare size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-[var(--text-primary)] tracking-tight">Side-by-Side Comparison</h3>
+                                <p className="text-xs text-[var(--text-secondary)]">Comparative analysis and final rankings</p>
+                            </div>
+                        </div>
+                        <div className="btn-orange py-2 px-4 text-xs">View Full Comparison</div>
+                    </div>
+                    <p className="text-sm text-[var(--text-secondary)] line-clamp-2 italic">
+                        "{comparison.comparativeNotes}"
+                    </p>
+                </div>
+            )}
 
             {/* Sharing Controls */}
             {!publicMode && userParticipant && (
