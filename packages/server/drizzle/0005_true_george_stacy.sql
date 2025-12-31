@@ -1,0 +1,1 @@
+ALTER TABLE "session_participants" ADD COLUMN "share_session_log" boolean DEFAULT false NOT NULL;

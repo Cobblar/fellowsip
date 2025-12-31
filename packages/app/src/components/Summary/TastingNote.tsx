@@ -82,7 +82,11 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
 
                     {!selectedTaster && !isEditingNotes ? (
                         <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-lg text-center">
-                            <p className="text-sm text-[var(--text-secondary)] mb-2">No personalized profile found.</p>
+                            <p className="text-sm text-[var(--text-secondary)] mb-2">
+                                {selectedMemberId
+                                    ? "This participant's notes were not captured in the AI summary."
+                                    : "No personalized profile found."}
+                            </p>
                         </div>
                     ) : (
                         <>

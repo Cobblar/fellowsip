@@ -92,12 +92,18 @@ export function Summary({ publicMode = false }: SummaryProps) {
     const userParticipant = participants.find(p => p.userId === currentUser?.id);
 
     useEffect(() => {
-        if (summary && currentUser?.id && !selectedMemberId) {
+        if (summary && !selectedMemberId) {
+            // 1. Try to select current user's summary
             const hasUserSummary = summary.tasterSummaries?.some(
-                (s: TasterSummary) => s.userId === currentUser.id
+                (s: TasterSummary) => s.userId === currentUser?.id
             );
-            if (hasUserSummary) {
+
+            if (hasUserSummary && currentUser?.id) {
                 setSelectedMemberId(currentUser.id);
+            }
+            // 2. If not logged in or no user summary, select the first available shared summary
+            else if (summary.tasterSummaries && summary.tasterSummaries.length > 0) {
+                setSelectedMemberId(summary.tasterSummaries[0].userId);
             }
         }
     }, [summary, currentUser, selectedMemberId]);
