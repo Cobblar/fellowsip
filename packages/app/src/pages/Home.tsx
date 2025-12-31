@@ -82,11 +82,8 @@ export function Home() {
     };
 
     const handleFriendClick = (friendId: string) => {
-        const session = friendsSessions.find(s => s.host?.id === friendId);
-        if (session) {
-            navigate(`/session/${session.id}`);
-            setIsSidebarOpen(false);
-        }
+        navigate(`/profile/${friendId}/public`);
+        setIsSidebarOpen(false);
     };
 
     return (

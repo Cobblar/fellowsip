@@ -100,7 +100,7 @@ export function PublicProfile() {
             <div className="border-b border-[var(--border-primary)] bg-[var(--bg-card)]/80 backdrop-blur-sm sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
                     <button
-                        onClick={() => navigate('/profile')}
+                        onClick={() => navigate('/')}
                         className="flex items-center gap-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                     >
                         <ArrowLeft size={14} />

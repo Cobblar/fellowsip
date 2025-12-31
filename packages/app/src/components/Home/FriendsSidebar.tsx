@@ -239,6 +239,7 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                             <div
                                                 key={item.friendshipId}
                                                 className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:bg-[var(--bg-hover)] hover:border-[var(--border-hover)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
+                                                onClick={() => onFriendClick(item.friend.id)}
                                             >
                                                 <div className="relative">
                                                     {item.friend.avatarUrl ? (

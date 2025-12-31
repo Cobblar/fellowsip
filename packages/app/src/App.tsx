@@ -36,7 +36,7 @@ function AppContent() {
     <Routes>
       {/* Public Routes */}
       <Route
-        path="/profile/:id"
+        path="/profile/:id/public"
         element={
           <div className="flex-1 overflow-y-auto">
             <PublicProfile />

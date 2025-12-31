@@ -47,7 +47,7 @@ export function Profile() {
     };
 
     const handleCopyPublicLink = () => {
-        const url = `${window.location.origin}/profile/${currentUser?.id}`;
+        const url = `${window.location.origin}/profile/${currentUser?.id}/public`;
         navigator.clipboard.writeText(url);
         // Could add a toast here
     };
@@ -79,7 +79,7 @@ export function Profile() {
                         Copy Public Link
                     </button>
                     <button
-                        onClick={() => navigate(`/profile/${currentUser?.id}`)}
+                        onClick={() => navigate(`/profile/${currentUser?.id}/public`)}
                         className="btn-orange text-xs py-2"
                     >
                         <ExternalLink size={14} />

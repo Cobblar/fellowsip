@@ -29,7 +29,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
       setPhase('nose');
     } else if (lowerContent.includes('palate') || lowerContent.includes('palette') || lowerContent.includes('flavor') || lowerContent.includes('taste') || lowerContent.includes('tasting')) {
       setPhase('palate');
-    } else if (lowerContent.includes('finish')) {
+    } else if (lowerContent.includes('finish') || lowerContent.includes('hui gan') || lowerContent.includes('huigan')) {
       setPhase('finish');
     } else if (lowerContent.includes('texture') || lowerContent.includes('mouthfeel') || lowerContent.includes('body') || lowerContent.includes('viscosity')) {
       setPhase('texture');
