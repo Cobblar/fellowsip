@@ -1,14 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, ChevronRight, ArrowUpDown, Package, Archive, SlidersHorizontal } from 'lucide-react';
-import { useAllSummaries, useArchiveSession, useUserSessions } from '../api/sessions';
+import { useAllSummaries, useArchiveSession } from '../api/sessions';
 import { getProductIcon } from '../utils/productIcons';
 
 type SortOption = 'name' | 'date' | 'rating';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { data: sessionsData, isLoading: sessionsLoading } = useUserSessions();
   const { data: summariesData, isLoading: summariesLoading } = useAllSummaries();
   const archiveSession = useArchiveSession();
 
@@ -27,23 +26,31 @@ export function Dashboard() {
   const productTypes = ['Wine', 'Whisky', 'Beer', 'Sake', 'Coffee', 'Tea', 'Chocolate', 'Other'];
 
   const filteredAndSortedSummaries = useMemo(() => {
-    const allSessions = sessionsData?.sessions || [];
     const summaries = summariesData?.summaries || [];
 
-    // Map all ended sessions to include summary data if it exists
-    const endedSessions = allSessions.filter((s: any) => s.status === 'ended');
+    // Map each summary to include product-specific data
+    // Each summary represents one product in a session
+    let combined = summaries.map((s: any) => {
+      const productIndex = s.summary.productIndex || 0;
+      const products = s.session.products || [];
+      const product = products[productIndex] || {};
 
-    let combined = endedSessions.map((session: any) => {
-      const summaryItem = summaries.find((s: any) => s.session.id === session.id);
+      // Use product-specific data, fallback to session-level for legacy single-product sessions
+      const productName = product.productName || s.session.productName;
+      const productType = product.productType || s.session.productType;
+
       return {
-        session,
-        summary: summaryItem?.summary || null
+        session: s.session,
+        summary: s.summary,
+        productIndex,
+        productName,
+        productType,
       };
-    }).filter((item: any) => item.summary !== null);
+    });
 
     // Filter based on selected type
     if (selectedType) {
-      combined = combined.filter((item: any) => item.session.productType === selectedType);
+      combined = combined.filter((item: any) => item.productType === selectedType);
     }
 
     // Filter based on search query (global)
@@ -52,7 +59,7 @@ export function Dashboard() {
         const query = searchQuery.toLowerCase();
         return (
           item.session.name.toLowerCase().includes(query) ||
-          (item.session.productName && item.session.productName.toLowerCase().includes(query)) ||
+          (item.productName && item.productName.toLowerCase().includes(query)) ||
           (item.summary.nose && item.summary.nose.toLowerCase().includes(query)) ||
           (item.summary.palate && item.summary.palate.toLowerCase().includes(query)) ||
           (item.summary.finish && item.summary.finish.toLowerCase().includes(query)) ||
@@ -83,7 +90,7 @@ export function Dashboard() {
     filtered.sort((a: any, b: any) => {
       switch (sortBy) {
         case 'name':
-          return (a.session.name || '').localeCompare(b.session.name || '');
+          return (a.productName || a.session.name || '').localeCompare(b.productName || b.session.name || '');
         case 'date':
           return new Date(b.session.startedAt).getTime() - new Date(a.session.startedAt).getTime();
         case 'rating':
@@ -94,9 +101,9 @@ export function Dashboard() {
     });
 
     return filtered;
-  }, [sessionsData, summariesData, searchQuery, sortBy, selectedType, isAdvancedSearch, advancedFilters]);
+  }, [summariesData, searchQuery, sortBy, selectedType, isAdvancedSearch, advancedFilters]);
 
-  if (sessionsLoading || summariesLoading) {
+  if (summariesLoading) {
     return (
       <div className="p-8 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
@@ -254,11 +261,11 @@ export function Dashboard() {
       {filteredAndSortedSummaries.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedSummaries.map((item) => {
-            const productEmoji = getProductIcon(item.session.productType);
+            const productEmoji = getProductIcon(item.productType);
             return (
               <div
-                key={item.session.id}
-                onClick={() => navigate(`/session/${item.session.id}/summary`)}
+                key={`${item.session.id}-${item.productIndex}`}
+                onClick={() => navigate(`/session/${item.session.id}/summary?product=${item.productIndex}`)}
                 className="card hover:border-gray-600 transition-all cursor-pointer group"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -268,10 +275,10 @@ export function Dashboard() {
                     </div>
                     <div>
                       <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">
-                        {item.session.productName || item.session.name}
+                        {item.productName || item.session.name}
                       </h3>
                       <p className="text-xs text-[var(--text-secondary)]">
-                        {item.session.productName ? item.session.name : (item.session.productType || 'Tasting')}
+                        {item.productName ? item.session.name : (item.productType || 'Tasting')}
                       </p>
                     </div>
                   </div>

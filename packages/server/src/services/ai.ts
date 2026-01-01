@@ -161,18 +161,12 @@ async function generateComparisonSummary(sessionId: string, productSummaries: an
 
     const summariesText = productSummaries.map((s, i) => {
         const p = products.find(p => p.index === s.productIndex) || products[i];
-        return `Product ${s.productIndex} (${p.productName}):
-        Nose: ${s.nose}
-        Palate: ${s.palate}
-        Finish: ${s.finish}
-        Observations: ${s.observations}`;
-    }).join('\n\n');
+        return `${p.productName}: Nose: ${s.nose}. Palate: ${s.palate}. Finish: ${s.finish}.`;
+    }).join('\n');
 
     const prompt = `
-        Compare these products from the tasting session. 
-        Provide a comparative analysis and rankings if the group expressed preferences.
+        This is a comparative tasting of ${products.length} products. Based on these summaries, provide a brief 1-2 sentence comparison highlighting key differences and any group preferences.
         
-        Summaries:
         ${summariesText}
     `;
 

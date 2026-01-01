@@ -415,18 +415,26 @@ export function ChatRoom() {
 
         <div className="flex-1 chat-carousel-container">
           {(session?.products && session.products.length > 0 ? session.products : [{ index: 0, productType: null, productName: null }]).map((product, idx) => {
+            const total = session?.products?.length || 1;
             const isActive = activeProductIndex === idx;
-            const isLeft = activeProductIndex === idx + 1;
-            const isRight = activeProductIndex === idx - 1;
-            const isHiddenLeft = idx < activeProductIndex - 1;
-            const isHiddenRight = idx > activeProductIndex + 1;
 
             let cardClass = "chat-card";
-            if (isActive) cardClass += " active";
-            else if (isLeft) cardClass += " left";
-            else if (isRight) cardClass += " right";
-            else if (isHiddenLeft) cardClass += " hidden-left";
-            else if (isHiddenRight) cardClass += " hidden-right";
+            if (isActive) {
+              cardClass += " active";
+            } else {
+              // Calculate relative position for looping/balanced feel
+              const diff = (idx - activeProductIndex + total) % total;
+
+              if (diff === 1 || (total === 2 && diff === 1)) {
+                cardClass += " right";
+              } else if (diff === total - 1) {
+                cardClass += " left";
+              } else if (diff <= total / 2) {
+                cardClass += " hidden-right";
+              } else {
+                cardClass += " hidden-left";
+              }
+            }
 
             return (
               <div
@@ -450,7 +458,7 @@ export function ChatRoom() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar">
+                <div className={`flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar ${!isActive ? 'pointer-events-none' : ''}`}>
                   <div className="max-w-3xl mx-auto space-y-6">
                     {isActive && (
                       <div className="text-center">

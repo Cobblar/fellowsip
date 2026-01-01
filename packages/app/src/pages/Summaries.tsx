@@ -48,10 +48,14 @@ export function Summaries() {
         return endedSessions
             .filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
             .map(session => {
-                const summary = summaries.find(s => s.session.id === session.id);
+                // Find the first summary for this session (for display purposes)
+                const summaryItem = summaries.find(s => s.session.id === session.id);
                 return {
                     session,
-                    summary: summary?.summary || null
+                    summary: summaryItem?.summary || null,
+                    // Use session-level product info for display
+                    productName: session.productName,
+                    productType: session.productType,
                 };
             });
     }, [allSessions, summaries, searchQuery]);
@@ -257,7 +261,7 @@ export function Summaries() {
                     previousSummaries.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {previousSummaries.map((item) => {
-                                const productEmoji = getProductIcon(item.session?.productType);
+                                const productEmoji = getProductIcon(item.productType);
                                 return (
                                     <div
                                         key={item.session?.id}
@@ -270,8 +274,12 @@ export function Summaries() {
                                                     {productEmoji}
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">{item.session?.name}</h3>
-                                                    <p className="text-xs text-[var(--text-secondary)]">{item.session?.productType || 'Tasting'}</p>
+                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">
+                                                        {item.session?.name}
+                                                    </h3>
+                                                    <p className="text-xs text-[var(--text-secondary)]">
+                                                        {item.productType || 'Tasting'}
+                                                    </p>
                                                 </div>
                                             </div>
                                             {(item.summary?.metadata?.rating || item.summary?.averageRating) && (

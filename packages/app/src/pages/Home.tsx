@@ -145,7 +145,7 @@ export function Home() {
                     <RecentSummaries
                         summaries={summaries}
                         onViewAll={() => navigate('/my-cellar')}
-                        onViewSummary={(sessionId) => navigate(`/session/${sessionId}/summary`)}
+                        onViewSummary={(sessionId, productIndex) => navigate(`/session/${sessionId}/summary?product=${productIndex ?? 0}`)}
                     />
                 </div>
             </div>

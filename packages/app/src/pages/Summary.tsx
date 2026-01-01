@@ -55,12 +55,15 @@ export function Summary({ publicMode = false }: SummaryProps) {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const isAnalyzingParam = searchParams.get('analyzing') === 'true';
+    const productParam = searchParams.get('product');
     const queryClient = useQueryClient();
 
     const { data: currentUserData } = useCurrentUser();
     const currentUser = currentUserData?.user;
 
-    const [activeProductIndex, setActiveProductIndex] = useState(0);
+    // Initialize with product from URL params, or default to 0
+    const initialProductIndex = productParam ? parseInt(productParam, 10) : 0;
+    const [activeProductIndex, setActiveProductIndex] = useState(initialProductIndex);
     const { data: sessionData } = useSession(id || '');
     const session = sessionData?.session;
 
@@ -205,6 +208,14 @@ export function Summary({ publicMode = false }: SummaryProps) {
                 }}
             />
 
+            {/* Sharing Controls */}
+            {!publicMode && userParticipant && (
+                <SharingControls
+                    userParticipant={userParticipant}
+                    onUpdateSharing={(data) => updateSharing.mutate({ sessionId: id!, data })}
+                />
+            )}
+
             {session?.products && session.products.length > 1 && (
                 <div className="flex gap-2 p-1 bg-[var(--bg-sidebar)] rounded-lg border border-[var(--border-primary)] mb-8 max-w-2xl mx-auto">
                     {session.products.map((product, idx) => (
@@ -226,34 +237,20 @@ export function Summary({ publicMode = false }: SummaryProps) {
             )}
 
             {comparison && (
-                <div
-                    onClick={() => navigate(`/session/${id}/comparison`)}
-                    className="mb-12 p-6 bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 rounded-2xl cursor-pointer hover:border-orange-500/40 transition-all group"
-                >
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                                <MessageSquare size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-black text-[var(--text-primary)] tracking-tight">Side-by-Side Comparison</h3>
-                                <p className="text-xs text-[var(--text-secondary)]">Comparative analysis and final rankings</p>
-                            </div>
+                <div className="mb-12 p-6 bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 rounded-2xl">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
+                            <MessageSquare size={20} />
                         </div>
-                        <div className="btn-orange py-2 px-4 text-xs">View Full Comparison</div>
+                        <div>
+                            <h3 className="text-lg font-black text-[var(--text-primary)] tracking-tight">Comparative Notes</h3>
+                            <p className="text-xs text-[var(--text-secondary)]">Comparing {session?.products?.length || 2} products</p>
+                        </div>
                     </div>
-                    <p className="text-sm text-[var(--text-secondary)] line-clamp-2 italic">
-                        "{comparison.comparativeNotes}"
+                    <p className="text-sm text-[var(--text-primary)] leading-relaxed">
+                        {comparison.comparativeNotes}
                     </p>
                 </div>
-            )}
-
-            {/* Sharing Controls */}
-            {!publicMode && userParticipant && (
-                <SharingControls
-                    userParticipant={userParticipant}
-                    onUpdateSharing={(data) => updateSharing.mutate({ sessionId: id!, data })}
-                />
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">

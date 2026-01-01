@@ -505,16 +505,20 @@ input:focus {
 }
 
 .chat-card.hidden-left {
-  left: -100%;
-  transform: translateZ(-500px) rotateY(20deg);
-  opacity: 0;
+  left: 20px;
+  transform: translateX(0) translateZ(-500px) rotateY(15deg);
+  opacity: 0.3;
+  z-index: 1;
+  filter: brightness(0.4);
   pointer-events: none;
 }
 
 .chat-card.hidden-right {
-  left: 200%;
-  transform: translateZ(-500px) rotateY(-20deg);
-  opacity: 0;
+  left: calc(100% - 20px);
+  transform: translateX(-100%) translateZ(-500px) rotateY(-15deg);
+  opacity: 0.3;
+  z-index: 1;
+  filter: brightness(0.4);
   pointer-events: none;
 }
 
@@ -549,15 +553,17 @@ input:focus {
 
 @media (max-width: 768px) {
   .chat-carousel-container {
-    display: block;
+    display: flex;
+    flex-direction: column;
     perspective: none;
     padding: 0;
+    height: 100%;
   }
 
   .chat-card {
     position: relative;
     width: 100%;
-    height: auto;
+    height: 100%;
     max-width: none;
     border-radius: 0;
     border: none;
@@ -566,9 +572,11 @@ input:focus {
     opacity: 1 !important;
     filter: none !important;
     display: none;
+    flex: 1;
   }
 
   .chat-card.active {
     display: flex;
+    flex-direction: column;
   }
 }
