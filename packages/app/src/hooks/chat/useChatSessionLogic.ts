@@ -12,6 +12,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
     const [customTags, setCustomTags] = useState<string[]>([]);
     const [sessionEnded, setSessionEnded] = useState(false);
     const [sessionEndedBy, setSessionEndedBy] = useState<string | null>(null);
+    const [sessionEndedLive, setSessionEndedLive] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [summaryId, setSummaryId] = useState<string | null>(null);
 
@@ -58,9 +59,13 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
             setCustomTags(data.tags);
         };
 
-        const handleSessionEnded = (data: { sessionId: string; hostName: string; message: string; shouldAnalyze?: boolean }) => {
+        const handleSessionEnded = (data: { sessionId: string; hostName: string; message: string; shouldAnalyze?: boolean; wasAlreadyEnded?: boolean }) => {
             setSessionEnded(true);
             setSessionEndedBy(data.hostName);
+            // Only set sessionEndedLive if this is a live session end (not joining an already-ended session)
+            if (!data.wasAlreadyEnded) {
+                setSessionEndedLive(true);
+            }
             if (data.shouldAnalyze) {
                 setIsAnalyzing(true);
             }
@@ -134,6 +139,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         customTags,
         sessionEnded,
         sessionEndedBy,
+        sessionEndedLive,
         isAnalyzing,
         summaryId,
         updateRating,
@@ -142,6 +148,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         setCustomTags,
         setSessionEnded,
         setSessionEndedBy,
+        setSessionEndedLive,
         setIsAnalyzing,
         setSummaryId,
         setActiveUsers,

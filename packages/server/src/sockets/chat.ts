@@ -102,6 +102,7 @@ export function setupSocketHandlers(io: Server) {
               userId: m.message.userId,
               content: m.message.content,
               phase: m.message.phase,
+              productIndex: m.message.productIndex ?? 0,
               createdAt: m.message.createdAt,
               user: {
                 id: m.user?.id || '',
@@ -119,6 +120,7 @@ export function setupSocketHandlers(io: Server) {
             sessionId,
             hostName: 'System',
             message: session.session.status === 'ended' ? 'This session has ended.' : 'This session has expired (6 hour limit).',
+            wasAlreadyEnded: true,
           });
           return;
         }
@@ -159,6 +161,7 @@ export function setupSocketHandlers(io: Server) {
             userId: m.message.userId,
             content: m.message.content,
             phase: m.message.phase,
+            productIndex: m.message.productIndex ?? 0,
             createdAt: m.message.createdAt,
             user: {
               id: m.user?.id || '',

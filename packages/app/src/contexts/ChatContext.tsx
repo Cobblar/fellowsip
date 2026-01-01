@@ -26,6 +26,7 @@ interface ChatContextType {
     sessionId: string | null;
     sessionEnded: boolean;
     sessionEndedBy: string | null;
+    sessionEndedLive: boolean;
     hostId: string | null;
     revealedMessageIds: Set<string>;
     globallyRevealedMessageIds: Set<string>;
@@ -110,6 +111,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         customTags,
         sessionEnded,
         sessionEndedBy,
+        sessionEndedLive,
         isAnalyzing,
         summaryId,
         updateRating,
@@ -118,6 +120,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCustomTags,
         setSessionEnded,
         setSessionEndedBy,
+        setSessionEndedLive,
         setIsAnalyzing,
         setSummaryId,
         setActiveUsers,
@@ -250,6 +253,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sessionId,
             sessionEnded,
             sessionEndedBy,
+            sessionEndedLive,
             hostId,
             revealedMessageIds,
             globallyRevealedMessageIds,

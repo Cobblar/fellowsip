@@ -54,6 +54,7 @@ export function ChatRoom() {
     error,
     sessionEnded,
     sessionEndedBy,
+    sessionEndedLive,
     hostId: socketHostId,
     revealedMessageIds,
     globallyRevealedMessageIds,
@@ -141,10 +142,11 @@ export function ChatRoom() {
   const isHost = effectiveHostId === currentUserId;
 
   useEffect(() => {
-    if (sessionEnded && currentUserId) {
+    // Only show modal when session ended while user was present (not when joining already-ended session)
+    if (sessionEndedLive && currentUserId) {
       setShowPostSessionModal(true);
     }
-  }, [sessionEnded, currentUserId]);
+  }, [sessionEndedLive, currentUserId]);
 
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showStreamInput, setShowStreamInput] = useState(false);
@@ -413,107 +415,165 @@ export function ChatRoom() {
           </div>
         )}
 
-        <div className="flex-1 chat-carousel-container">
-          {(session?.products && session.products.length > 0 ? session.products : [{ index: 0, productType: null, productName: null }]).map((product, idx) => {
-            const total = session?.products?.length || 1;
-            const isActive = activeProductIndex === idx;
+        {/* Chat Area - Conditional Layout based on product count */}
+        {(session?.products?.length ?? 1) > 1 ? (
+          // Multi-product: Carousel card layout
+          <div className="flex-1 chat-carousel-container">
+            {session!.products.map((product, idx) => {
+              const total = session!.products.length;
+              const isActive = activeProductIndex === idx;
 
-            let cardClass = "chat-card";
-            if (isActive) {
-              cardClass += " active";
-            } else {
-              // Calculate relative position for looping/balanced feel
-              const diff = (idx - activeProductIndex + total) % total;
-
-              if (diff === 1 || (total === 2 && diff === 1)) {
-                cardClass += " right";
-              } else if (diff === total - 1) {
-                cardClass += " left";
-              } else if (diff <= total / 2) {
-                cardClass += " hidden-right";
+              let cardClass = "chat-card";
+              if (isActive) {
+                cardClass += " active";
               } else {
-                cardClass += " hidden-left";
+                // Calculate relative position for looping/balanced feel
+                const diff = (idx - activeProductIndex + total) % total;
+
+                if (diff === 1 || (total === 2 && diff === 1)) {
+                  cardClass += " right";
+                } else if (diff === total - 1) {
+                  cardClass += " left";
+                } else if (diff <= total / 2) {
+                  cardClass += " hidden-right";
+                } else {
+                  cardClass += " hidden-left";
+                }
               }
-            }
 
-            return (
-              <div
-                key={idx}
-                className={cardClass}
-                onClick={() => !isActive && setActiveProductIndex(idx)}
-              >
-                {/* Card Header (Desktop only) */}
-                {!isMobile && (
-                  <div className="chat-card-header">
-                    <div className="product-info">
-                      <span className="product-icon">{getProductIcon(product.productType || '')}</span>
-                      <span className="product-name">{product.productName || `Product ${idx + 1}`}</span>
+              return (
+                <div
+                  key={idx}
+                  className={cardClass}
+                  onClick={() => !isActive && setActiveProductIndex(idx)}
+                >
+                  {/* Card Header (Desktop only) */}
+                  {!isMobile && (
+                    <div className="chat-card-header">
+                      <div className="product-info">
+                        <span className="product-icon">{getProductIcon(product.productType || '')}</span>
+                        <span className="product-name">{product.productName || `Product ${idx + 1}`}</span>
+                      </div>
+                      {isActive && averageRatings[idx] !== null && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-500/10 rounded text-[10px] font-bold text-orange-500">
+                          <Star size={10} fill="currentColor" />
+                          {averageRatings[idx]?.toFixed(1)} Avg
+                        </div>
+                      )}
                     </div>
-                    {isActive && averageRatings[idx] !== null && (
-                      <div className="flex items-center gap-1.5 px-2 py-1 bg-orange-500/10 rounded text-[10px] font-bold text-orange-500">
-                        <Star size={10} fill="currentColor" />
-                        {averageRatings[idx]?.toFixed(1)} Avg
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )}
 
-                <div className={`flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar ${!isActive ? 'pointer-events-none' : ''}`}>
-                  <div className="max-w-3xl mx-auto space-y-6">
-                    {isActive && (
-                      <div className="text-center">
-                        <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
-                          Session started {session ? new Date(session.startedAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : ''}
-                        </span>
-                      </div>
-                    )}
-                    <MessageList
-                      messages={messages.filter(m => m.productIndex === idx)}
-                      currentUserId={currentUserId || undefined}
-                      canDelete={canModerate}
-                      onDeleteMessage={deleteMessage}
-                      onEditMessage={editMessage}
-                      revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
-                      phaseVisibility={phaseVisibility}
-                      summaryId={summaryId}
-                    />
+                  <div className={`flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar ${!isActive ? 'pointer-events-none' : ''}`}>
+                    <div className="max-w-3xl mx-auto space-y-6">
+                      {isActive && (
+                        <div className="text-center">
+                          <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
+                            Session started {session ? new Date(session.startedAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : ''}
+                          </span>
+                        </div>
+                      )}
+                      <MessageList
+                        messages={messages.filter(m => m.productIndex === idx)}
+                        currentUserId={currentUserId || undefined}
+                        canDelete={canModerate}
+                        onDeleteMessage={deleteMessage}
+                        onEditMessage={editMessage}
+                        revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
+                        phaseVisibility={phaseVisibility}
+                        summaryId={summaryId}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={`p-4 md:p-6 bg-[var(--bg-main)] border-t border-[var(--border-primary)] ${!isActive ? 'pointer-events-none opacity-50' : ''}`}>
+                    <div className="max-w-3xl mx-auto">
+                      {isSessionEnded ? (
+                        <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
+                          This session has ended. Chat is disabled.
+                        </div>
+                      ) : isMuted ? (
+                        <div className="text-center py-3 text-sm text-yellow-500 bg-yellow-500/5 rounded-lg border border-yellow-500/20 flex items-center justify-center gap-2">
+                          <AlertCircle size={16} />
+                          You have been muted in this session.
+                        </div>
+                      ) : (
+                        <>
+                          {isActive && error && error.includes('Rate limit') && (
+                            <div className="mb-2 text-center py-2 text-xs text-orange-500 bg-orange-500/10 rounded-lg border border-orange-500/20 flex items-center justify-center gap-2">
+                              <AlertCircle size={14} />
+                              {error}
+                            </div>
+                          )}
+                          <MessageInput
+                            onSend={(content, phase) => sendMessage(content, phase, idx)}
+                            disabled={!isConnected || !isActive || (error?.includes('Rate limit') ?? false)}
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <div className={`p-4 md:p-6 bg-[var(--bg-main)] border-t border-[var(--border-primary)] ${!isActive ? 'pointer-events-none opacity-50' : ''}`}>
-                  <div className="max-w-3xl mx-auto">
-                    {isSessionEnded ? (
-                      <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
-                        This session has ended. Chat is disabled.
-                      </div>
-                    ) : isMuted ? (
-                      <div className="text-center py-3 text-sm text-yellow-500 bg-yellow-500/5 rounded-lg border border-yellow-500/20 flex items-center justify-center gap-2">
-                        <AlertCircle size={16} />
-                        You have been muted in this session.
-                      </div>
-                    ) : (
-                      <>
-                        {isActive && error && error.includes('Rate limit') && (
-                          <div className="mb-2 text-center py-2 text-xs text-orange-500 bg-orange-500/10 rounded-lg border border-orange-500/20 flex items-center justify-center gap-2">
-                            <AlertCircle size={14} />
-                            {error}
-                          </div>
-                        )}
-                        <MessageInput
-                          onSend={(content, phase) => sendMessage(content, phase, idx)}
-                          disabled={!isConnected || !isActive || (error?.includes('Rate limit') ?? false)}
-                        />
-                      </>
-                    )}
-                  </div>
+              );
+            })}
+          </div>
+        ) : (
+          // Single-product: Normal full-width chat layout
+          <>
+            <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar">
+              <div className="max-w-3xl mx-auto space-y-6">
+                <div className="text-center">
+                  <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
+                    Session started {session ? new Date(session.startedAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : ''}
+                  </span>
                 </div>
+                <MessageList
+                  messages={messages.filter(m => m.productIndex === 0 || m.productIndex === undefined || m.productIndex === null)}
+                  currentUserId={currentUserId || undefined}
+                  canDelete={canModerate}
+                  onDeleteMessage={deleteMessage}
+                  onEditMessage={editMessage}
+                  revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
+                  phaseVisibility={phaseVisibility}
+                  summaryId={summaryId}
+                />
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            <div className="p-4 md:p-6 bg-[var(--bg-main)] border-t border-[var(--border-primary)]">
+              <div className="max-w-3xl mx-auto">
+                {isSessionEnded ? (
+                  <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
+                    This session has ended. Chat is disabled.
+                  </div>
+                ) : isMuted ? (
+                  <div className="text-center py-3 text-sm text-yellow-500 bg-yellow-500/5 rounded-lg border border-yellow-500/20 flex items-center justify-center gap-2">
+                    <AlertCircle size={16} />
+                    You have been muted in this session.
+                  </div>
+                ) : (
+                  <>
+                    {error && error.includes('Rate limit') && (
+                      <div className="mb-2 text-center py-2 text-xs text-orange-500 bg-orange-500/10 rounded-lg border border-orange-500/20 flex items-center justify-center gap-2">
+                        <AlertCircle size={14} />
+                        {error}
+                      </div>
+                    )}
+                    <MessageInput
+                      onSend={(content, phase) => sendMessage(content, phase, 0)}
+                      disabled={!isConnected || (error?.includes('Rate limit') ?? false)}
+                    />
+                  </>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {session?.products && session.products.length > 1 && isMobile && (
           <div className="grid grid-cols-3 gap-2 px-4 py-2 bg-[var(--bg-sidebar)] border-t border-[var(--border-primary)]">
@@ -534,6 +594,7 @@ export function ChatRoom() {
             ))}
           </div>
         )}
+
       </div>
 
       <aside className={`sidebar md:relative md:translate-x-0 right-0 md:left-auto ${activeSidebar === 'summary' ? 'open' : ''} w-[320px] md:w-[380px] bg-[var(--bg-main)] overflow-y-auto p-6 space-y-6 border-l border-[var(--border-primary)]`}>
