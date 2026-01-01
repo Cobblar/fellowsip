@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, Star } from 'lucide-react';
+import { AlertCircle, Star, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { getProductIcon } from '../utils/productIcons';
 import { useSession, useEndSession, useTransferHost } from '../api/sessions';
 import { useSessionJoinRequests, useApproveJoinRequest, useRejectJoinRequest } from '../api/friends';
@@ -153,7 +153,9 @@ export function ChatRoom() {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [showStreamInput, setShowStreamInput] = useState(false);
   const [streamInputValue, setStreamInputValue] = useState('');
-  const [activeSidebar, setActiveSidebar] = useState<'tasters' | 'summary' | null>(currentUserId ? null : 'summary');
+  const [activeSidebar, setActiveSidebar] = useState<'tasters' | 'summary' | null>(
+    (window.innerWidth < 768) ? null : (currentUserId ? null : 'summary')
+  );
   const [isTastersMenuOpen, setIsTastersMenuOpen] = useState(false);
   const [showManageBans, setShowManageBans] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
@@ -164,6 +166,9 @@ export function ChatRoom() {
   const [expandedActionUserId, setExpandedActionUserId] = useState<string | null>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const tastersMenuRef = useRef<HTMLDivElement>(null);
+
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
 
   const [sidebarWidth, setSidebarWidth] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
@@ -302,55 +307,69 @@ export function ChatRoom() {
       />
 
       <aside
-        className={`sidebar ${activeSidebar === 'tasters' ? 'open' : ''} bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-hidden transition-all duration-300`}
-        style={{ width: livestreamUrl ? `${sidebarWidth}px` : '240px' }}
+        className={`sidebar ${activeSidebar === 'tasters' ? 'open' : ''} bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-visible transition-all duration-300 relative group/sidebar`}
+        style={{ width: leftSidebarCollapsed ? '48px' : (livestreamUrl ? `${sidebarWidth}px` : '240px') }}
       >
-        {livestreamUrl && !isMobile && (
-          <div className="hidden md:block p-4 border-b border-[var(--border-primary)]">
-            <LivestreamEmbed url={livestreamUrl} />
-          </div>
-        )}
+        <button
+          onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+          className={`hidden md:flex absolute top-20 -right-3 z-50 p-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-orange-500 transition-all shadow-md ${leftSidebarCollapsed ? '' : 'opacity-0 group-hover/sidebar:opacity-100'}`}
+          title={leftSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {leftSidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        </button>
 
-        <ParticipantList
-          activeUsers={activeUsers}
-          moderators={moderators}
-          effectiveHostId={effectiveHostId}
-          currentUserId={currentUserId}
-          isHost={isHost}
-          canModerate={canModerate}
-          readyCheckActive={readyCheckActive}
-          readyUsers={readyUsers}
-          onStartReadyCheck={startReadyCheck}
-          onEndReadyCheck={endReadyCheck}
-          onMarkReady={markReady}
-          onMarkUnready={markUnready}
-          onGetBannedUsers={getBannedUsers}
-          onShowManageBans={setShowManageBans}
-          onMakeModerator={makeModerator}
-          onUnmodUser={unmodUser}
-          onTransferHost={handleTransferHost}
-          onMuteUser={(userId, displayName) => setConfirmAction({ type: 'mute', userId, displayName })}
-          onKickUser={(userId, displayName) => setConfirmAction({ type: 'kick', userId, displayName })}
-          mutedUsers={mutedUsers}
-          unmuteUser={unmuteUser}
-          isTastersMenuOpen={isTastersMenuOpen}
-          setIsTastersMenuOpen={setIsTastersMenuOpen}
-          tastersMenuRef={tastersMenuRef}
-          expandedActionUserId={expandedActionUserId}
-          setExpandedActionUserId={setExpandedActionUserId}
-          isTransferring={isTransferring}
-          onCloseSidebar={() => setActiveSidebar(null)}
-          activeProductIndex={activeProductIndex}
-        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {(isMobile || !leftSidebarCollapsed) && (
+            <>
+              {livestreamUrl && !isMobile && (
+                <div className="hidden md:block p-4 border-b border-[var(--border-primary)]">
+                  <LivestreamEmbed url={livestreamUrl} />
+                </div>
+              )}
 
-        <JoinRequestsPanel
-          joinRequests={joinRequests}
-          onApproveJoinRequest={(requestId) => approveJoinRequest.mutate({ requestId, sessionId: id! })}
-          onRejectJoinRequest={(requestId) => rejectJoinRequest.mutate({ requestId, sessionId: id! })}
-        />
+              <ParticipantList
+                activeUsers={activeUsers}
+                moderators={moderators}
+                effectiveHostId={effectiveHostId}
+                currentUserId={currentUserId}
+                isHost={isHost}
+                canModerate={canModerate}
+                readyCheckActive={readyCheckActive}
+                readyUsers={readyUsers}
+                onStartReadyCheck={startReadyCheck}
+                onEndReadyCheck={endReadyCheck}
+                onMarkReady={markReady}
+                onMarkUnready={markUnready}
+                onGetBannedUsers={getBannedUsers}
+                onShowManageBans={setShowManageBans}
+                onMakeModerator={makeModerator}
+                onUnmodUser={unmodUser}
+                onTransferHost={handleTransferHost}
+                onMuteUser={(userId, displayName) => setConfirmAction({ type: 'mute', userId, displayName })}
+                onKickUser={(userId, displayName) => setConfirmAction({ type: 'kick', userId, displayName })}
+                mutedUsers={mutedUsers}
+                unmuteUser={unmuteUser}
+                isTastersMenuOpen={isTastersMenuOpen}
+                setIsTastersMenuOpen={setIsTastersMenuOpen}
+                tastersMenuRef={tastersMenuRef}
+                expandedActionUserId={expandedActionUserId}
+                setExpandedActionUserId={setExpandedActionUserId}
+                isTransferring={isTransferring}
+                onCloseSidebar={() => setActiveSidebar(null)}
+                activeProductIndex={activeProductIndex}
+              />
+
+              <JoinRequestsPanel
+                joinRequests={joinRequests}
+                onApproveJoinRequest={(requestId) => approveJoinRequest.mutate({ requestId, sessionId: id! })}
+                onRejectJoinRequest={(requestId) => rejectJoinRequest.mutate({ requestId, sessionId: id! })}
+              />
+            </>
+          )}
+        </div>
       </aside>
 
-      {livestreamUrl && !isSessionEnded && (
+      {livestreamUrl && !isSessionEnded && !leftSidebarCollapsed && (
         <div
           className={`hidden md:flex w-1 hover:w-1.5 bg-transparent hover:bg-orange-500/50 cursor-col-resize transition-all z-10 items-center justify-center group ${isResizing ? 'bg-orange-500/50 w-1.5' : ''}`}
           onMouseDown={startResizing}
@@ -490,7 +509,7 @@ export function ChatRoom() {
                     </div>
                   </div>
 
-                  <div className={`p-4 md:p-6 bg-[var(--bg-main)] border-t border-[var(--border-primary)] ${!isActive ? 'pointer-events-none opacity-50' : ''}`}>
+                  <div className={`p-3 md:px-6 md:pt-4 md:pb-2 bg-[var(--bg-main)] border-t border-[var(--border-primary)] ${!isActive ? 'pointer-events-none opacity-50' : ''}`}>
                     <div className="max-w-3xl mx-auto">
                       {isSessionEnded ? (
                         <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
@@ -547,7 +566,7 @@ export function ChatRoom() {
               </div>
             </div>
 
-            <div className="p-4 md:p-6 bg-[var(--bg-main)] border-t border-[var(--border-primary)]">
+            <div className="p-3 md:px-6 md:pt-4 md:pb-2 bg-[var(--bg-main)] border-t border-[var(--border-primary)]">
               <div className="max-w-3xl mx-auto">
                 {isSessionEnded ? (
                   <div className="text-center py-3 text-sm text-[var(--text-secondary)] bg-[var(--bg-main)]/30 rounded-lg border border-[var(--border-primary)]">
@@ -599,30 +618,43 @@ export function ChatRoom() {
 
       </div>
 
-      <aside className={`sidebar md:relative md:translate-x-0 right-0 md:left-auto ${activeSidebar === 'summary' ? 'open' : ''} w-[320px] md:w-[380px] bg-[var(--bg-main)] overflow-y-auto p-6 space-y-6 border-l border-[var(--border-primary)]`}>
-        <SummaryPanel
-          wordFrequencies={wordFrequencies}
-          currentUserId={currentUserId}
-          activeUsers={activeUsers}
-          updateRating={updateRating}
-          updateValueGrade={updateValueGrade}
-          onCloseSidebar={() => setActiveSidebar(null)}
-          products={session?.products}
-          activeProductIndex={activeProductIndex}
-          averageRatings={averageRatings}
-          valueGradeDistributions={valueGradeDistributions}
-        />
+      <aside
+        className={`sidebar md:relative md:translate-x-0 right-0 md:left-auto ${activeSidebar === 'summary' ? 'open' : ''} bg-[var(--bg-main)] border-l border-[var(--border-primary)] transition-all duration-300 group/right-sidebar relative overflow-visible`}
+        style={{ width: isMobile ? '320px' : (rightSidebarCollapsed ? '48px' : '380px') }}
+      >
+        <button
+          onClick={() => setRightSidebarCollapsed(!rightSidebarCollapsed)}
+          className={`hidden md:flex absolute top-20 -left-3 z-50 p-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-orange-500 transition-all shadow-md ${rightSidebarCollapsed ? '' : 'opacity-0 group-hover/right-sidebar:opacity-100'}`}
+          title={rightSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {rightSidebarCollapsed ? <PanelRightOpen size={14} /> : <PanelRightClose size={14} />}
+        </button>
 
-        <SpoilerControlsPanel
-          phaseVisibility={phaseVisibility}
-          setPhaseVisibility={setPhaseVisibility}
-          setAllPhaseVisibility={setAllPhaseVisibility}
-          customTags={customTags}
-          showSpoilerDefaults={showSpoilerDefaults}
-          setShowSpoilerDefaults={setShowSpoilerDefaults}
-          spoilerDefaults={spoilerDefaults}
-          setSpoilerDefault={setSpoilerDefault}
-        />
+        <div className={`h-full overflow-y-auto p-6 space-y-6 ${(!isMobile && rightSidebarCollapsed) ? 'hidden' : 'block'}`}>
+          <SummaryPanel
+            wordFrequencies={wordFrequencies}
+            currentUserId={currentUserId}
+            activeUsers={activeUsers}
+            updateRating={updateRating}
+            updateValueGrade={updateValueGrade}
+            onCloseSidebar={() => setActiveSidebar(null)}
+            products={session?.products}
+            activeProductIndex={activeProductIndex}
+            averageRatings={averageRatings}
+            valueGradeDistributions={valueGradeDistributions}
+          />
+
+          <SpoilerControlsPanel
+            phaseVisibility={phaseVisibility}
+            setPhaseVisibility={setPhaseVisibility}
+            setAllPhaseVisibility={setAllPhaseVisibility}
+            customTags={customTags}
+            showSpoilerDefaults={showSpoilerDefaults}
+            setShowSpoilerDefaults={setShowSpoilerDefaults}
+            spoilerDefaults={spoilerDefaults}
+            setSpoilerDefault={setSpoilerDefault}
+          />
+        </div>
       </aside>
 
       <PostSessionModal

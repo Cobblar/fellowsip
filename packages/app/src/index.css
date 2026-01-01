@@ -103,7 +103,7 @@ body {
     /* Use dynamic viewport height for mobile browsers */
   }
 
-  .app-container main {
+  .app-container main.has-bottom-nav {
     padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   }
 }

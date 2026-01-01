@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthGuard } from './components/AuthGuard';
 import { TopHeader } from './components/TopHeader';
@@ -33,6 +33,9 @@ const queryClient = new QueryClient({
 function AppContent() {
   // Listen for global socket events (notifications, join requests)
   useSocketEvents();
+
+  const location = useLocation();
+  const showBottomNav = !(location.pathname.startsWith('/session/') && !location.pathname.endsWith('/summary'));
 
   return (
     <Routes>
@@ -71,7 +74,7 @@ function AppContent() {
               <div className="app-container">
                 <TopHeader />
                 <MobileBottomNav />
-                <main className="flex-1 overflow-y-auto">
+                <main className={`flex-1 overflow-y-auto ${showBottomNav ? 'has-bottom-nav' : ''}`}>
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/tasting-notes" element={<Dashboard />} />

@@ -19,7 +19,7 @@ export function ValueGradeSelector({ value, onChange, disabled = false, size = '
         : 'w-8 h-8 text-sm';
 
     return (
-        <div className="flex gap-1">
+        <div className="flex justify-between w-full">
             {grades.map((grade) => {
                 const isSelected = value === grade;
                 const isHovered = hoveredGrade === grade;
