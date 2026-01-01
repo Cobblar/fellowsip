@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, Clock, ChevronRight, ChevronDown, PlayCircle, Plus, Users, UserPlus, LogIn, Archive, MessageSquare, FileText } from 'lucide-react';
+import { Search, Calendar, Clock, ChevronRight, ChevronDown, PlayCircle, Plus, Users, UserPlus, LogIn, Archive, FileText } from 'lucide-react';
 import { useAllSummaries, useUserSessions, useArchiveSession } from '../api/sessions';
 import { useFriendsSessions, useRequestToJoin, useMyJoinRequests } from '../api/friends';
 import { getProductIcon } from '../utils/productIcons';
@@ -264,9 +264,9 @@ export function Summaries() {
                                 const productEmoji = getProductIcon(item.productType);
                                 return (
                                     <div
-                                        key={item.session?.id}
+                                        key={item.session.id}
                                         onClick={() => navigate(`/session/${item.session?.id}`)}
-                                        className="card hover:border-gray-600 transition-all cursor-pointer group"
+                                        className="card hover:border-gray-600 transition-all cursor-pointer group flex flex-col h-full"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex items-center gap-3">
@@ -282,21 +282,13 @@ export function Summaries() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            {(item.summary?.metadata?.rating || item.summary?.averageRating) && (
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-lg font-bold text-orange-500">
-                                                        {item.summary?.metadata?.rating || item.summary?.averageRating}
-                                                    </span>
-                                                    <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">Score</span>
-                                                </div>
-                                            )}
                                         </div>
 
                                         <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mb-6 leading-relaxed">
                                             {item.summary?.observations || "No summary observations recorded for this session."}
                                         </p>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-[var(--border-primary)]">
+                                        <div className="flex items-center justify-between pt-4 border-t border-[var(--border-primary)] mt-auto">
                                             <div className="flex items-center gap-4 text-[10px] text-[var(--text-muted)]">
                                                 <div className="flex items-center gap-1">
                                                     <Calendar size={12} />
@@ -314,17 +306,6 @@ export function Summaries() {
                                                 >
                                                     <Archive size={12} />
                                                     Archive
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigate(`/session/${item.session.id}`);
-                                                    }}
-                                                    className="text-[10px] text-blue-500 font-bold hover:underline flex items-center gap-1"
-                                                    title="View session log"
-                                                >
-                                                    <MessageSquare size={12} />
-                                                    Log
                                                 </button>
                                                 {item.summary && (
                                                     <button

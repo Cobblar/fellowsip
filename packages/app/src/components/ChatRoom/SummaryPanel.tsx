@@ -1,15 +1,20 @@
 import React from 'react';
-import { BarChart3, Tag, Star, X } from 'lucide-react';
+import { BarChart3, Tag, Star, X, Award } from 'lucide-react';
+import { ValueGradeSelector, ValueGradeDistribution } from '../ValueGradeSelector';
+
+type ValueGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 
 interface SummaryPanelProps {
     wordFrequencies: { word: string; count: number }[];
     currentUserId: string | null;
     activeUsers: any[];
     updateRating: (rating: number, productIndex?: number) => void;
+    updateValueGrade?: (valueGrade: ValueGrade, productIndex?: number) => void;
     onCloseSidebar: () => void;
     products?: any[];
     activeProductIndex?: number;
     averageRatings?: Record<number, number | null>;
+    valueGradeDistributions?: Record<number, Record<ValueGrade, number>>;
 }
 
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({
@@ -17,14 +22,18 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
     currentUserId,
     activeUsers,
     updateRating,
+    updateValueGrade,
     onCloseSidebar,
     products = [],
     activeProductIndex = 0,
     averageRatings = {},
+    valueGradeDistributions = {},
 }) => {
     const currentUser = activeUsers.find(u => u.userId === currentUserId);
     const userRating = currentUser?.ratings?.[activeProductIndex] ?? currentUser?.rating ?? '';
+    const userGrade = currentUser?.valueGrades?.[activeProductIndex] as ValueGrade | undefined;
     const avgRating = averageRatings[activeProductIndex] ?? null;
+    const gradeDistribution = valueGradeDistributions[activeProductIndex] ?? { A: 0, B: 0, C: 0, D: 0, F: 0 };
     const activeProduct = products[activeProductIndex];
 
     return (
@@ -117,6 +126,36 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                     </div>
                 </div>
             </div>
+
+            {updateValueGrade && (
+                <div className="card p-5 bg-blue-500/5 border-blue-500/20">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Award size={16} className="text-blue-500" />
+                            <div className="flex flex-col">
+                                <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                                    {activeProduct?.productName ? `${activeProduct.productName} Value` : 'Value Grade'}
+                                </h3>
+                                <span className="text-[10px] text-[var(--text-muted)]">
+                                    Rate the value for price
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <ValueGradeSelector
+                            value={userGrade}
+                            onChange={(grade) => updateValueGrade(grade, activeProductIndex)}
+                        />
+                    </div>
+                    {Object.values(gradeDistribution).some(v => v > 0) && (
+                        <div className="mt-4 pt-4 border-t border-[var(--border-primary)]">
+                            <span className="text-[10px] text-[var(--text-muted)] block mb-2">Group Distribution</span>
+                            <ValueGradeDistribution distribution={gradeDistribution} />
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

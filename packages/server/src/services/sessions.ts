@@ -20,6 +20,7 @@ export async function getUserSessions(userId: string) {
       sharePersonalSummary: sessionParticipants.sharePersonalSummary,
       shareGroupSummary: sessionParticipants.shareGroupSummary,
       shareSessionLog: sessionParticipants.shareSessionLog,
+      isArchived: sessionParticipants.isArchived,
     })
     .from(tastingSessions)
     .leftJoin(users, eq(tastingSessions.hostId, users.id))
@@ -30,7 +31,11 @@ export async function getUserSessions(userId: string) {
     ))
     .where(
       and(
-        ne(tastingSessions.status, 'archived'),
+        // Filter out sessions where user has archived them
+        or(
+          eq(sessionParticipants.isArchived, false),
+          sql`${sessionParticipants.isArchived} IS NULL`
+        ),
         or(
           eq(tastingSessions.hostId, userId),
           exists(
@@ -259,49 +264,64 @@ export async function transferHost(sessionId: string, currentHostId: string, new
 }
 
 export async function archiveSession(sessionId: string, userId: string) {
-  const { getSession } = await import('./sessionBase.js');
-  const session = await getSession(sessionId);
-
-  if (!session || session.session.hostId !== userId) {
-    throw new Error('Unauthorized: Only the host can archive this session');
-  }
-
-  if (session.session.status === 'active') {
-    throw new Error('Cannot archive an active session. End it first.');
-  }
-
+  // Update the participant's isArchived flag (per-user archive)
   const [updated] = await db
-    .update(tastingSessions)
+    .update(sessionParticipants)
     .set({
-      status: 'archived',
-      updatedAt: sql`now()`,
+      isArchived: true,
     })
-    .where(eq(tastingSessions.id, sessionId))
+    .where(and(
+      eq(sessionParticipants.sessionId, sessionId),
+      eq(sessionParticipants.userId, userId)
+    ))
     .returning();
+
+  if (!updated) {
+    // User might be the host but not a participant - add them as participant first
+    const session = await db.query.tastingSessions.findFirst({
+      where: eq(tastingSessions.id, sessionId),
+    });
+
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    // Insert a new participant record with isArchived=true
+    const [inserted] = await db
+      .insert(sessionParticipants)
+      .values({
+        sessionId,
+        userId,
+        isArchived: true,
+      })
+      .onConflictDoUpdate({
+        target: [sessionParticipants.sessionId, sessionParticipants.userId],
+        set: { isArchived: true },
+      })
+      .returning();
+
+    return inserted;
+  }
 
   return updated;
 }
 
 export async function unarchiveSession(sessionId: string, userId: string) {
-  const { getSession } = await import('./sessionBase.js');
-  const session = await getSession(sessionId);
-
-  if (!session || session.session.hostId !== userId) {
-    throw new Error('Unauthorized: Only the host can unarchive this session');
-  }
-
-  if (session.session.status !== 'archived') {
-    throw new Error('Session is not archived');
-  }
-
+  // Update the participant's isArchived flag (per-user unarchive)
   const [updated] = await db
-    .update(tastingSessions)
+    .update(sessionParticipants)
     .set({
-      status: 'ended',
-      updatedAt: sql`now()`,
+      isArchived: false,
     })
-    .where(eq(tastingSessions.id, sessionId))
+    .where(and(
+      eq(sessionParticipants.sessionId, sessionId),
+      eq(sessionParticipants.userId, userId)
+    ))
     .returning();
+
+  if (!updated) {
+    throw new Error('Session not found in your archive');
+  }
 
   return updated;
 }
@@ -315,32 +335,13 @@ export async function getArchivedSessions(userId: string) {
       userRating: sessionParticipants.rating,
     })
     .from(tastingSessions)
+    .innerJoin(sessionParticipants, and(
+      eq(tastingSessions.id, sessionParticipants.sessionId),
+      eq(sessionParticipants.userId, userId),
+      eq(sessionParticipants.isArchived, true)
+    ))
     .leftJoin(users, eq(tastingSessions.hostId, users.id))
     .leftJoin(tastingSummaries, eq(tastingSessions.id, tastingSummaries.sessionId))
-    .leftJoin(sessionParticipants, and(
-      eq(tastingSessions.id, sessionParticipants.sessionId),
-      eq(sessionParticipants.userId, userId)
-    ))
-    .where(
-      and(
-        eq(tastingSessions.status, 'archived'),
-        or(
-          eq(tastingSessions.hostId, userId),
-          exists(
-            db
-              .select()
-              .from(sessionParticipants)
-              .where(
-                and(
-                  eq(sessionParticipants.sessionId, tastingSessions.id),
-                  eq(sessionParticipants.userId, userId),
-                  eq(sessionParticipants.isBanned, false)
-                )
-              )
-          )
-        )
-      )
-    )
     .orderBy(desc(tastingSessions.createdAt));
 
   return sessions;

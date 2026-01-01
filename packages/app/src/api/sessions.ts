@@ -139,7 +139,12 @@ export function useArchiveSession() {
   return useMutation({
     mutationFn: (sessionId: string) =>
       api.post<{ session: Session }>(`/sessions/${sessionId}/archive`, {}),
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Cancel any in-flight queries first to prevent race conditions
+      // that can cause stale data to mix with fresh data, creating visual duplicates
+      await queryClient.cancelQueries({ queryKey: sessionKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: [...sessionKeys.all, 'summaries'] });
+      // Then invalidate to trigger fresh fetches
       queryClient.invalidateQueries({ queryKey: sessionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: [...sessionKeys.all, 'summaries'] });
       queryClient.invalidateQueries({ queryKey: [...sessionKeys.all, 'archived'] });

@@ -94,6 +94,100 @@ export async function getUserProductRatings(sessionId: string, userId: string): 
     return ratings;
 }
 
+// Value Grade functions
+export type ValueGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+export type ValueGradeDistribution = Record<ValueGrade, number>;
+
+export async function updateParticipantValueGrade(sessionId: string, userId: string, valueGrade: ValueGrade, productIndex: number = 0) {
+    await db
+        .insert(productRatings)
+        .values({
+            sessionId,
+            userId,
+            productIndex,
+            valueGrade,
+        })
+        .onConflictDoUpdate({
+            target: [productRatings.sessionId, productRatings.userId, productRatings.productIndex],
+            set: { valueGrade, updatedAt: sql`now()` },
+        });
+}
+
+export async function getValueGradeDistribution(sessionId: string, productIndex: number = 0): Promise<ValueGradeDistribution> {
+    const results = await db
+        .select({
+            valueGrade: productRatings.valueGrade,
+            count: sql<number>`count(*)`,
+        })
+        .from(productRatings)
+        .where(
+            and(
+                eq(productRatings.sessionId, sessionId),
+                eq(productRatings.productIndex, productIndex),
+                sql`${productRatings.valueGrade} IS NOT NULL`
+            )
+        )
+        .groupBy(productRatings.valueGrade);
+
+    const distribution: ValueGradeDistribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    results.forEach(r => {
+        if (r.valueGrade && ['A', 'B', 'C', 'D', 'F'].includes(r.valueGrade)) {
+            distribution[r.valueGrade as ValueGrade] = Number(r.count);
+        }
+    });
+    return distribution;
+}
+
+export async function getValueGradeDistributions(sessionId: string): Promise<Record<number, ValueGradeDistribution>> {
+    const results = await db
+        .select({
+            productIndex: productRatings.productIndex,
+            valueGrade: productRatings.valueGrade,
+            count: sql<number>`count(*)`,
+        })
+        .from(productRatings)
+        .where(
+            and(
+                eq(productRatings.sessionId, sessionId),
+                sql`${productRatings.valueGrade} IS NOT NULL`
+            )
+        )
+        .groupBy(productRatings.productIndex, productRatings.valueGrade);
+
+    const distributions: Record<number, ValueGradeDistribution> = {};
+    results.forEach(r => {
+        if (!distributions[r.productIndex]) {
+            distributions[r.productIndex] = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+        }
+        if (r.valueGrade && ['A', 'B', 'C', 'D', 'F'].includes(r.valueGrade)) {
+            distributions[r.productIndex][r.valueGrade as ValueGrade] = Number(r.count);
+        }
+    });
+    return distributions;
+}
+
+export async function getUserProductValueGrades(sessionId: string, userId: string): Promise<Record<number, ValueGrade | null>> {
+    const results = await db
+        .select({
+            productIndex: productRatings.productIndex,
+            valueGrade: productRatings.valueGrade,
+        })
+        .from(productRatings)
+        .where(
+            and(
+                eq(productRatings.sessionId, sessionId),
+                eq(productRatings.userId, userId)
+            )
+        );
+
+    const grades: Record<number, ValueGrade | null> = {};
+    results.forEach(r => {
+        grades[r.productIndex] = r.valueGrade as ValueGrade | null;
+    });
+    return grades;
+}
+
+
 export async function banParticipant(sessionId: string, userId: string) {
     await db
         .update(sessionParticipants)

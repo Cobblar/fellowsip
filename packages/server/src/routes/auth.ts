@@ -328,6 +328,8 @@ export async function authRoutes(fastify: FastifyInstance) {
             isHighlighted: s.isHighlighted,
           },
           host: s.host,
+          valueGrade: s.valueGrade,
+          rating: s.rating,
         })),
 
       });

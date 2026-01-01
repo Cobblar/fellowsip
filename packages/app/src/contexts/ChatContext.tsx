@@ -31,8 +31,10 @@ interface ChatContextType {
     revealedMessageIds: Set<string>;
     globallyRevealedMessageIds: Set<string>;
     updateRating: (rating: number, productIndex?: number) => void;
+    updateValueGrade: (valueGrade: 'A' | 'B' | 'C' | 'D' | 'F', productIndex?: number) => void;
     averageRating: number | null;
     averageRatings: Record<number, number | null>;
+    valueGradeDistributions: Record<number, Record<'A' | 'B' | 'C' | 'D' | 'F', number>>;
     phaseVisibility: Record<string, 'normal' | 'hidden' | 'revealed'>;
     setPhaseVisibility: (phase: string, visibility: 'normal' | 'hidden' | 'revealed') => void;
     setAllPhaseVisibility: (visibility: 'normal' | 'hidden' | 'revealed') => void;
@@ -115,6 +117,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAnalyzing,
         summaryId,
         updateRating,
+        updateValueGrade,
         setHostId,
         setLivestreamUrl,
         setCustomTags,
@@ -127,6 +130,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setModerators,
         setAverageRating,
         averageRatings,
+        valueGradeDistributions,
     } = useChatSessionLogic(socket, sessionId, setMessages);
 
     const {
@@ -258,8 +262,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             revealedMessageIds,
             globallyRevealedMessageIds,
             updateRating,
+            updateValueGrade,
             averageRating,
             averageRatings,
+            valueGradeDistributions,
             phaseVisibility,
             setPhaseVisibility,
             setAllPhaseVisibility,

@@ -4,7 +4,8 @@ import { users as usersTable } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { createMessage, getSessionMessages, getMessage, updateMessage } from '../services/messages.js';
 import { updateSessionActivity, updateParticipantRating, getAverageRating, getAverageRatings } from '../services/sessions.js';
-import { isUserMuted, updateUserRating } from '../services/activeUsers.js';
+import { updateParticipantValueGrade, getValueGradeDistribution, getValueGradeDistributions, type ValueGrade } from '../services/participants.js';
+import { isUserMuted, updateUserRating, updateUserValueGrade } from '../services/activeUsers.js';
 import { checkRateLimit } from './socketRateLimiting.js';
 import type {
     SendMessagePayload,
@@ -156,6 +157,27 @@ export function setupMessageHandlers(io: Server, socket: Socket, userId: string,
             io.to(sessionId).emit('rating_updated', event);
         } catch (err) {
             console.error('Failed to update rating:', err);
+        }
+    });
+
+    socket.on('update_value_grade', async (payload: { sessionId: string; valueGrade: ValueGrade; productIndex?: number }) => {
+        const { sessionId, valueGrade, productIndex = 0 } = payload;
+        try {
+            await updateParticipantValueGrade(sessionId, userId, valueGrade, productIndex);
+            updateUserValueGrade(sessionId, userId, valueGrade, productIndex);
+
+            const distribution = await getValueGradeDistribution(sessionId, productIndex);
+            const distributions = await getValueGradeDistributions(sessionId);
+
+            io.to(sessionId).emit('value_grade_updated', {
+                userId,
+                valueGrade,
+                productIndex,
+                distribution,
+                distributions,
+            });
+        } catch (err) {
+            console.error('Failed to update value grade:', err);
         }
     });
 

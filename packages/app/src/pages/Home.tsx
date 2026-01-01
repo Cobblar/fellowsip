@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { Users } from 'lucide-react';
-import { useFriends, useFriendsSessions, useMyJoinRequests, useRequestToJoin, useSendFriendRequest, usePendingRequests, useAcceptFriendRequest, useRejectFriendRequest } from '../api/friends';
 import { useAllSummaries, useUserSessions } from '../api/sessions';
 import { useState, useEffect } from 'react';
 import { useCurrentUser } from '../api/auth';
 import { OnboardingModal } from '../components/OnboardingModal';
+import { useRequestToJoin } from '../api/friends';
+import { useFriendsLogic } from '../hooks/useFriendsLogic';
 
 // Sub-components
 import { FriendsSidebar } from '../components/Home/FriendsSidebar';
@@ -23,44 +23,24 @@ export function Home() {
         }
     }, [currentUserData]);
 
-    const { data: friendsData, isLoading: friendsLoading } = useFriends();
-    const { data: friendsSessionsData } = useFriendsSessions();
-    const { data: myJoinRequestsData } = useMyJoinRequests();
     const { data: summariesData } = useAllSummaries();
     const { data: sessionsData } = useUserSessions();
     const requestToJoin = useRequestToJoin();
 
+    const friendsLogic = useFriendsLogic();
+
     const [requestedSessions, setRequestedSessions] = useState<Set<string>>(new Set());
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [joinSessionId, setJoinSessionId] = useState('');
     const [showJoinInput, setShowJoinInput] = useState(false);
-    const [isAddingFriend, setIsAddingFriend] = useState(false);
-    const [friendEmail, setFriendEmail] = useState('');
-    const [showPendingRequests, setShowPendingRequests] = useState(false);
-    const sendFriendRequest = useSendFriendRequest();
-    const { data: pendingData } = usePendingRequests();
-    const acceptRequest = useAcceptFriendRequest();
-    const rejectRequest = useRejectFriendRequest();
-    const pendingRequests = pendingData?.requests || [];
 
-    const friends = friendsData?.friends || [];
-    const friendsSessions = friendsSessionsData?.sessions || [];
-    const myJoinRequests = myJoinRequestsData?.requests || [];
     const summaries = summariesData?.summaries || [];
     const allSessions = sessionsData?.sessions || [];
 
     const activeSessions = allSessions.filter(s => s.status === 'active');
 
-    // Get IDs of friends who are currently in an active session (hosting)
-    const activeFriendIds = new Set(friendsSessions.map(s => s.host?.id).filter(Boolean));
-
-    // Split friends into active and inactive
-    const activeFriends = friends.filter(f => activeFriendIds.has(f.friend.id));
-    const inactiveFriends = friends.filter(f => !activeFriendIds.has(f.friend.id));
-
     // Helper to get join request status for a session
     const getJoinStatus = (sessionId: string): 'none' | 'pending' | 'approved' | 'rejected' => {
-        const request = myJoinRequests.find(r => r.sessionId === sessionId);
+        const request = friendsLogic.myJoinRequests.find(r => r.sessionId === sessionId);
         if (request) return request.status;
         if (requestedSessions.has(sessionId)) return 'pending';
         return 'none';
@@ -81,44 +61,31 @@ export function Home() {
         }
     };
 
-    const handleFriendClick = (friendId: string) => {
-        navigate(`/profile/${friendId}/public`);
-        setIsSidebarOpen(false);
-    };
-
     return (
         <div className="h-full flex overflow-hidden relative">
-            {/* Mobile Sidebar Toggle */}
-            <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-orange-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-orange-600 transition-colors md:hidden"
-            >
-                <Users size={24} />
-            </button>
-
             <FriendsSidebar
-                isSidebarOpen={isSidebarOpen}
-                setIsSidebarOpen={setIsSidebarOpen}
-                friends={friends}
-                friendsLoading={friendsLoading}
-                isAddingFriend={isAddingFriend}
-                setIsAddingFriend={setIsAddingFriend}
-                friendEmail={friendEmail}
-                setFriendEmail={setFriendEmail}
-                onSendFriendRequest={(email) => sendFriendRequest.mutate(email, { onSuccess: () => setFriendEmail('') })}
-                sendFriendRequestPending={sendFriendRequest.isPending}
-                sendFriendRequestError={sendFriendRequest.error}
-                sendFriendRequestSuccess={sendFriendRequest.isSuccess}
-                pendingRequests={pendingRequests}
-                showPendingRequests={showPendingRequests}
-                setShowPendingRequests={setShowPendingRequests}
-                onAcceptRequest={(id) => acceptRequest.mutate(id)}
-                onRejectRequest={(id) => rejectRequest.mutate(id)}
-                acceptRequestPending={acceptRequest.isPending}
-                rejectRequestPending={rejectRequest.isPending}
-                activeFriends={activeFriends}
-                inactiveFriends={inactiveFriends}
-                onFriendClick={handleFriendClick}
+                isSidebarOpen={friendsLogic.isSidebarOpen}
+                setIsSidebarOpen={friendsLogic.setIsSidebarOpen}
+                friends={friendsLogic.friends}
+                friendsLoading={friendsLogic.friendsLoading}
+                isAddingFriend={friendsLogic.isAddingFriend}
+                setIsAddingFriend={friendsLogic.setIsAddingFriend}
+                friendEmail={friendsLogic.friendEmail}
+                setFriendEmail={friendsLogic.setFriendEmail}
+                onSendFriendRequest={friendsLogic.handleSendFriendRequest}
+                sendFriendRequestPending={friendsLogic.sendFriendRequest.isPending}
+                sendFriendRequestError={friendsLogic.sendFriendRequest.error}
+                sendFriendRequestSuccess={friendsLogic.sendFriendRequest.isSuccess}
+                pendingRequests={friendsLogic.pendingRequests}
+                showPendingRequests={friendsLogic.showPendingRequests}
+                setShowPendingRequests={friendsLogic.setShowPendingRequests}
+                onAcceptRequest={(id) => friendsLogic.acceptRequest.mutate(id)}
+                onRejectRequest={(id) => friendsLogic.rejectRequest.mutate(id)}
+                acceptRequestPending={friendsLogic.acceptRequest.isPending}
+                rejectRequestPending={friendsLogic.rejectRequest.isPending}
+                activeFriends={friendsLogic.activeFriends}
+                inactiveFriends={friendsLogic.inactiveFriends}
+                onFriendClick={friendsLogic.handleFriendClick}
             />
 
             {/* Main Content */}
@@ -135,7 +102,7 @@ export function Home() {
 
                     <ActiveSessions
                         activeSessions={activeSessions}
-                        friendsSessions={friendsSessions}
+                        friendsSessions={friendsLogic.friendsSessions}
                         getJoinStatus={getJoinStatus}
                         onJoinSession={(sessionId) => navigate(`/session/${sessionId}`)}
                         onRequestToJoin={handleRequestToJoin}
@@ -144,7 +111,7 @@ export function Home() {
 
                     <RecentSummaries
                         summaries={summaries}
-                        onViewAll={() => navigate('/my-cellar')}
+                        onViewAll={() => navigate('/tasting-notes')}
                         onViewSummary={(sessionId, productIndex) => navigate(`/session/${sessionId}/summary?product=${productIndex ?? 0}`)}
                     />
                 </div>

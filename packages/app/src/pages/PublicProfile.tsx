@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, FileText, Calendar, ChevronRight, ArrowLeft, Star, Search } from 'lucide-react';
+import { User, FileText, Calendar, ChevronRight, ArrowLeft, Star, Search, Award } from 'lucide-react';
 import { usePublicProfile } from '../api/auth';
 import { getProductIcon } from '../utils/productIcons';
 
@@ -79,10 +79,23 @@ export function PublicProfile() {
                         </p>
 
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
-                                <Calendar size={10} />
-                                {new Date(s.createdAt).toLocaleDateString()}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                                    <Calendar size={10} />
+                                    {new Date(s.createdAt).toLocaleDateString()}
+                                </span>
+                                {s.valueGrade && (
+                                    <span className="text-[10px] font-bold text-blue-500 flex items-center gap-1 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                        <Award size={10} />
+                                        {s.valueGrade}
+                                    </span>
+                                )}
+                                {s.rating && (
+                                    <span className="text-[10px] font-bold text-orange-500 flex items-center gap-1 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                        {s.rating}
+                                    </span>
+                                )}
+                            </div>
                             <span className={`text-[10px] font-bold uppercase tracking-tight flex items-center gap-0.5 ${featured ? 'text-yellow-500' : 'text-orange-500'
                                 }`}>
                                 View <ChevronRight size={10} />

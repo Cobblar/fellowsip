@@ -19,6 +19,7 @@ import { Archive } from './pages/Archive';
 import { PublicProfile } from './pages/PublicProfile';
 import { PublicSessionLog } from './pages/PublicSessionLog';
 import { ComparisonSummary } from './pages/ComparisonSummary';
+import { Friends } from './pages/Friends';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,7 +74,7 @@ function AppContent() {
                 <main className="flex-1 overflow-y-auto">
                   <Routes>
                     <Route path="/" element={<Home />} />
-                    <Route path="/my-cellar" element={<Dashboard />} />
+                    <Route path="/tasting-notes" element={<Dashboard />} />
                     <Route path="/create" element={<CreateSession />} />
                     <Route path="/join" element={<JoinSession />} />
                     <Route path="/join/:id" element={<JoinSession />} />
@@ -82,7 +83,8 @@ function AppContent() {
                     <Route path="/session/:id/comparison" element={<ComparisonSummary />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/settings" element={<Settings />} />
-                    <Route path="/summaries" element={<Summaries />} />
+                    <Route path="/sessions" element={<Summaries />} />
+                    <Route path="/friends" element={<Friends />} />
                     <Route path="/archive" element={<Archive />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>

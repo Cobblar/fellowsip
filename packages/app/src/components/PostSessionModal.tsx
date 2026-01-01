@@ -187,7 +187,7 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                         onClick={onClose}
                         className="flex-1 py-3 text-sm font-bold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                     >
-                        Dismiss
+                        Return to Chat
                     </button>
                     <button
                         onClick={() => navigate('/')}

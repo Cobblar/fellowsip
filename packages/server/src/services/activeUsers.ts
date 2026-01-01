@@ -30,6 +30,21 @@ export function updateUserRating(sessionId: string, userId: string, rating: numb
   }
 }
 
+export function updateUserValueGrade(sessionId: string, userId: string, valueGrade: string, productIndex: number = 0) {
+  const users = sessionUsers.get(sessionId);
+  if (users) {
+    for (const user of users.values()) {
+      if (user.userId === userId) {
+        if (!user.valueGrades) {
+          user.valueGrades = {};
+        }
+        user.valueGrades[productIndex] = valueGrade;
+      }
+    }
+  }
+}
+
+
 export function removeUserFromSession(sessionId: string, socketId: string) {
   const users = sessionUsers.get(sessionId);
   if (users) {

@@ -61,6 +61,7 @@ export interface ActiveUser {
     avatarUrl: string | null;
     rating?: number | null;
     ratings?: Record<number, number | null>;
+    valueGrades?: Record<number, string | null>;
 }
 
 export interface Participant {

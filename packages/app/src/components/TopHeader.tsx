@@ -38,20 +38,20 @@ export function TopHeader() {
                     <nav className="hidden md:flex items-center gap-8">
                         <button
                             onClick={() => navigate('/')}
-                            className={navClass(isActive('/') && !location.pathname.startsWith('/my-cellar') && !location.pathname.startsWith('/session') && !location.pathname.startsWith('/summaries') && !location.pathname.startsWith('/profile'))}
+                            className={navClass(isActive('/') && !location.pathname.startsWith('/tasting-notes') && !location.pathname.startsWith('/session') && !location.pathname.startsWith('/sessions') && !location.pathname.startsWith('/profile'))}
                         >
                             <Home size={16} />
                             Home
                         </button>
                         <button
-                            onClick={() => navigate('/my-cellar')}
-                            className={navClass(isActive('/my-cellar'))}
+                            onClick={() => navigate('/tasting-notes')}
+                            className={navClass(isActive('/tasting-notes'))}
                         >
-                            Summaries
+                            Tasting Notes
                         </button>
                         <button
-                            onClick={() => navigate('/summaries')}
-                            className={navClass(isActive('/summaries'))}
+                            onClick={() => navigate('/sessions')}
+                            className={navClass(isActive('/sessions'))}
                         >
                             Sessions
                         </button>

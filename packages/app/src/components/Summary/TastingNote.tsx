@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Edit2, X, Save, Users, User, Globe, Lock, Star, ChevronRight } from 'lucide-react';
+import { MessageSquare, Edit2, X, Save, Users, User, Globe, Lock, Star, ChevronRight, Award } from 'lucide-react';
 
 interface TastingNoteProps {
     summary: any;
@@ -47,24 +47,34 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
             </div>
 
             <div className="card p-6 md:p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4">
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Rating</span>
-                        <div className="text-3xl font-black text-[var(--text-primary)] flex items-baseline gap-1">
-                            {isEditingNotes ? (
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={editData.rating || ''}
-                                    onChange={(e) => setEditData({ ...editData, rating: parseInt(e.target.value) })}
-                                    className="w-20 bg-transparent border-b-2 border-orange-500 text-center focus:outline-none"
-                                />
-                            ) : (
-                                selectedRating ?? '--'
-                            )}
+                <div className="absolute top-0 right-0 p-4 flex gap-4">
+                    {selectedRating !== undefined && selectedRating !== null && (
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest mb-1">Rating</span>
+                            <div className="text-3xl font-black text-[var(--text-primary)] flex items-baseline gap-1">
+                                {isEditingNotes ? (
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={editData.rating || ''}
+                                        onChange={(e) => setEditData({ ...editData, rating: parseInt(e.target.value) })}
+                                        className="w-20 bg-transparent border-b-2 border-orange-500 text-center focus:outline-none"
+                                    />
+                                ) : (
+                                    selectedRating ?? '--'
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
+                    {participants.find(p => p.userId === (selectedMemberId || currentUser?.id))?.valueGrade && (
+                        <div className="flex flex-col items-center">
+                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Value</span>
+                            <div className="text-3xl font-black text-[var(--text-primary)] flex items-baseline gap-1">
+                                {participants.find(p => p.userId === (selectedMemberId || currentUser?.id))?.valueGrade}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-6">
@@ -210,6 +220,12 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
                                                     <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
                                                         <Star size={12} fill="currentColor" />
                                                         {taster.rating}
+                                                    </div>
+                                                )}
+                                                {taster.valueGrade && (
+                                                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded text-xs font-bold text-blue-500">
+                                                        <Award size={12} />
+                                                        {taster.valueGrade}
                                                     </div>
                                                 )}
                                                 <ChevronRight size={14} className={`text-[var(--text-muted)] transition-transform ${isSelected ? 'rotate-90' : ''}`} />

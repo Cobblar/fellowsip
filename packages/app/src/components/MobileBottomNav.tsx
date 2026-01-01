@@ -21,17 +21,21 @@ export function MobileBottomNav() {
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-sidebar)] border-t border-[var(--border-primary)] flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom, 0px)] z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.1)]">
-            <button onClick={() => navigate('/')} className={navItemClass(isActive('/') && !location.pathname.startsWith('/my-cellar') && !location.pathname.startsWith('/summaries') && !location.pathname.startsWith('/profile'))}>
+            <button onClick={() => navigate('/')} className={navItemClass(isActive('/') && !location.pathname.startsWith('/tasting-notes') && !location.pathname.startsWith('/sessions') && !location.pathname.startsWith('/profile'))}>
                 <Home size={20} />
                 <span className="text-[10px] font-medium">Home</span>
             </button>
-            <button onClick={() => navigate('/my-cellar')} className={navItemClass(isActive('/my-cellar'))}>
+            <button onClick={() => navigate('/tasting-notes')} className={navItemClass(isActive('/tasting-notes'))}>
                 <FileText size={20} />
-                <span className="text-[10px] font-medium">Summaries</span>
+                <span className="text-[10px] font-medium">Tasting Notes</span>
             </button>
-            <button onClick={() => navigate('/summaries')} className={navItemClass(isActive('/summaries'))}>
+            <button onClick={() => navigate('/sessions')} className={navItemClass(isActive('/sessions'))}>
                 <Users size={20} />
                 <span className="text-[10px] font-medium">Sessions</span>
+            </button>
+            <button onClick={() => navigate('/friends')} className={navItemClass(isActive('/friends'))}>
+                <Users size={20} />
+                <span className="text-[10px] font-medium">Friends</span>
             </button>
             <button onClick={() => navigate('/profile')} className={navItemClass(isActive('/profile'))}>
                 <User size={20} />

@@ -2,12 +2,16 @@ import { useState, useCallback, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import { ActiveUser, ActiveUsersEvent, RatingUpdatedEvent, Message } from '../../types';
 
+export type ValueGrade = 'A' | 'B' | 'C' | 'D' | 'F';
+export type ValueGradeDistribution = Record<ValueGrade, number>;
+
 export const useChatSessionLogic = (socket: Socket | null, sessionId: string | null, setMessages: React.Dispatch<React.SetStateAction<Message[]>>) => {
     const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
     const [moderators, setModerators] = useState<string[]>([]);
     const [hostId, setHostId] = useState<string | null>(null);
     const [averageRating, setAverageRating] = useState<number | null>(null);
     const [averageRatings, setAverageRatings] = useState<Record<number, number | null>>({});
+    const [valueGradeDistributions, setValueGradeDistributions] = useState<Record<number, ValueGradeDistribution>>({});
     const [livestreamUrl, setLivestreamUrl] = useState<string | null>(null);
     const [customTags, setCustomTags] = useState<string[]>([]);
     const [sessionEnded, setSessionEnded] = useState(false);
@@ -25,6 +29,33 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
             });
         }
     }, [socket, sessionId]);
+
+    const updateValueGrade = useCallback((valueGrade: ValueGrade, productIndex: number = 0) => {
+        if (socket && sessionId) {
+            socket.emit('update_value_grade', {
+                sessionId,
+                valueGrade,
+                productIndex,
+            });
+        }
+    }, [socket, sessionId]);
+
+    // Reset all session-related state when sessionId changes
+    useEffect(() => {
+        setActiveUsers([]);
+        setModerators([]);
+        setHostId(null);
+        setAverageRating(null);
+        setAverageRatings({});
+        setValueGradeDistributions({});
+        setLivestreamUrl(null);
+        setCustomTags([]);
+        setSessionEnded(false);
+        setSessionEndedBy(null);
+        setSessionEndedLive(false);
+        setIsAnalyzing(false);
+        setSummaryId(null);
+    }, [sessionId]);
 
     useEffect(() => {
         if (!socket) return;
@@ -110,6 +141,25 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
             ]);
         };
 
+        const handleValueGradeUpdated = (data: {
+            userId: string;
+            valueGrade: ValueGrade;
+            productIndex: number;
+            distribution: ValueGradeDistribution;
+            distributions: Record<number, ValueGradeDistribution>;
+        }) => {
+            setActiveUsers((prev) => prev.map(user =>
+                user.userId === data.userId ? {
+                    ...user,
+                    valueGrades: {
+                        ...(user.valueGrades || {}),
+                        [data.productIndex]: data.valueGrade
+                    }
+                } : user
+            ));
+            setValueGradeDistributions(data.distributions);
+        };
+
         socket.on('active_users', handleActiveUsers);
         socket.on('rating_updated', handleRatingUpdated);
         socket.on('livestream_updated', handleLivestreamUpdated);
@@ -117,6 +167,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         socket.on('session_ended', handleSessionEnded);
         socket.on('summary_generated', handleSummaryGenerated);
         socket.on('host_transferred', handleHostTransferred);
+        socket.on('value_grade_updated', handleValueGradeUpdated);
 
         return () => {
             socket.off('active_users', handleActiveUsers);
@@ -126,6 +177,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
             socket.off('session_ended', handleSessionEnded);
             socket.off('summary_generated', handleSummaryGenerated);
             socket.off('host_transferred', handleHostTransferred);
+            socket.off('value_grade_updated', handleValueGradeUpdated);
         };
     }, [socket, setMessages]);
 
@@ -135,6 +187,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         hostId,
         averageRating,
         averageRatings,
+        valueGradeDistributions,
         livestreamUrl,
         customTags,
         sessionEnded,
@@ -143,6 +196,7 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         isAnalyzing,
         summaryId,
         updateRating,
+        updateValueGrade,
         setHostId,
         setLivestreamUrl,
         setCustomTags,
@@ -154,5 +208,6 @@ export const useChatSessionLogic = (socket: Socket | null, sessionId: string | n
         setActiveUsers,
         setModerators,
         setAverageRating,
+        setValueGradeDistributions,
     };
 };

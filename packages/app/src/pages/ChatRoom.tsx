@@ -59,8 +59,10 @@ export function ChatRoom() {
     revealedMessageIds,
     globallyRevealedMessageIds,
     updateRating,
+    updateValueGrade,
     averageRating,
     averageRatings,
+    valueGradeDistributions,
     phaseVisibility,
     setPhaseVisibility,
     setAllPhaseVisibility,
@@ -603,10 +605,12 @@ export function ChatRoom() {
           currentUserId={currentUserId}
           activeUsers={activeUsers}
           updateRating={updateRating}
+          updateValueGrade={updateValueGrade}
           onCloseSidebar={() => setActiveSidebar(null)}
           products={session?.products}
           activeProductIndex={activeProductIndex}
           averageRatings={averageRatings}
+          valueGradeDistributions={valueGradeDistributions}
         />
 
         <SpoilerControlsPanel

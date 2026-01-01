@@ -184,6 +184,7 @@ export const sessionParticipants = pgTable('session_participants', {
     .references(() => users.id, { onDelete: 'cascade' }),
   rating: real('rating'),
   isBanned: boolean('is_banned').notNull().default(false),
+  isArchived: boolean('is_archived').notNull().default(false),
   sharePersonalSummary: boolean('share_personal_summary').notNull().default(false),
   shareGroupSummary: boolean('share_group_summary').notNull().default(false),
   isHighlighted: boolean('is_highlighted').notNull().default(false),
@@ -205,7 +206,8 @@ export const productRatings = pgTable('product_ratings', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   productIndex: integer('product_index').notNull().default(0),
-  rating: real('rating').notNull(),
+  rating: real('rating'),
+  valueGrade: text('value_grade'), // 'A' | 'B' | 'C' | 'D' | 'F'
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({

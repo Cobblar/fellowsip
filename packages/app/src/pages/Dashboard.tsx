@@ -2,12 +2,15 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar, ChevronRight, ArrowUpDown, Package, Archive, SlidersHorizontal } from 'lucide-react';
 import { useAllSummaries, useArchiveSession } from '../api/sessions';
+import { useCurrentUser } from '../api/auth';
 import { getProductIcon } from '../utils/productIcons';
 
 type SortOption = 'name' | 'date' | 'rating';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { data: currentUserData } = useCurrentUser();
+  const currentUser = currentUserData?.user;
   const { data: summariesData, isLoading: summariesLoading } = useAllSummaries();
   const archiveSession = useArchiveSession();
 
@@ -285,7 +288,23 @@ export function Dashboard() {
                   {item.summary?.metadata?.rating && (
                     <div className="flex flex-col items-end">
                       <span className="text-xl font-bold text-orange-500">{item.summary.metadata.rating}</span>
-                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">Score</span>
+                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">Avg Score</span>
+                    </div>
+                  )}
+                  {item.summary?.participants?.find((p: any) => p.userId === currentUser?.id)?.valueGrade && (
+                    <div className="flex flex-col items-end mt-2">
+                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded text-xs font-bold text-blue-500">
+                        {item.summary.participants.find((p: any) => p.userId === currentUser?.id)?.valueGrade}
+                      </div>
+                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter mt-1">Value</span>
+                    </div>
+                  )}
+                  {item.summary?.participants?.find((p: any) => p.userId === currentUser?.id)?.rating && (
+                    <div className="flex flex-col items-end mt-2">
+                      <span className="text-lg font-bold text-orange-500">
+                        {item.summary.participants.find((p: any) => p.userId === currentUser?.id)?.rating}
+                      </span>
+                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">My Score</span>
                     </div>
                   )}
                 </div>

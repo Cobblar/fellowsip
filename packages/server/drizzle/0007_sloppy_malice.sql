@@ -1,0 +1,1 @@
+ALTER TABLE "session_participants" ADD COLUMN "is_archived" boolean DEFAULT false NOT NULL;

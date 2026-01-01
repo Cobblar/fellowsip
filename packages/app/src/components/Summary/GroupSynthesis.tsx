@@ -1,5 +1,6 @@
 import React from 'react';
-import { Zap, Lock } from 'lucide-react';
+import { Zap, Lock, Award } from 'lucide-react';
+import { ValueGradeDistribution } from '../ValueGradeSelector';
 
 interface GroupSynthesisProps {
     summary: any;
@@ -72,6 +73,16 @@ export const GroupSynthesis: React.FC<GroupSynthesisProps> = ({
                     <p className="text-2xl font-black text-[var(--text-primary)]">{participants.length}</p>
                 </div>
             </div>
+
+            {summary.valueGradeDistribution && Object.values(summary.valueGradeDistribution).some((v: any) => v > 0) && (
+                <div className="card p-6 flex flex-col items-center justify-center text-center bg-blue-500/5 border-blue-500/20">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Award size={16} className="text-blue-500" />
+                        <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Value Grade Distribution</p>
+                    </div>
+                    <ValueGradeDistribution distribution={summary.valueGradeDistribution} />
+                </div>
+            )}
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import { db, tastingSummaries, sessionParticipants, users, tastingSessions } from '../db/index.js';
+import { db, tastingSummaries, sessionParticipants, users, tastingSessions, productRatings } from '../db/index.js';
 import { eq, and, desc, or, exists, ne, sql } from 'drizzle-orm';
 import { getSession } from './sessionBase.js';
 
@@ -16,6 +16,7 @@ export async function getSessionSummary(sessionId: string, productIndex: number 
         .select({
             userId: sessionParticipants.userId,
             rating: sessionParticipants.rating,
+            valueGrade: productRatings.valueGrade,
             sharePersonalSummary: sessionParticipants.sharePersonalSummary,
             shareGroupSummary: sessionParticipants.shareGroupSummary,
             shareSessionLog: sessionParticipants.shareSessionLog,
@@ -24,6 +25,11 @@ export async function getSessionSummary(sessionId: string, productIndex: number 
         })
         .from(sessionParticipants)
         .leftJoin(users, eq(sessionParticipants.userId, users.id))
+        .leftJoin(productRatings, and(
+            eq(productRatings.sessionId, sessionId),
+            eq(productRatings.userId, sessionParticipants.userId),
+            eq(productRatings.productIndex, productIndex)
+        ))
         .where(eq(sessionParticipants.sessionId, sessionId));
 
     const participants = allParticipants.reduce((acc: any[], current) => {
@@ -35,9 +41,27 @@ export async function getSessionSummary(sessionId: string, productIndex: number 
         }
     }, []);
 
+    const ratings = await db
+        .select({
+            valueGrade: productRatings.valueGrade,
+        })
+        .from(productRatings)
+        .where(and(
+            eq(productRatings.sessionId, sessionId),
+            eq(productRatings.productIndex, productIndex)
+        ));
+
+    const distribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    ratings.forEach(r => {
+        if (r.valueGrade && ['A', 'B', 'C', 'D', 'F'].includes(r.valueGrade)) {
+            distribution[r.valueGrade as keyof typeof distribution]++;
+        }
+    });
+
     return {
         ...summary,
         participants,
+        valueGradeDistribution: distribution,
     };
 }
 
@@ -82,16 +106,41 @@ export async function getAllUserSummaries(userId: string) {
                     shareGroupSummary: sessionParticipants.shareGroupSummary,
                     shareSessionLog: sessionParticipants.shareSessionLog,
                     isHighlighted: sessionParticipants.isHighlighted,
+                    valueGrade: productRatings.valueGrade,
+                    rating: productRatings.rating,
                 })
                 .from(sessionParticipants)
                 .leftJoin(users, eq(sessionParticipants.userId, users.id))
+                .leftJoin(productRatings, and(
+                    eq(productRatings.sessionId, s.session.id),
+                    eq(productRatings.userId, sessionParticipants.userId),
+                    eq(productRatings.productIndex, s.summary.productIndex)
+                ))
                 .where(eq(sessionParticipants.sessionId, s.session.id));
+
+            const ratings = await db
+                .select({
+                    valueGrade: productRatings.valueGrade,
+                })
+                .from(productRatings)
+                .where(and(
+                    eq(productRatings.sessionId, s.session.id),
+                    eq(productRatings.productIndex, s.summary.productIndex)
+                ));
+
+            const distribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+            ratings.forEach(r => {
+                if (r.valueGrade && ['A', 'B', 'C', 'D', 'F'].includes(r.valueGrade)) {
+                    distribution[r.valueGrade as keyof typeof distribution]++;
+                }
+            });
 
             return {
                 ...s,
                 summary: {
                     ...s.summary,
                     participants,
+                    valueGradeDistribution: distribution,
                 },
             };
         })
@@ -234,6 +283,8 @@ export async function getPublicUserSummaries(userId: string) {
             session: tastingSessions,
             host: users,
             isHighlighted: sessionParticipants.isHighlighted,
+            valueGrade: productRatings.valueGrade,
+            rating: productRatings.rating,
         })
         .from(tastingSummaries)
         .innerJoin(tastingSessions, eq(tastingSummaries.sessionId, tastingSessions.id))
@@ -241,6 +292,11 @@ export async function getPublicUserSummaries(userId: string) {
         .leftJoin(sessionParticipants, and(
             eq(tastingSessions.id, sessionParticipants.sessionId),
             eq(sessionParticipants.userId, userId)
+        ))
+        .leftJoin(productRatings, and(
+            eq(productRatings.sessionId, tastingSessions.id),
+            eq(productRatings.userId, userId),
+            eq(productRatings.productIndex, tastingSummaries.productIndex)
         ))
         .where(
             and(
