@@ -25,16 +25,18 @@ description: How to deploy changes to production
 
 The post-receive hook runs:
 1. Pulls code to `/opt/apps/fellowsip`
-2. Runs `npm install`
-3. Runs `npm run db:push` (syncs database schema)
-4. Runs `npm run build`
-5. Restarts PM2 processes
+2. **Self-updates** the hook from `scripts/post-receive` (keeps deployment in sync with repo)
+3. Runs `npm install`
+4. Runs `npm run db:fix` (idempotent schema sync - adds missing columns/tables)
+5. Runs `npm run build`
+6. Restarts PM2 processes
 
 ## Database Migrations
 
-- Schema changes are applied via `db:push` during deployment
-- This is safe - it only adds/modifies columns, doesn't delete data
-- If manual migration is needed, use `scripts/fix-db-columns.ts`
+- Schema changes are applied via `db:fix` during deployment
+- The fix script uses `ADD COLUMN IF NOT EXISTS` - safe and idempotent
+- If you add new columns to the schema, also add them to `scripts/fix-db-columns.ts`
+- Never use `db:push` in production - it requires interactive confirmation
 
 ## Production Server Access
 
