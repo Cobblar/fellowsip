@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { tastingSessions, productRatings, users } from '../db/schema.js';
+import { tastingSessions, productRatings } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 async function main() {

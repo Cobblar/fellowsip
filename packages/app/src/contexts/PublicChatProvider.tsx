@@ -23,11 +23,15 @@ interface ChatContextType {
     sessionId: string | null;
     sessionEnded: boolean;
     sessionEndedBy: string | null;
+    sessionEndedLive: boolean;
     hostId: string | null;
     revealedMessageIds: Set<string>;
     globallyRevealedMessageIds: Set<string>;
-    updateRating: (rating: number) => void;
+    updateRating: (rating: number, productIndex?: number) => void;
+    updateValueGrade: (valueGrade: 'A' | 'B' | 'C' | 'D' | 'F', productIndex?: number) => void;
     averageRating: number | null;
+    averageRatings: Record<number, number | null>;
+    valueGradeDistributions: Record<number, Record<'A' | 'B' | 'C' | 'D' | 'F', number>>;
     phaseVisibility: Record<string, 'normal' | 'hidden' | 'revealed'>;
     setPhaseVisibility: (phase: string, visibility: 'normal' | 'hidden' | 'revealed') => void;
     setAllPhaseVisibility: (visibility: 'normal' | 'hidden' | 'revealed') => void;
@@ -200,11 +204,15 @@ export const PublicChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         sessionId: id || null,
         sessionEnded: true, // Always treated as ended/read-only
         sessionEndedBy: 'System',
+        sessionEndedLive: false,
         hostId: null,
         revealedMessageIds,
         globallyRevealedMessageIds: new Set(),
         updateRating: () => { },
+        updateValueGrade: () => { },
         averageRating: null, // Could fetch from summary if needed, but log endpoint might not have it
+        averageRatings: {},
+        valueGradeDistributions: {},
         phaseVisibility,
         setPhaseVisibility,
         setAllPhaseVisibility,

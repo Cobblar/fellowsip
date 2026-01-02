@@ -123,7 +123,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCustomTags,
         setSessionEnded,
         setSessionEndedBy,
-        setSessionEndedLive,
+        setSessionEndedLive: _setSessionEndedLive,
         setIsAnalyzing,
         setSummaryId,
         setActiveUsers,

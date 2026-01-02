@@ -1,6 +1,6 @@
 import { db } from '../db/index.js';
 import { sessionParticipants, tastingSessions } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 async function main() {
     const session = await db.query.tastingSessions.findFirst({
