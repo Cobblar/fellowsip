@@ -114,6 +114,28 @@ async function addMissingColumns() {
         console.log('comparison_summaries table error:', e.message);
     }
 
+    // Create unique indexes required for ON CONFLICT operations
+    try {
+        await sql.unsafe('CREATE UNIQUE INDEX IF NOT EXISTS unique_session_product_idx ON tasting_summaries(session_id, product_index)');
+        console.log('✓ Created unique_session_product_idx on tasting_summaries');
+    } catch (e: any) {
+        console.log('unique_session_product_idx error:', e.message);
+    }
+
+    try {
+        await sql.unsafe('CREATE UNIQUE INDEX IF NOT EXISTS unique_session_participant_idx ON session_participants(session_id, user_id)');
+        console.log('✓ Created unique_session_participant_idx on session_participants');
+    } catch (e: any) {
+        console.log('unique_session_participant_idx error:', e.message);
+    }
+
+    try {
+        await sql.unsafe('CREATE UNIQUE INDEX IF NOT EXISTS unique_user_product_rating_idx ON product_ratings(session_id, user_id, product_index)');
+        console.log('✓ Created unique_user_product_rating_idx on product_ratings');
+    } catch (e: any) {
+        console.log('unique_user_product_rating_idx error:', e.message);
+    }
+
     console.log('Done!');
     await sql.end();
     process.exit(0);
