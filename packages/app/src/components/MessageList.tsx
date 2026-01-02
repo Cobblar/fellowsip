@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Trash2, Pencil, Check, X, FileText } from 'lucide-react';
 import type { Message } from '../types';
 import { SpoilerText } from './SpoilerText';
+import { SoloNoteGrid } from './SoloNoteGrid';
 
 interface MessageListProps {
   messages: Message[];
@@ -13,6 +14,9 @@ interface MessageListProps {
   onEditMessage?: (messageId: string, content: string) => void;
   summaryId?: string | null;
   isSolo?: boolean;
+  spaceOutByTime?: boolean;
+  activeProductIndex?: number;
+  customTags?: string[];
 }
 
 export function MessageList({
@@ -25,14 +29,32 @@ export function MessageList({
   onEditMessage,
   summaryId,
   isSolo = false,
+  spaceOutByTime = false,
+  activeProductIndex = 0,
+  customTags = [],
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!isSolo) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isSolo]);
+
+  if (isSolo) {
+    return (
+      <SoloNoteGrid
+        messages={messages}
+        spaceOutByTime={spaceOutByTime}
+        customTags={customTags}
+        activeProductIndex={activeProductIndex}
+        onEditMessage={onEditMessage}
+        onDeleteMessage={onDeleteMessage}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

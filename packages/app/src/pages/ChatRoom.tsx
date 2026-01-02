@@ -135,6 +135,7 @@ export function ChatRoom() {
   const [showPostSessionModal, setShowPostSessionModal] = useState(false);
   const [showSpoilerDefaults, setShowSpoilerDefaults] = useState(false);
   const [activeProductIndex, setActiveProductIndex] = useState(0);
+  const [spaceOutByTime, setSpaceOutByTime] = useState(false);
 
   const session = sessionData?.session;
   const isSessionEnded = sessionEnded || session?.status === 'ended';
@@ -510,6 +511,9 @@ export function ChatRoom() {
                         phaseVisibility={phaseVisibility}
                         summaryId={summaryId}
                         isSolo={session?.isSolo}
+                        spaceOutByTime={spaceOutByTime}
+                        activeProductIndex={idx}
+                        customTags={customTags}
                       />
                     </div>
                   </div>
@@ -549,15 +553,27 @@ export function ChatRoom() {
         ) : (
           // Single-product: Normal full-width chat layout
           <>
-            <div className="flex-1 overflow-y-auto bg-[var(--bg-main)] p-4 md:p-6 custom-scrollbar">
-              <div className="max-w-3xl mx-auto space-y-6">
-                <div className="text-center">
-                  <span className="text-[10px] text-[var(--text-muted)] bg-[var(--bg-main)]/50 px-3 py-1 rounded-full border border-[var(--border-primary)]">
+            <div className={`flex-1 overflow-y-auto custom-scrollbar ${session?.isSolo ? 'solo-notebook-bg' : 'bg-[var(--bg-main)] p-4 md:p-6'}`}>
+              <div className={`${session?.isSolo ? 'w-full' : 'max-w-3xl mx-auto space-y-6'}`}>
+                <div className="text-center flex flex-col items-center gap-4">
+                  <span className={`text-[10px] text-[var(--text-muted)] px-3 py-1 rounded-full ${session?.isSolo ? '' : 'bg-[var(--bg-main)]/50 border border-[var(--border-primary)]'}`}>
                     Session started {session ? new Date(session.startedAt).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit'
                     }) : ''}
                   </span>
+
+                  {session?.isSolo && !isMobile && (
+                    <button
+                      onClick={() => setSpaceOutByTime(!spaceOutByTime)}
+                      className={`text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border transition-all ${spaceOutByTime
+                        ? 'bg-orange-500/10 border-orange-500 text-orange-500'
+                        : 'bg-[var(--bg-card)] border-[var(--border-primary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                    >
+                      {spaceOutByTime ? 'Visualize Chronology (On)' : 'Visualize Chronology (Off)'}
+                    </button>
+                  )}
                 </div>
                 <MessageList
                   messages={messages.filter(m => m.productIndex === 0 || m.productIndex === undefined || m.productIndex === null)}
@@ -569,6 +585,9 @@ export function ChatRoom() {
                   phaseVisibility={phaseVisibility}
                   summaryId={summaryId}
                   isSolo={session?.isSolo}
+                  spaceOutByTime={spaceOutByTime}
+                  activeProductIndex={0}
+                  customTags={customTags}
                 />
               </div>
             </div>

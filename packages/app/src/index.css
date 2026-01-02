@@ -580,3 +580,57 @@ input:focus {
     flex-direction: column;
   }
 }
+
+/* Solo notebook container */
+.solo-notebook {}
+
+/* Solo notebook background */
+.light .solo-notebook-bg {
+  background-color: #ffffff;
+}
+
+.solo-notebook-bg {
+  background-color: var(--bg-main);
+}
+
+/* Timestamp on hover */
+.solo-note .timestamp {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.solo-note:hover .timestamp {
+  opacity: 0.6;
+}
+
+/* Phase column header */
+.solo-phase-header {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Note divider */
+.solo-note-divider {
+  border-top: 1px dashed var(--border-primary);
+  opacity: 0.5;
+}
+
+/* Notes text */
+.solo-note-text {}
+
+/* Empty cell tinge for chronological view */
+.solo-note-empty-tinge {
+  background: linear-gradient(to right,
+      transparent 0%,
+      rgba(249, 115, 22, 0.03) 15%,
+      rgba(249, 115, 22, 0.03) 85%,
+      transparent 100%);
+}
+
+.dark .solo-note-empty-tinge {
+  background: linear-gradient(to right,
+      transparent 0%,
+      rgba(249, 115, 22, 0.06) 15%,
+      rgba(249, 115, 22, 0.06) 85%,
+      transparent 100%);
+}
