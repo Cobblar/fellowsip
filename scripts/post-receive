@@ -15,6 +15,14 @@ echo "=========================================="
 cd $APP_DIR
 git --work-tree=$APP_DIR --git-dir=$GIT_DIR checkout -f main
 
+# Self-update the post-receive hook from the repo
+# This ensures the deployment script stays in sync with the codebase
+if [ -f "$APP_DIR/scripts/post-receive" ]; then
+    echo "Updating post-receive hook..."
+    cp "$APP_DIR/scripts/post-receive" "$GIT_DIR/hooks/post-receive"
+    chmod +x "$GIT_DIR/hooks/post-receive"
+fi
+
 # Install dependencies
 echo "Installing dependencies..."
 npm install
