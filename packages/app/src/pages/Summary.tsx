@@ -253,6 +253,12 @@ export function Summary({ publicMode = false }: SummaryProps) {
                 </div>
             )}
 
+            <div className="mb-6">
+                <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">
+                    {session?.products?.[activeProductIndex]?.productName || 'Product Summary'}
+                </h2>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                 <TastingNote
                     summary={summary}

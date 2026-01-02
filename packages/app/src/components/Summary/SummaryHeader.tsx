@@ -1,5 +1,5 @@
-import React from 'react';
-import { Wine, Globe, Calendar, MessageSquare, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Wine, Globe, Calendar, MessageSquare, Share2, Check } from 'lucide-react';
 
 interface SummaryHeaderProps {
     session: any;
@@ -14,6 +14,14 @@ export const SummaryHeader: React.FC<SummaryHeaderProps> = ({
     onViewSessionLog,
     onCopyPublicLink,
 }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        onCopyPublicLink();
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     return (
         <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
@@ -51,11 +59,21 @@ export const SummaryHeader: React.FC<SummaryHeaderProps> = ({
                         View Session Log
                     </button>
                     <button
-                        onClick={onCopyPublicLink}
-                        className="btn-secondary text-xs py-2"
+                        onClick={handleCopy}
+                        className={`btn-secondary text-xs py-2 transition-all duration-300 flex items-center justify-center gap-2 min-w-[160px] ${copied ? 'bg-green-500/10 text-green-500 border-green-500/50' : ''
+                            }`}
                     >
-                        <Share2 size={14} />
-                        Copy Public Link
+                        {copied ? (
+                            <>
+                                <Check size={14} className="animate-in zoom-in duration-300" />
+                                <span>Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <Share2 size={14} />
+                                <span>Copy Public Link</span>
+                            </>
+                        )}
                     </button>
                 </div>
             )}
