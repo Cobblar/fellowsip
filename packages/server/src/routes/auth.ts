@@ -182,6 +182,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           displayName: (user as any).displayName,
           avatarUrl: (user as any).avatarUrl,
           bio: (user as any).bio,
+          useGeneratedAvatar: (user as any).useGeneratedAvatar,
         },
       });
     } catch (error) {
@@ -212,16 +213,18 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.patch('/auth/profile', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const user = (request as any).user;
-      const { displayName, avatarUrl, bio } = request.body as {
+      const { displayName, avatarUrl, bio, useGeneratedAvatar } = request.body as {
         displayName?: string;
         avatarUrl?: string;
         bio?: string;
+        useGeneratedAvatar?: boolean;
       };
 
       const updateData: any = {};
       if (displayName !== undefined) updateData.displayName = displayName.trim();
       if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
       if (bio !== undefined) updateData.bio = bio.trim();
+      if (useGeneratedAvatar !== undefined) updateData.useGeneratedAvatar = useGeneratedAvatar;
 
       if (Object.keys(updateData).length === 0) {
         return reply.status(400).send({ error: 'No data to update' });

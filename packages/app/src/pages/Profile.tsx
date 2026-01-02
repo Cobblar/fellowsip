@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Calendar, LogOut, ChevronRight, Settings, Star, ExternalLink, Search, MessageSquare, FileText } from 'lucide-react';
+import { Calendar, LogOut, ChevronRight, Settings, Star, ExternalLink, Search, MessageSquare, FileText, Share2, Check } from 'lucide-react';
+import { UserAvatar } from '../components/UserAvatar';
 import { api } from '../api/client';
 import { useCurrentUser, useUpdateProfile } from '../api/auth';
 import { useToggleHighlight, useUpdateSharing, useUserSessions } from '../api/sessions';
@@ -11,6 +12,7 @@ export function Profile() {
     const [newBio, setNewBio] = useState('');
     const [isEditingBio, setIsEditingBio] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [copied, setCopied] = useState(false);
 
     const { data: sessionsData, isLoading: sessionsLoading } = useUserSessions();
     const { data: currentUserData } = useCurrentUser();
@@ -49,7 +51,8 @@ export function Profile() {
     const handleCopyPublicLink = () => {
         const url = `${window.location.origin}/profile/${currentUser?.id}/public`;
         navigator.clipboard.writeText(url);
-        // Could add a toast here
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     const sessions = sessionsData?.sessions || [];
@@ -74,9 +77,20 @@ export function Profile() {
                 <div className="flex gap-3">
                     <button
                         onClick={handleCopyPublicLink}
-                        className="btn-secondary text-xs py-2 px-3"
+                        className={`btn-secondary text-xs py-2 px-3 transition-all duration-300 flex items-center justify-center gap-2 min-w-[140px] ${copied ? 'bg-green-500/10 text-green-500 border-green-500/50' : ''
+                            }`}
                     >
-                        Copy Public Link
+                        {copied ? (
+                            <>
+                                <Check size={14} className="animate-in zoom-in duration-300" />
+                                <span>Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <Share2 size={14} />
+                                <span>Copy Public Link</span>
+                            </>
+                        )}
                     </button>
                     <button
                         onClick={() => navigate(`/profile/${currentUser?.id}/public`)}
@@ -93,12 +107,14 @@ export function Profile() {
                 <div className="space-y-6">
                     <div className="card p-6 md:p-8">
                         <div className="flex flex-col items-center text-center mb-6">
-                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[var(--bg-input)] flex items-center justify-center mb-4 border-2 border-[var(--border-secondary)] overflow-hidden">
-                                {currentUser?.avatarUrl ? (
-                                    <img src={currentUser.avatarUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                    <User size={40} className="text-[var(--text-secondary)] md:size-12" />
-                                )}
+                            <div className="mb-4">
+                                <UserAvatar
+                                    avatarUrl={currentUser?.avatarUrl}
+                                    displayName={currentUser?.displayName}
+                                    userId={currentUser?.id}
+                                    useGeneratedAvatar={currentUser?.useGeneratedAvatar}
+                                    size="xl"
+                                />
                             </div>
                             <h2 className="heading-lg mb-1">{currentUser?.displayName || 'User'}</h2>
                             <p className="text-xs text-[var(--text-secondary)] mb-4">{currentUser?.email}</p>

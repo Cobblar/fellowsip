@@ -1,5 +1,5 @@
-import React from 'react';
-import { UserPlus, ChevronRight, User, Check, X, Shield } from 'lucide-react';
+import { UserPlus, ChevronRight, Check, X, Shield } from 'lucide-react';
+import { UserAvatar } from '../UserAvatar';
 
 interface FriendsTabProps {
     friends: any[];
@@ -75,9 +75,13 @@ export const FriendsTab: React.FC<FriendsTabProps> = ({
                                 className="flex items-center justify-between p-3 md:p-4 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
-                                        <User size={16} className="text-[var(--text-secondary)] md:size-18" />
-                                    </div>
+                                    <UserAvatar
+                                        avatarUrl={request.sender?.avatarUrl}
+                                        displayName={request.sender?.displayName}
+                                        userId={request.sender?.id}
+                                        useGeneratedAvatar={request.sender?.useGeneratedAvatar}
+                                        size="md"
+                                    />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-[var(--text-primary)] truncate">
                                             {request.sender?.displayName || request.sender?.email}
@@ -152,13 +156,15 @@ export const FriendsTab: React.FC<FriendsTabProps> = ({
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div
                                         onClick={() => onProfileClick(item.friend.id)}
-                                        className="w-8 h-8 md:w-10 md:h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center overflow-hidden shrink-0 cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+                                        className="cursor-pointer hover:scale-105 transition-transform"
                                     >
-                                        {item.friend.avatarUrl ? (
-                                            <img src={item.friend.avatarUrl} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User size={16} className="text-[var(--text-secondary)] md:size-18" />
-                                        )}
+                                        <UserAvatar
+                                            avatarUrl={item.friend.avatarUrl}
+                                            displayName={item.friend.displayName}
+                                            userId={item.friend.id}
+                                            useGeneratedAvatar={item.friend.useGeneratedAvatar}
+                                            size="md"
+                                        />
                                     </div>
                                     <div className="min-w-0">
                                         <p

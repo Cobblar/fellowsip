@@ -9,6 +9,7 @@ export async function createSession(
         productType?: string | null;
         productLink?: string | null;
         productName?: string | null;
+        productDescription?: string | null;
     }> = [],
     livestreamUrl: string | null = null,
     customTags: string[] = [],
@@ -20,11 +21,12 @@ export async function createSession(
         productType: p.productType || null,
         productLink: p.productLink || null,
         productName: p.productName || null,
+        productDescription: p.productDescription || null,
     }));
 
     // If no products provided, create a single empty product slot
     if (normalizedProducts.length === 0) {
-        normalizedProducts.push({ index: 0, productType: null, productLink: null, productName: null });
+        normalizedProducts.push({ index: 0, productType: null, productLink: null, productName: null, productDescription: null });
     }
 
     const [session] = await db
@@ -54,7 +56,12 @@ export async function getSession(sessionId: string) {
     const [session] = await db
         .select({
             session: tastingSessions,
-            host: users,
+            host: {
+                id: users.id,
+                displayName: users.displayName,
+                avatarUrl: users.avatarUrl,
+                useGeneratedAvatar: users.useGeneratedAvatar,
+            },
         })
         .from(tastingSessions)
         .leftJoin(users, eq(tastingSessions.hostId, users.id))

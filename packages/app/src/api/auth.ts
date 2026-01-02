@@ -25,7 +25,7 @@ export function useUpdateProfile() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: { displayName?: string; bio?: string }) =>
+        mutationFn: (data: { displayName?: string; bio?: string; useGeneratedAvatar?: boolean }) =>
             api.patch<{ user: User }>('/auth/profile', data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: authKeys.session });

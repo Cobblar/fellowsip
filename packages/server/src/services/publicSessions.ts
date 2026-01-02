@@ -24,6 +24,7 @@ export async function getPublicSessionLog(sessionId: string) {
                 id: users.id,
                 displayName: users.displayName,
                 avatarUrl: users.avatarUrl,
+                useGeneratedAvatar: users.useGeneratedAvatar,
             }
         })
         .from(messages)

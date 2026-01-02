@@ -120,6 +120,25 @@ export function useUpdateSummary() {
   });
 }
 
+export function useUpdateProductDescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ sessionId, productIndex, description }: {
+      sessionId: string;
+      productIndex: number;
+      description: string;
+    }) => {
+      const res = await api.patch(`/sessions/${sessionId}/summary/description`, { productIndex, description });
+      return res;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: sessionKeys.detail(variables.sessionId) });
+      queryClient.invalidateQueries({ queryKey: [...sessionKeys.detail(variables.sessionId), 'public'] });
+      queryClient.invalidateQueries({ queryKey: [...sessionKeys.detail(variables.sessionId), 'summary', variables.productIndex] });
+    },
+  });
+}
+
 // Transfer host
 export function useTransferHost() {
   const queryClient = useQueryClient();

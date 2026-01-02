@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Loader2, ChevronLeft } from 'lucide-react';
 import { useCreateSession } from '../api/sessions';
@@ -14,21 +14,36 @@ export function CreateSession() {
     productType: string;
     productLink: string;
     productName: string;
+    productDescription: string;
     isFetchingMetadata: boolean;
-  }>>([{ productType: '', productLink: '', productName: '', isFetchingMetadata: false }]);
+  }>>([{ productType: '', productLink: '', productName: '', productDescription: '', isFetchingMetadata: false }]);
   const [livestreamUrl, setLivestreamUrl] = useState('');
   const [isSoloSession, setIsSoloSession] = useState(false);
   const createSession = useCreateSession();
 
-  const fetchMetadata = async (index: number, link: string) => {
-    if (!link || !link.startsWith('http')) return;
+  useEffect(() => {
+    products.forEach((product, index) => {
+      if (product.productLink && product.productLink.startsWith('http') && !product.productName && !product.productDescription && !product.isFetchingMetadata) {
+        const timer = setTimeout(() => {
+          fetchMetadata(index, product.productLink);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    });
+  }, [products]);
 
+  const fetchMetadata = async (index: number, link: string) => {
+    console.log(`[CreateSession] Fetching metadata for: ${link}`);
     setProducts(prev => prev.map((p, i) => i === index ? { ...p, isFetchingMetadata: true } : p));
     try {
-      const res = await api.get<{ title: string }>(`/sessions/metadata?url=${encodeURIComponent(link)}`);
+      const res = await api.get<{ title: string; description: string | null }>(`/sessions/metadata?url=${encodeURIComponent(link)}`);
+      console.log(`[CreateSession] Metadata response:`, res);
       if (res.title) {
         const cleanTitle = res.title.split(' | ')[0].split(' - ')[0].split(' : ')[0].trim();
         setProducts(prev => prev.map((p, i) => (i === index && !p.productName) ? { ...p, productName: cleanTitle } : p));
+      }
+      if (res.description) {
+        setProducts(prev => prev.map((p, i) => (i === index && !p.productDescription) ? { ...p, productDescription: res.description! } : p));
       }
     } catch (err) {
       console.error('Failed to fetch metadata:', err);
@@ -47,7 +62,7 @@ export function CreateSession() {
 
   const addProduct = () => {
     if (products.length < 3) {
-      setProducts([...products, { productType: '', productLink: '', productName: '', isFetchingMetadata: false }]);
+      setProducts([...products, { productType: '', productLink: '', productName: '', productDescription: '', isFetchingMetadata: false }]);
     }
   };
 
@@ -68,6 +83,7 @@ export function CreateSession() {
           productType: p.productType || null,
           productLink: p.productLink.trim() || null,
           productName: p.productName.trim() || null,
+          productDescription: p.productDescription.trim() || null,
         })),
         livestreamUrl: livestreamUrl.trim() || undefined,
         isSolo: isSoloSession,
@@ -170,12 +186,7 @@ export function CreateSession() {
                 <input
                   type="url"
                   value={product.productLink}
-                  onChange={(e) => {
-                    updateProduct(index, { productLink: e.target.value });
-                    if (e.target.value.startsWith('http')) {
-                      setTimeout(() => fetchMetadata(index, e.target.value), 1000);
-                    }
-                  }}
+                  onChange={(e) => updateProduct(index, { productLink: e.target.value })}
                   placeholder="https://example.com/product"
                   className="w-full bg-[var(--bg-main)] border-[var(--border-primary)] text-sm py-2.5"
                 />

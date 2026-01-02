@@ -108,6 +108,7 @@ export function setupSocketHandlers(io: Server) {
                 id: m.user?.id || '',
                 displayName: m.user?.displayName || null,
                 avatarUrl: m.user?.avatarUrl || null,
+                useGeneratedAvatar: m.user?.useGeneratedAvatar,
               },
             })),
             livestreamUrl: null,
@@ -139,6 +140,7 @@ export function setupSocketHandlers(io: Server) {
           socketId: socket.id,
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
+          useGeneratedAvatar: user.useGeneratedAvatar,
           rating: productRatingsData[0] ?? null,
           ratings: productRatingsData,
         });
@@ -167,6 +169,7 @@ export function setupSocketHandlers(io: Server) {
               id: m.user?.id || '',
               displayName: m.user?.displayName || null,
               avatarUrl: m.user?.avatarUrl || null,
+              useGeneratedAvatar: m.user?.useGeneratedAvatar,
             },
           })),
           livestreamUrl: session.session.livestreamUrl,
@@ -190,6 +193,7 @@ export function setupSocketHandlers(io: Server) {
             socketId: socket.id,
             displayName: user.displayName,
             avatarUrl: user.avatarUrl,
+            useGeneratedAvatar: user.useGeneratedAvatar,
           },
           userCount: getSessionUsers(sessionId).length,
         });

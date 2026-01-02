@@ -308,3 +308,29 @@ export async function getPublicUserSummaries(userId: string) {
 
     return summaries;
 }
+
+export async function updateSummaryDescription(
+    sessionId: string,
+    productIndex: number = 0,
+    description: string
+) {
+    const [summary] = await db
+        .update(tastingSummaries)
+        .set({
+            metadata: sql`jsonb_set(COALESCE(metadata, '{}'::jsonb), '{productDescription}', ${JSON.stringify(description)}::jsonb)`,
+            generatedAt: new Date(),
+        })
+        .where(
+            and(
+                eq(tastingSummaries.sessionId, sessionId),
+                eq(tastingSummaries.productIndex, productIndex)
+            )
+        )
+        .returning();
+
+    if (!summary) {
+        throw new Error('Summary not found');
+    }
+
+    return summary;
+}

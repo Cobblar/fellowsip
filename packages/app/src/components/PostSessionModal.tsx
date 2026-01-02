@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, FileText, CheckCircle2, Share2, Users, MessageSquare, Lock, Globe } from 'lucide-react';
 import { useChatContext } from '../contexts/ChatContext';
 import { useUpdateSharing } from '../api/sessions';
+import { ValueGradeSelector } from './ValueGradeSelector';
+
+type ValueGrade = 'A' | 'B' | 'C' | 'D' | 'F';
 
 interface PostSessionModalProps {
     isOpen: boolean;
@@ -11,10 +14,20 @@ interface PostSessionModalProps {
 
 export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
     const navigate = useNavigate();
-    const { sessionEndedBy, isAnalyzing, summaryId, updateRating, sessionId, currentUserId, activeUsers } = useChatContext();
+    const { sessionEndedBy, isAnalyzing, summaryId, updateRating, updateValueGrade, sessionId, currentUserId, activeUsers } = useChatContext();
     const initialRating = activeUsers.find(u => u.userId === currentUserId)?.rating;
     const [userRating, setUserRating] = useState<number | null>(initialRating ?? null);
+    const [userValueGrade, setUserValueGrade] = useState<ValueGrade | null>(null);
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+
+    // Sync rating when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const user = activeUsers.find(u => u.userId === currentUserId);
+            setUserRating(user?.rating ?? null);
+            setUserValueGrade(user?.valueGrades?.[0] as ValueGrade ?? null);
+        }
+    }, [isOpen, activeUsers, currentUserId]);
 
     const updateSharing = useUpdateSharing();
     const [sharing, setSharing] = useState({
@@ -126,6 +139,20 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                                 <span>50</span>
                                 <span>100</span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Value Grade Prompt */}
+                    <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
+                        <div className="flex flex-col gap-3">
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Value Grade</h3>
+                            <ValueGradeSelector
+                                value={userValueGrade}
+                                onChange={(grade) => {
+                                    setUserValueGrade(grade);
+                                    updateValueGrade(grade);
+                                }}
+                            />
                         </div>
                     </div>
 

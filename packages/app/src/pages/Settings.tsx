@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Settings as SettingsIcon } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { api } from '../api/client';
 import { useFriends, usePendingRequests, useSendFriendRequest, useAcceptFriendRequest, useRejectFriendRequest, useRemoveFriend, useUpdateAutoMod } from '../api/friends';
 import { useCurrentUser, useUpdateProfile } from '../api/auth';
@@ -9,16 +9,14 @@ import type { Session } from '../types';
 // Sub-components
 import { SettingsSidebar } from '../components/Settings/SettingsSidebar';
 import { FriendsTab } from '../components/Settings/FriendsTab';
-import { ProfileSettingsTab } from '../components/Settings/ProfileSettingsTab';
 
 export function Settings() {
     const navigate = useNavigate();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [friendEmail, setFriendEmail] = useState('');
-    const [activeTab, setActiveTab] = useState<'friends' | 'settings'>('friends');
+    const [activeTab, setActiveTab] = useState<'friends'>('friends');
     const [showPendingRequests, setShowPendingRequests] = useState(false);
-    const [newDisplayName, setNewDisplayName] = useState('');
 
     const { data: friendsData } = useFriends();
     const { data: pendingData } = usePendingRequests();
@@ -49,12 +47,6 @@ export function Settings() {
         fetchSessions();
     }, []);
 
-    useEffect(() => {
-        if (currentUser?.displayName) {
-            setNewDisplayName(currentUser.displayName);
-        }
-    }, [currentUser]);
-
     const handleLogout = async () => {
         try {
             await api.post('/auth/logout');
@@ -65,14 +57,11 @@ export function Settings() {
         }
     };
 
-    const handleUpdateDisplayName = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newDisplayName.trim()) return;
-
+    const handleUpdateProfile = async (data: { displayName?: string; useGeneratedAvatar?: boolean }) => {
         try {
-            await updateProfile.mutateAsync({ displayName: newDisplayName.trim() });
+            await updateProfile.mutateAsync(data);
         } catch (error) {
-            console.error('Failed to update display name:', error);
+            console.error('Failed to update profile:', error);
         }
     };
 
@@ -108,6 +97,7 @@ export function Settings() {
                     friendsCount={friends.length}
                     onNavigate={navigate}
                     onLogout={handleLogout}
+                    onUpdateProfile={handleUpdateProfile}
                 />
 
                 {/* Right: Tabs */}
@@ -128,16 +118,6 @@ export function Settings() {
                                     {pendingRequests.length}
                                 </span>
                             )}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('settings')}
-                            className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'settings'
-                                ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                }`}
-                        >
-                            <SettingsIcon size={14} />
-                            Settings
                         </button>
                     </div>
 
@@ -167,22 +147,6 @@ export function Settings() {
                             rejectRequestPending={rejectRequest.isPending}
                             removeFriendPending={removeFriend.isPending}
                             updateAutoModPending={updateAutoMod.isPending}
-                        />
-                    )}
-
-                    {/* Settings Tab */}
-                    {activeTab === 'settings' && (
-                        <ProfileSettingsTab
-                            newDisplayName={newDisplayName}
-                            setNewDisplayName={setNewDisplayName}
-                            currentUser={currentUser}
-                            onUpdateDisplayName={handleUpdateDisplayName}
-                            updateProfileStatus={{
-                                isPending: updateProfile.isPending,
-                                isSuccess: updateProfile.isSuccess,
-                                isError: updateProfile.isError,
-                                error: updateProfile.error
-                            }}
                         />
                     )}
                 </div>

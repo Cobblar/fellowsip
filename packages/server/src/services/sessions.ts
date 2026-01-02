@@ -13,7 +13,12 @@ export async function getUserSessions(userId: string) {
   const sessions = await db
     .select({
       session: tastingSessions,
-      host: users,
+      host: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        useGeneratedAvatar: users.useGeneratedAvatar,
+      },
       summaryId: tastingSummaries.id,
       userRating: sessionParticipants.rating,
       isHighlighted: sessionParticipants.isHighlighted,
@@ -62,7 +67,12 @@ export async function getActiveSessions() {
   const sessions = await db
     .select({
       session: tastingSessions,
-      host: users,
+      host: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        useGeneratedAvatar: users.useGeneratedAvatar,
+      },
       summaryId: tastingSummaries.id,
     })
     .from(tastingSessions)
@@ -192,7 +202,12 @@ export async function getParticipatedSessions(userId: string) {
   const sessions = await db
     .select({
       session: tastingSessions,
-      host: users,
+      host: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        useGeneratedAvatar: users.useGeneratedAvatar,
+      },
       summaryId: tastingSummaries.id,
       userRating: sessionParticipants.rating,
       isHighlighted: sessionParticipants.isHighlighted,
@@ -330,7 +345,12 @@ export async function getArchivedSessions(userId: string) {
   const sessions = await db
     .select({
       session: tastingSessions,
-      host: users,
+      host: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        useGeneratedAvatar: users.useGeneratedAvatar,
+      },
       summaryId: tastingSummaries.id,
       userRating: sessionParticipants.rating,
     })

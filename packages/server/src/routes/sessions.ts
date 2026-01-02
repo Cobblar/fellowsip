@@ -21,8 +21,11 @@ import {
   toggleSessionHighlight,
   getPublicSessionLog,
   getComparisonSummary,
+  updateSummaryDescription,
 } from '../services/sessions.js';
 import { getSessionMessages } from '../services/messages.js';
+import { generateProductDescription } from '../services/ai.js';
+import { decodeHtmlEntities } from '../utils/html.js';
 import { emitSessionEnded, emitHostTransferred, emitToUser, emitLivestreamUpdated, emitCustomTagsUpdated } from '../sockets/socketManager.js';
 import { getFriends } from '../services/friends.js';
 
@@ -349,6 +352,31 @@ export async function sessionRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Update session summary description (protected)
+  fastify.patch('/sessions/:id/summary/description', { preHandler: requireAuth }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const { productIndex, description } = request.body as {
+        productIndex?: number;
+        description: string;
+      };
+
+      if (description === undefined) {
+        return reply.status(400).send({ error: 'Description is required' });
+      }
+
+      const summary = await updateSummaryDescription(id, productIndex || 0, description);
+
+      return reply.send({ summary });
+    } catch (error: any) {
+      console.error('Update summary description error:', error);
+      if (error.message === 'Summary not found') {
+        return reply.status(404).send({ error: error.message });
+      }
+      return reply.status(500).send({ error: 'Failed to update summary description' });
+    }
+  });
+
   // Archive session (protected, host only)
   fastify.post('/sessions/:id/archive', { preHandler: requireAuth }, async (request, reply) => {
     try {
@@ -412,14 +440,23 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'URL is required' });
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
       const html = await response.text();
 
       // Simple regex to extract title
       const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const title = titleMatch ? titleMatch[1].trim() : null;
+      const rawTitle = titleMatch ? titleMatch[1].trim() : null;
+      const title = rawTitle ? decodeHtmlEntities(rawTitle) : null;
 
-      return reply.send({ title });
+      // AI-generated description
+      const description = await generateProductDescription(url);
+
+      console.log(`[/sessions/metadata] Returning: title="${title}", description="${description?.slice(0, 50)}..."`);
+      return reply.send({ title, description });
     } catch (error) {
       console.error('Fetch metadata error:', error);
       return reply.status(500).send({ error: 'Failed to fetch metadata' });

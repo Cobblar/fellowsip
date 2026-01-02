@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Loader2 } from 'lucide-react';
-import { useSessionSummary, useUpdateSummary, useUpdateSharing, usePublicSummary, useSession, useComparisonSummary } from '../api/sessions';
+import { useSessionSummary, useUpdateSummary, useUpdateSharing, useUpdateProductDescription, usePublicSummary, useSession, useComparisonSummary } from '../api/sessions';
 import { getProductIcon } from '../utils/productIcons';
 import { useCurrentUser } from '../api/auth';
 import type { Participant } from '../types';
@@ -12,6 +12,7 @@ import { SummaryHeader } from '../components/Summary/SummaryHeader';
 import { SharingControls } from '../components/Summary/SharingControls';
 import { TastingNote } from '../components/Summary/TastingNote';
 import { GroupSynthesis } from '../components/Summary/GroupSynthesis';
+import { ProductDescription } from '../components/Summary/ProductDescription';
 
 interface TasterSummary {
     userId: string;
@@ -90,6 +91,7 @@ export function Summary({ publicMode = false }: SummaryProps) {
 
     const updateSummary = useUpdateSummary();
     const updateSharing = useUpdateSharing();
+    const updateDescription = useUpdateProductDescription();
 
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
     const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -237,6 +239,16 @@ export function Summary({ publicMode = false }: SummaryProps) {
                     ))}
                 </div>
             )}
+
+            <ProductDescription
+                description={summary?.metadata?.productDescription}
+                editable={!publicMode && !!currentUser}
+                onSave={(desc) => updateDescription.mutate({
+                    sessionId: id!,
+                    productIndex: activeProductIndex,
+                    description: desc
+                })}
+            />
 
             {comparison && (
                 <div className="mb-12 p-6 bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 rounded-2xl">

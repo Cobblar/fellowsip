@@ -1,5 +1,6 @@
 import React from 'react';
-import { Users, MoreVertical, X, PlayCircle, CheckCircle, User, Crown, Shield, ShieldOff, Volume2, VolumeX, Ban, Check, Star } from 'lucide-react';
+import { Users, MoreVertical, X, PlayCircle, CheckCircle, Crown, Shield, ShieldOff, Volume2, VolumeX, Ban, Check, Star } from 'lucide-react';
+import { UserAvatar } from '../UserAvatar';
 
 interface ParticipantListProps {
     activeUsers: any[];
@@ -199,13 +200,13 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                                 }`}
                         >
                             <div className="relative">
-                                {user.avatarUrl ? (
-                                    <img src={user.avatarUrl} alt={user.displayName || ''} className="w-7 h-7 rounded-full" />
-                                ) : (
-                                    <div className="w-7 h-7 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                        <User size={14} className="text-[var(--text-secondary)]" />
-                                    </div>
-                                )}
+                                <UserAvatar
+                                    avatarUrl={user.avatarUrl}
+                                    displayName={user.displayName}
+                                    userId={user.userId}
+                                    useGeneratedAvatar={user.useGeneratedAvatar}
+                                    size="sm"
+                                />
                                 {readyCheckActive && isUserReady ? (
                                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-[var(--bg-sidebar)] rounded-full flex items-center justify-center">
                                         <Check size={6} className="text-white" />

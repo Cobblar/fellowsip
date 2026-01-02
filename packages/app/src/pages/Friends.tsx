@@ -1,5 +1,6 @@
-import { Users, UserPlus, User, Check, X, ChevronRight } from 'lucide-react';
+import { Users, UserPlus, Check, X, ChevronRight } from 'lucide-react';
 import { useFriendsLogic } from '../hooks/useFriendsLogic';
+import { UserAvatar } from '../components/UserAvatar';
 
 export function Friends() {
     const friendsLogic = useFriendsLogic();
@@ -95,9 +96,13 @@ export function Friends() {
                                         className="flex items-center justify-between p-4 bg-[var(--bg-sidebar)] border border-[var(--border-primary)] rounded-xl"
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
-                                                <User size={20} className="text-[var(--text-secondary)]" />
-                                            </div>
+                                            <UserAvatar
+                                                avatarUrl={request.sender?.avatarUrl}
+                                                displayName={request.sender?.displayName}
+                                                userId={request.sender?.id}
+                                                useGeneratedAvatar={request.sender?.useGeneratedAvatar}
+                                                size="lg"
+                                            />
                                             <div className="min-w-0">
                                                 <p className="font-bold text-[var(--text-primary)] truncate">
                                                     {request.sender?.displayName || request.sender?.email}
@@ -147,16 +152,15 @@ export function Friends() {
                                             className="flex items-center gap-4 p-4 rounded-xl bg-green-500/5 border border-green-500/20 hover:border-green-500/40 transition-all cursor-pointer group"
                                             onClick={() => friendsLogic.handleFriendClick(item.friend.id)}
                                         >
-                                            <div className="relative">
-                                                {item.friend.avatarUrl ? (
-                                                    <img src={item.friend.avatarUrl} alt="" className="w-12 h-12 rounded-full" />
-                                                ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                                                        <User size={24} className="text-green-500" />
-                                                    </div>
-                                                )}
-                                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-[var(--bg-main)] rounded-full animate-pulse"></span>
-                                            </div>
+                                            <UserAvatar
+                                                avatarUrl={item.friend.avatarUrl}
+                                                displayName={item.friend.displayName}
+                                                userId={item.friend.id}
+                                                useGeneratedAvatar={item.friend.useGeneratedAvatar}
+                                                size="lg"
+                                                showOnlineStatus={true}
+                                                isOnline={true}
+                                            />
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-bold text-[var(--text-primary)] truncate">
                                                     {item.friend.displayName || item.friend.email}
@@ -182,16 +186,15 @@ export function Friends() {
                                             className="flex items-center gap-4 p-4 rounded-xl bg-[var(--bg-sidebar)] border border-[var(--border-primary)] hover:border-[var(--border-hover)] transition-all cursor-pointer group"
                                             onClick={() => friendsLogic.handleFriendClick(item.friend.id)}
                                         >
-                                            <div className="relative">
-                                                {item.friend.avatarUrl ? (
-                                                    <img src={item.friend.avatarUrl} alt="" className="w-12 h-12 rounded-full opacity-60" />
-                                                ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                        <User size={24} className="text-[var(--text-secondary)]" />
-                                                    </div>
-                                                )}
-                                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-gray-600 border-2 border-[var(--bg-main)] rounded-full"></span>
-                                            </div>
+                                            <UserAvatar
+                                                avatarUrl={item.friend.avatarUrl}
+                                                displayName={item.friend.displayName}
+                                                userId={item.friend.id}
+                                                useGeneratedAvatar={item.friend.useGeneratedAvatar}
+                                                size="lg"
+                                                showOnlineStatus={true}
+                                                isOnline={false}
+                                            />
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-bold text-[var(--text-secondary)] truncate">
                                                     {item.friend.displayName || item.friend.email}

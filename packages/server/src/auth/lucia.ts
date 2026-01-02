@@ -8,6 +8,7 @@ export interface DatabaseUserAttributes {
   avatar_url: string | null;
   preferences: any;
   bio: string | null;
+  use_generated_avatar: boolean;
 }
 
 // Create Lucia adapter with PostgreSQL
@@ -32,6 +33,7 @@ export const lucia = new Lucia(adapter, {
       avatarUrl: attributes.avatar_url,
       preferences: attributes.preferences,
       bio: attributes.bio,
+      useGeneratedAvatar: attributes.use_generated_avatar,
     };
   },
 });

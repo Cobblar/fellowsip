@@ -1,5 +1,5 @@
-import React from 'react';
-import { Zap, Info, X, Ban, VolumeX, Check, User } from 'lucide-react';
+import { Zap, Info, X, Ban, VolumeX, Check } from 'lucide-react';
+import { UserAvatar } from '../UserAvatar';
 
 interface HostControlsProps {
     isHost: boolean;
@@ -104,13 +104,13 @@ export const JoinRequestsPanel: React.FC<Pick<HostControlsProps, 'joinRequests' 
                 {joinRequests.map((request) => (
                     <div key={request.id} className="flex items-center justify-between p-2 rounded-md bg-yellow-500/5 border border-yellow-500/20">
                         <div className="flex items-center gap-2 min-w-0">
-                            {request.requester?.avatarUrl ? (
-                                <img src={request.requester.avatarUrl} alt="" className="w-6 h-6 rounded-full" />
-                            ) : (
-                                <div className="w-6 h-6 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                    <User size={12} className="text-[var(--text-secondary)]" />
-                                </div>
-                            )}
+                            <UserAvatar
+                                avatarUrl={request.requester?.avatarUrl}
+                                displayName={request.requester?.displayName}
+                                userId={request.requester?.id}
+                                useGeneratedAvatar={request.requester?.useGeneratedAvatar}
+                                size="sm"
+                            />
                             <span className="text-xs text-[var(--text-primary)] truncate">
                                 {request.requester?.displayName || request.requester?.email || 'User'}
                             </span>

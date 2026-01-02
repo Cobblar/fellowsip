@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, UserPlus, X, User, Check, ChevronRight } from 'lucide-react';
+import { UserAvatar } from '../UserAvatar';
 
 interface FriendsSidebarProps {
     isSidebarOpen: boolean;
@@ -158,9 +159,13 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                             className="flex items-center justify-between p-2 bg-[var(--bg-main)] border border-[var(--border-primary)] rounded-lg"
                                         >
                                             <div className="flex items-center gap-2 min-w-0">
-                                                <div className="w-7 h-7 bg-[var(--bg-input)] rounded-full flex items-center justify-center shrink-0">
-                                                    <User size={12} className="text-[var(--text-secondary)]" />
-                                                </div>
+                                                <UserAvatar
+                                                    avatarUrl={request.sender?.avatarUrl}
+                                                    displayName={request.sender?.displayName || request.sender?.email}
+                                                    userId={request.sender?.id}
+                                                    useGeneratedAvatar={request.sender?.useGeneratedAvatar}
+                                                    size="sm"
+                                                />
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-medium text-[var(--text-primary)] truncate">
                                                         {request.sender?.displayName || request.sender?.email}
@@ -208,14 +213,15 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                                 onClick={() => onFriendClick(item.friend.id)}
                                             >
                                                 <div className="relative">
-                                                    {item.friend.avatarUrl ? (
-                                                        <img src={item.friend.avatarUrl} alt="" className="w-9 h-9 rounded-full" />
-                                                    ) : (
-                                                        <div className="w-9 h-9 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                            <User size={16} className="text-[var(--text-secondary)]" />
-                                                        </div>
-                                                    )}
-                                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[var(--bg-sidebar)] rounded-full animate-pulse"></span>
+                                                    <UserAvatar
+                                                        avatarUrl={item.friend.avatarUrl}
+                                                        displayName={item.friend.displayName || item.friend.email}
+                                                        userId={item.friend.id}
+                                                        useGeneratedAvatar={item.friend.useGeneratedAvatar}
+                                                        size="md"
+                                                        showOnlineStatus={true}
+                                                        isOnline={true}
+                                                    />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-[var(--text-primary)] truncate">
@@ -242,14 +248,15 @@ export const FriendsSidebar: React.FC<FriendsSidebarProps> = ({
                                                 onClick={() => onFriendClick(item.friend.id)}
                                             >
                                                 <div className="relative">
-                                                    {item.friend.avatarUrl ? (
-                                                        <img src={item.friend.avatarUrl} alt="" className="w-9 h-9 rounded-full opacity-60" />
-                                                    ) : (
-                                                        <div className="w-9 h-9 rounded-full bg-[var(--bg-input)] flex items-center justify-center">
-                                                            <User size={16} className="text-[var(--text-secondary)]" />
-                                                        </div>
-                                                    )}
-                                                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-gray-600 border-2 border-[var(--bg-sidebar)] rounded-full"></span>
+                                                    <UserAvatar
+                                                        avatarUrl={item.friend.avatarUrl}
+                                                        displayName={item.friend.displayName || item.friend.email}
+                                                        userId={item.friend.id}
+                                                        useGeneratedAvatar={item.friend.useGeneratedAvatar}
+                                                        size="md"
+                                                        showOnlineStatus={true}
+                                                        isOnline={false}
+                                                    />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-[var(--text-secondary)] truncate">

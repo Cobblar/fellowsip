@@ -1,5 +1,6 @@
 import React from 'react';
-import { MessageSquare, Edit2, X, Save, Users, User, Globe, Lock, Star, ChevronRight, Award } from 'lucide-react';
+import { MessageSquare, Edit2, X, Save, Users, Globe, Lock, Star, ChevronRight, Award } from 'lucide-react';
+import { UserAvatar } from '../UserAvatar';
 
 interface TastingNoteProps {
     summary: any;
@@ -193,13 +194,15 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
                                                             e.stopPropagation();
                                                             onTasterClick(taster.userId);
                                                         }}
-                                                        className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+                                                        className="cursor-pointer hover:scale-105 transition-transform"
                                                     >
-                                                        {taster.avatarUrl ? (
-                                                            <img src={taster.avatarUrl} alt="" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <User size={16} className="text-[var(--text-secondary)]" />
-                                                        )}
+                                                        <UserAvatar
+                                                            avatarUrl={taster.avatarUrl}
+                                                            displayName={taster.displayName}
+                                                            userId={taster.userId}
+                                                            useGeneratedAvatar={taster.useGeneratedAvatar}
+                                                            size="sm"
+                                                        />
                                                     </div>
                                                     <div className="text-left">
                                                         <div className="flex items-center gap-2">

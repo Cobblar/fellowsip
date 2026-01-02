@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, FileText, Calendar, ChevronRight, ArrowLeft, Star, Search, Award } from 'lucide-react';
+import { FileText, Calendar, ChevronRight, ArrowLeft, Star, Search, Award } from 'lucide-react';
 import { usePublicProfile } from '../api/auth';
 import { getProductIcon } from '../utils/productIcons';
+import { UserAvatar } from '../components/UserAvatar';
 
 export function PublicProfile() {
     const { id } = useParams<{ id: string }>();
@@ -22,7 +23,13 @@ export function PublicProfile() {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg-main)] p-4 text-center">
                 <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                    <User size={32} className="text-red-500" />
+                    <UserAvatar
+                        avatarUrl={undefined}
+                        displayName="?"
+                        userId="unknown"
+                        useGeneratedAvatar={true}
+                        size="lg"
+                    />
                 </div>
                 <h1 className="heading-lg mb-2">Profile Not Found</h1>
                 <p className="text-[var(--text-secondary)] mb-6">This profile does not exist or has no shared summaries.</p>
@@ -128,13 +135,13 @@ export function PublicProfile() {
             <div className="max-w-4xl mx-auto px-4 py-6">
                 {/* Compact Profile Header */}
                 <div className="flex items-center gap-4 mb-8">
-                    <div className="w-16 h-16 rounded-full bg-[var(--bg-input)] flex items-center justify-center border-2 border-[var(--border-secondary)] overflow-hidden shrink-0">
-                        {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt={user.displayName || ''} className="w-full h-full object-cover" />
-                        ) : (
-                            <User size={28} className="text-[var(--text-secondary)]" />
-                        )}
-                    </div>
+                    <UserAvatar
+                        avatarUrl={user.avatarUrl}
+                        displayName={user.displayName}
+                        userId={user.id}
+                        useGeneratedAvatar={user.useGeneratedAvatar}
+                        size="lg"
+                    />
                     <div className="min-w-0">
                         <h1 className="text-xl font-bold text-white truncate">{user.displayName || 'Taster'}</h1>
                         {user.bio && (

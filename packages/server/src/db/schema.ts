@@ -13,6 +13,7 @@ export const users = pgTable('users', {
     [key: string]: any;
   }>(),
   isPublic: boolean('is_public').notNull().default(false),
+  useGeneratedAvatar: boolean('use_generated_avatar').notNull().default(false),
   bio: text('bio'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
@@ -63,6 +64,7 @@ export const tastingSessions = pgTable('tasting_sessions', {
     productType: string | null;
     productLink: string | null;
     productName: string | null;
+    productDescription: string | null;
   }>>().notNull().default(sql`'[]'::jsonb`),
   isSolo: boolean('is_solo').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),

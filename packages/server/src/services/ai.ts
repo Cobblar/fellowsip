@@ -155,14 +155,58 @@ async function generateProductSummary(sessionId: string, product: any, isSolo: b
     const [saved] = await db.insert(tastingSummaries).values({
         sessionId,
         productIndex: product.index,
-        ...summaryData
+        ...summaryData,
+        metadata: {
+            ...summaryData.metadata,
+            productDescription: product.productDescription || null
+        }
     }).onConflictDoUpdate({
         target: [tastingSummaries.sessionId, tastingSummaries.productIndex],
-        set: { ...summaryData, generatedAt: new Date() }
+        set: {
+            ...summaryData,
+            metadata: {
+                ...summaryData.metadata,
+                productDescription: product.productDescription || null
+            },
+            generatedAt: new Date()
+        }
     }).returning();
 
     emitSummaryGenerated(sessionId, saved.id);
     return saved;
+}
+
+export async function generateProductDescription(url: string): Promise<string | null> {
+    if (!url) return null;
+    try {
+        console.log(`[AI] Generating product description for URL: ${url}`);
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        console.log(`[AI] Fetch status: ${response.status} ${response.statusText}`);
+        const html = await response.text();
+        console.log(`[AI] HTML length: ${html.length}`);
+        // Extract text content (strip HTML tags)
+        const textContent = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').slice(0, 5000);
+        console.log(`[AI] Text content length: ${textContent.length}`);
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+        const prompt = `Write ONE concise sentence (max 40 words) describing this product. Include: name, producer, type, key characteristics. For wine/whisky, add region/vintage if available. Be factual.
+
+Content: ${textContent}`;
+
+        const result = await model.generateContent(prompt);
+        const description = result.response.text().trim();
+        console.log(`[AI] Generated description: ${description}`);
+        return description;
+    } catch (error) {
+        console.error('[AI] Product description generation failed:', error);
+        return null;
+    }
 }
 
 async function generateComparisonSummary(sessionId: string, productSummaries: any[], products: any[]) {

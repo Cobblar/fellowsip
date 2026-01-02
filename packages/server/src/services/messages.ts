@@ -17,7 +17,12 @@ export async function createMessage(sessionId: string, userId: string, content: 
   const [messageWithUser] = await db
     .select({
       message: messages,
-      user: users,
+      user: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        useGeneratedAvatar: users.useGeneratedAvatar,
+      },
     })
     .from(messages)
     .leftJoin(users, eq(messages.userId, users.id))
@@ -39,7 +44,12 @@ export async function getSessionMessages(sessionId: string, limit: number = 100,
   const results = await db
     .select({
       message: messages,
-      user: users,
+      user: {
+        id: users.id,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        useGeneratedAvatar: users.useGeneratedAvatar,
+      },
     })
     .from(messages)
     .leftJoin(users, eq(messages.userId, users.id))

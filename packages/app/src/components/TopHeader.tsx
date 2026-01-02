@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Sun, Moon } from 'lucide-react';
 import { useCurrentUser } from '../api/auth';
 import { NotificationDropdown } from './NotificationDropdown';
+import { UserAvatar } from './UserAvatar';
 import { useTheme } from '../contexts/ThemeContext';
 
 export function TopHeader() {
@@ -75,11 +76,15 @@ export function TopHeader() {
                     <NotificationDropdown />
                     <button
                         onClick={() => navigate('/settings')}
-                        className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-[var(--border-secondary)] cursor-pointer hover:border-orange-500 transition-colors overflow-hidden"
+                        className="cursor-pointer hover:scale-105 transition-transform"
                     >
-                        {user?.avatarUrl ? (
-                            <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                        ) : null}
+                        <UserAvatar
+                            avatarUrl={user?.avatarUrl}
+                            displayName={user?.displayName}
+                            userId={user?.id}
+                            useGeneratedAvatar={user?.useGeneratedAvatar}
+                            size="sm"
+                        />
                     </button>
                 </div>
             </header>

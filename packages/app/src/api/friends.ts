@@ -8,6 +8,7 @@ interface Friend {
         displayName: string | null;
         email: string;
         avatarUrl: string | null;
+        useGeneratedAvatar?: boolean;
     };
     autoMod: boolean; // Whether this friend is auto-modded when joining user's sessions
     createdAt: string;
@@ -20,12 +21,14 @@ interface FriendRequest {
         displayName: string | null;
         email: string;
         avatarUrl: string | null;
+        useGeneratedAvatar?: boolean;
     };
     receiver?: {
         id: string;
         displayName: string | null;
         email: string;
         avatarUrl: string | null;
+        useGeneratedAvatar?: boolean;
     };
     createdAt: string;
 }
@@ -39,6 +42,7 @@ interface FriendSession {
         id: string;
         displayName: string | null;
         avatarUrl: string | null;
+        useGeneratedAvatar?: boolean;
     };
 }
 
@@ -53,6 +57,7 @@ interface JoinRequest {
         displayName: string | null;
         email: string;
         avatarUrl: string | null;
+        useGeneratedAvatar?: boolean;
     };
 }
 
