@@ -10,6 +10,7 @@ interface CreateSessionData {
     productName?: string | null;
   }>;
   livestreamUrl?: string;
+  isSolo?: boolean;
 }
 
 interface SessionResponse {

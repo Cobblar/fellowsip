@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { api } from '../../api/client';
 
-export const useChatPreferences = (sessionId: string | null) => {
+export const useChatPreferences = (sessionId: string | null, isSolo: boolean = false) => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [recentTags, setRecentTags] = useState<string[]>([]);
     const [phaseVisibility, setPhaseVisibilityState] = useState<Record<string, 'normal' | 'hidden' | 'revealed'>>({
@@ -64,7 +64,15 @@ export const useChatPreferences = (sessionId: string | null) => {
             }
         };
 
-        if (sessionId) {
+        if (isSolo) {
+            setPhaseVisibilityState({
+                nose: 'normal',
+                palate: 'normal',
+                finish: 'normal',
+                texture: 'normal',
+                untagged: 'normal',
+            });
+        } else if (sessionId) {
             try {
                 const sessionKey = `fellowsip_spoiler_${sessionId}`;
                 const sessionSaved = localStorage.getItem(sessionKey);
@@ -80,14 +88,14 @@ export const useChatPreferences = (sessionId: string | null) => {
             setPhaseVisibilityState(getDefaults());
         }
         setPhaseVisibilityInitialized(true);
-    }, [sessionId]);
+    }, [sessionId, isSolo]);
 
     useEffect(() => {
-        if (sessionId && phaseVisibilityInitialized) {
+        if (sessionId && phaseVisibilityInitialized && !isSolo) {
             const sessionKey = `fellowsip_spoiler_${sessionId}`;
             localStorage.setItem(sessionKey, JSON.stringify(phaseVisibility));
         }
-    }, [phaseVisibility, sessionId, phaseVisibilityInitialized]);
+    }, [phaseVisibility, sessionId, phaseVisibilityInitialized, isSolo]);
 
     useEffect(() => {
         const fetchUser = async () => {

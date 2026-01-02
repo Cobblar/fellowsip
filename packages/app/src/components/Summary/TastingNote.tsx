@@ -15,6 +15,7 @@ interface TastingNoteProps {
     onEdit: () => void;
     onSave: () => void;
     onTasterClick: (userId: string) => void;
+    isSolo?: boolean;
 }
 
 export const TastingNote: React.FC<TastingNoteProps> = ({
@@ -31,6 +32,7 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
     onEdit,
     onSave,
     onTasterClick,
+    isSolo,
 }) => {
     const selectedTaster = summary.tasterSummaries?.find((s: any) => s.userId === (selectedMemberId || currentUser?.id));
     const selectedRating = participants.find(p => p.userId === (selectedMemberId || currentUser?.id))?.rating;
@@ -156,87 +158,89 @@ export const TastingNote: React.FC<TastingNoteProps> = ({
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
-                    <Users size={14} />
-                    Individual Tasters
-                </h3>
-                <div className="grid grid-cols-1 gap-3">
-                    {participants
-                        .filter((p: any) => {
-                            if (publicMode) return p.sharePersonalSummary;
-                            return true;
-                        })
-                        .reduce((acc: any[], current: any) => {
-                            if (!acc.find(p => p.userId === current.userId)) {
-                                acc.push(current);
-                            }
-                            return acc;
-                        }, [])
-                        .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
-                        .map(taster => {
-                            const isSelected = selectedMemberId === taster.userId;
-                            const isMe = taster.userId === currentUser?.id;
-                            return (
-                                <div key={taster.userId} className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setSelectedMemberId(isSelected ? null : taster.userId)}
-                                            className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected ? 'bg-orange-500/5 border-orange-500/30' : 'bg-[var(--bg-card)] border-[var(--border-primary)] hover:border-[var(--text-muted)]'}`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onTasterClick(taster.userId);
-                                                    }}
-                                                    className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
-                                                >
-                                                    {taster.avatarUrl ? (
-                                                        <img src={taster.avatarUrl} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <User size={16} className="text-[var(--text-secondary)]" />
+            {!isSolo && (
+                <div className="space-y-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
+                        <Users size={14} />
+                        Individual Tasters
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3">
+                        {participants
+                            .filter((p: any) => {
+                                if (publicMode) return p.sharePersonalSummary;
+                                return true;
+                            })
+                            .reduce((acc: any[], current: any) => {
+                                if (!acc.find(p => p.userId === current.userId)) {
+                                    acc.push(current);
+                                }
+                                return acc;
+                            }, [])
+                            .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))
+                            .map(taster => {
+                                const isSelected = selectedMemberId === taster.userId;
+                                const isMe = taster.userId === currentUser?.id;
+                                return (
+                                    <div key={taster.userId} className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setSelectedMemberId(isSelected ? null : taster.userId)}
+                                                className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${isSelected ? 'bg-orange-500/5 border-orange-500/30' : 'bg-[var(--bg-card)] border-[var(--border-primary)] hover:border-[var(--text-muted)]'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onTasterClick(taster.userId);
+                                                        }}
+                                                        className="w-8 h-8 rounded-full bg-[var(--bg-input)] flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-orange-500 transition-all"
+                                                    >
+                                                        {taster.avatarUrl ? (
+                                                            <img src={taster.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <User size={16} className="text-[var(--text-secondary)]" />
+                                                        )}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="flex items-center gap-2">
+                                                            <p
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onTasterClick(taster.userId);
+                                                                }}
+                                                                className="text-sm font-bold text-[var(--text-primary)] cursor-pointer hover:text-orange-500 transition-colors"
+                                                            >
+                                                                {taster.displayName || 'Anonymous'}
+                                                            </p>
+                                                            {taster.sharePersonalSummary && <Globe size={10} className="text-blue-400" />}
+                                                            {!taster.sharePersonalSummary && !publicMode && <Lock size={10} className="text-[var(--text-muted)]" />}
+                                                        </div>
+                                                        <p className="text-[10px] text-[var(--text-secondary)]">{isMe ? 'You' : 'Participant'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {taster.rating !== null && (
+                                                        <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
+                                                            <Star size={12} fill="currentColor" />
+                                                            {taster.rating}
+                                                        </div>
                                                     )}
+                                                    {taster.valueGrade && (
+                                                        <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded text-xs font-bold text-blue-500">
+                                                            <Award size={12} />
+                                                            {taster.valueGrade}
+                                                        </div>
+                                                    )}
+                                                    <ChevronRight size={14} className={`text-[var(--text-muted)] transition-transform ${isSelected ? 'rotate-90' : ''}`} />
                                                 </div>
-                                                <div className="text-left">
-                                                    <div className="flex items-center gap-2">
-                                                        <p
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                onTasterClick(taster.userId);
-                                                            }}
-                                                            className="text-sm font-bold text-[var(--text-primary)] cursor-pointer hover:text-orange-500 transition-colors"
-                                                        >
-                                                            {taster.displayName || 'Anonymous'}
-                                                        </p>
-                                                        {taster.sharePersonalSummary && <Globe size={10} className="text-blue-400" />}
-                                                        {!taster.sharePersonalSummary && !publicMode && <Lock size={10} className="text-[var(--text-muted)]" />}
-                                                    </div>
-                                                    <p className="text-[10px] text-[var(--text-secondary)]">{isMe ? 'You' : 'Participant'}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                {taster.rating !== null && (
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 rounded text-xs font-bold text-orange-500">
-                                                        <Star size={12} fill="currentColor" />
-                                                        {taster.rating}
-                                                    </div>
-                                                )}
-                                                {taster.valueGrade && (
-                                                    <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded text-xs font-bold text-blue-500">
-                                                        <Award size={12} />
-                                                        {taster.valueGrade}
-                                                    </div>
-                                                )}
-                                                <ChevronRight size={14} className={`text-[var(--text-muted)] transition-transform ${isSelected ? 'rotate-90' : ''}`} />
-                                            </div>
-                                        </button>
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

@@ -29,6 +29,7 @@ export interface Session {
     updatedAt: string | Date;
     customTags: string[];
     products: Product[];
+    isSolo: boolean;
     host?: User;
     summaryId?: string;
     userRating?: number | null;

@@ -63,6 +63,13 @@ async function addMissingColumns() {
     }
 
     try {
+        await sql.unsafe('ALTER TABLE tasting_sessions ADD COLUMN IF NOT EXISTS is_solo BOOLEAN DEFAULT false NOT NULL');
+        console.log('✓ Added is_solo to tasting_sessions');
+    } catch (e: any) {
+        console.log('is_solo already exists or error:', e.message);
+    }
+
+    try {
         await sql.unsafe('ALTER TABLE tasting_summaries ADD COLUMN IF NOT EXISTS product_index INTEGER DEFAULT 0 NOT NULL');
         console.log('✓ Added product_index to tasting_summaries');
     } catch (e: any) {

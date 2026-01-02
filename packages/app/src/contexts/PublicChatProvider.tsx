@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { usePublicSessionLog } from '../api/sessions';
+import { usePublicSessionLog, useSession } from '../api/sessions';
 import type { ActiveUser, Message, BannedUser } from '../types';
 
 // Re-export the context type from ChatContext or define a compatible one
@@ -61,6 +61,7 @@ interface ChatContextType {
     unkickUser: (userId: string) => void;
     getBannedUsers: () => void;
     unmodUser: (userId: string) => void;
+    isSolo: boolean;
 }
 
 // We need to access the internal context of ChatContext to provide a compatible value
@@ -78,7 +79,10 @@ import { ChatContext } from './ChatContext';
 
 export const PublicChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { id } = useParams<{ id: string }>();
-    const { data: logData, isLoading } = usePublicSessionLog(id!);
+    const { data: logData, isLoading: isLogLoading } = usePublicSessionLog(id!);
+    const { data: sessionData, isLoading: isSessionLoading } = useSession(id!);
+    const isSolo = sessionData?.session?.isSolo || false;
+    const isLoading = isLogLoading || isSessionLoading;
 
     // State for local interactivity (spoilers)
     const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(new Set());
@@ -116,7 +120,15 @@ export const PublicChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     // Load session-specific spoiler settings
     useEffect(() => {
-        if (id) {
+        if (isSolo) {
+            setPhaseVisibilityState({
+                nose: 'normal',
+                palate: 'normal',
+                finish: 'normal',
+                texture: 'normal',
+                untagged: 'normal',
+            });
+        } else if (id) {
             try {
                 const sessionKey = `fellowsip_spoiler_${id}`;
                 const sessionSaved = localStorage.getItem(sessionKey);
@@ -130,7 +142,7 @@ export const PublicChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 // Ignore errors
             }
         }
-    }, [id]);
+    }, [id, isSolo, spoilerDefaults]);
 
     // Save settings when changed
     useEffect(() => {
@@ -242,6 +254,7 @@ export const PublicChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         unkickUser: () => { },
         getBannedUsers: () => { },
         unmodUser: () => { },
+        isSolo,
     };
 
     if (isLoading) {

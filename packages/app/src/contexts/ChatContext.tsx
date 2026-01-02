@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../hooks/useSocket';
+import { useSession } from '../api/sessions';
 import { ActiveUser, Message, ErrorEvent, BannedUser } from '../types';
 
 // Custom hooks
@@ -64,6 +65,7 @@ interface ChatContextType {
     unkickUser: (userId: string) => void;
     getBannedUsers: () => void;
     unmodUser: (userId: string) => void;
+    isSolo: boolean;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -78,6 +80,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const match = location.pathname.match(/^\/session\/([^\/]+)$/);
     const sessionId = match ? match[1] : null;
 
+    const { data: sessionData } = useSession(sessionId || '');
+    const isSolo = sessionData?.session?.isSolo || false;
+
     // Initialize feature-specific hooks
     const {
         currentUserId,
@@ -88,7 +93,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateRecentTags,
         setPhaseVisibility,
         setAllPhaseVisibility,
-    } = useChatPreferences(sessionId);
+    } = useChatPreferences(sessionId, isSolo);
 
     const {
         messages,
@@ -295,6 +300,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             unkickUser,
             getBannedUsers,
             unmodUser,
+            isSolo,
         }}>
             {children}
         </ChatContext.Provider>

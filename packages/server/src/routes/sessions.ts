@@ -31,7 +31,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
   fastify.post('/sessions', { preHandler: requireAuth }, async (request, reply) => {
     try {
       const user = (request as any).user;
-      const { name, products, livestreamUrl, customTags } = request.body as {
+      const { name, products, livestreamUrl, customTags, isSolo } = request.body as {
         name: string;
         products?: Array<{
           productType?: string;
@@ -40,6 +40,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         }>;
         livestreamUrl?: string;
         customTags?: string[];
+        isSolo?: boolean;
       };
 
       if (!name) {
@@ -51,7 +52,8 @@ export async function sessionRoutes(fastify: FastifyInstance) {
         name,
         products || [],
         livestreamUrl || null,
-        customTags || []
+        customTags || [],
+        isSolo || false
       );
 
       // Notify all friends that a new session started

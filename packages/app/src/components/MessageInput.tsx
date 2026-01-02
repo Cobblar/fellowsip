@@ -6,9 +6,10 @@ import { api } from '../api/client';
 interface MessageInputProps {
   onSend: (content: string, phase?: string) => void;
   disabled?: boolean;
+  isSolo?: boolean;
 }
 
-export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
+export function MessageInput({ onSend, disabled = false, isSolo = false }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [phase, setPhase] = useState<string | undefined>(undefined);
   const [isManualPhase, setIsManualPhase] = useState(false);
@@ -292,21 +293,27 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
             {isAutoSelectEnabled ? <Wand2 size={14} /> : <Wand size={14} />}
           </button>
 
-          <div className="w-px h-4 bg-[var(--border-primary)] mx-1" />
+          {!isSolo && (
+            <>
+              <div className="w-px h-4 bg-[var(--border-primary)] mx-1" />
 
-          <button
-            type="button"
-            onClick={handleSpoiler}
-            className="p-1.5 rounded bg-[var(--bg-input)] border border-[var(--border-primary)] text-[var(--text-muted)] hover:text-orange-500 hover:border-orange-500/30 transition-colors"
-            title="Mark as spoiler"
-          >
-            <EyeOff size={16} />
-          </button>
+              <button
+                type="button"
+                onClick={handleSpoiler}
+                className="p-1.5 rounded bg-[var(--bg-input)] border border-[var(--border-primary)] text-[var(--text-muted)] hover:text-orange-500 hover:border-orange-500/30 transition-colors"
+                title="Mark as spoiler"
+              >
+                <EyeOff size={16} />
+              </button>
+            </>
+          )}
         </div>
 
-        <div className="flex gap-4">
-          <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-tighter">||text|| for spoilers</span>
-        </div>
+        {!isSolo && (
+          <div className="flex gap-4">
+            <span className="text-[9px] text-[var(--text-muted)] uppercase tracking-tighter">||text|| for spoilers</span>
+          </div>
+        )}
       </div>
 
       <div className="relative group">

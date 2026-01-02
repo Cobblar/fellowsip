@@ -80,20 +80,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 >
                     <ChevronLeft size={24} />
                 </button>
-                <button
-                    onClick={onOpenTastersSidebar}
-                    className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden flex-shrink-0"
-                >
-                    <Users size={20} />
-                </button>
+                {!session?.isSolo && (
+                    <button
+                        onClick={onOpenTastersSidebar}
+                        className="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] md:hidden flex-shrink-0"
+                    >
+                        <Users size={20} />
+                    </button>
+                )}
                 <div className="min-w-0">
                     <h1 className="text-sm md:text-lg font-bold text-[var(--text-primary)] truncate">{session?.name}</h1>
                     <div className="flex items-center gap-2 md:gap-3 mt-0.5">
-                        <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
-                            <span className="text-[10px] md:text-xs text-[var(--text-secondary)]">{activeUsers.length} Taster{activeUsers.length !== 1 ? 's' : ''}</span>
-                        </div>
-                        <span className="text-[var(--text-muted)] hidden md:inline">•</span>
+                        {!session?.isSolo && (
+                            <>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500"></span>
+                                    <span className="text-[10px] md:text-xs text-[var(--text-secondary)]">{activeUsers.length} Taster{activeUsers.length !== 1 ? 's' : ''}</span>
+                                </div>
+                                <span className="text-[var(--text-muted)] hidden md:inline">•</span>
+                            </>
+                        )}
                         <div className="hidden md:flex items-center gap-1.5">
                             <Hash size={10} className="text-[var(--text-muted)]" />
                             <span className="text-xs text-[var(--text-secondary)] font-mono">{id?.slice(0, 8)}...</span>
@@ -105,7 +111,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                 {copied === 'id' ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
                             </button>
                         </div>
-                        {(averageRatings?.[activeProductIndex || 0] ?? (activeProductIndex === 0 ? averageRating : null)) !== null && (
+                        {!session?.isSolo && (averageRatings?.[activeProductIndex || 0] ?? (activeProductIndex === 0 ? averageRating : null)) !== null && (
                             <>
                                 <span className="text-[var(--text-muted)]">•</span>
                                 <div className="flex items-center gap-1.5">
@@ -205,27 +211,31 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                         </button>
                                     )}
 
-                                    <button
-                                        onClick={() => {
-                                            onRevealAllSpoilers();
-                                            setIsActionsOpen(false);
-                                        }}
-                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
-                                    >
-                                        <Eye size={16} />
-                                        Reveal All Spoilers
-                                    </button>
+                                    {!session?.isSolo && (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    onRevealAllSpoilers();
+                                                    setIsActionsOpen(false);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                                            >
+                                                <Eye size={16} />
+                                                Reveal All Spoilers
+                                            </button>
 
-                                    <button
-                                        onClick={() => {
-                                            onShowSpoilerDefaults();
-                                            setIsActionsOpen(false);
-                                        }}
-                                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
-                                    >
-                                        <EyeOff size={16} />
-                                        Spoiler Defaults
-                                    </button>
+                                            <button
+                                                onClick={() => {
+                                                    onShowSpoilerDefaults();
+                                                    setIsActionsOpen(false);
+                                                }}
+                                                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-input)] rounded-md transition-colors"
+                                            >
+                                                <EyeOff size={16} />
+                                                Spoiler Defaults
+                                            </button>
+                                        </>
+                                    )}
 
                                     {currentUserId === '108758497007070939011' && (
                                         <button

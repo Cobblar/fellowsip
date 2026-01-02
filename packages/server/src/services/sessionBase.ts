@@ -11,7 +11,8 @@ export async function createSession(
         productName?: string | null;
     }> = [],
     livestreamUrl: string | null = null,
-    customTags: string[] = []
+    customTags: string[] = [],
+    isSolo: boolean = false
 ) {
     // Normalize products array (max 3, add indices)
     const normalizedProducts = products.slice(0, 3).map((p, i) => ({
@@ -38,6 +39,7 @@ export async function createSession(
             livestreamUrl,
             customTags,
             hostId,
+            isSolo,
             status: 'active',
         })
         .returning();

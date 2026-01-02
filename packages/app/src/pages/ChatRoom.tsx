@@ -307,66 +307,70 @@ export function ChatRoom() {
       />
 
       <aside
-        className={`sidebar ${activeSidebar === 'tasters' ? 'open' : ''} bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-visible transition-all duration-300 relative group/sidebar`}
+        className={`sidebar ${activeSidebar === 'tasters' ? 'open' : ''} bg-[var(--bg-sidebar)] border-r border-[var(--border-primary)] flex flex-col overflow-visible transition-all duration-300 relative group/sidebar ${session?.isSolo ? 'hidden md:hidden' : ''}`}
         style={{ width: leftSidebarCollapsed ? '48px' : (livestreamUrl ? `${sidebarWidth}px` : '240px') }}
       >
-        <button
-          onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
-          className={`hidden md:flex absolute top-20 -right-3 z-50 p-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-orange-500 transition-all shadow-md ${leftSidebarCollapsed ? '' : 'opacity-0 group-hover/sidebar:opacity-100'}`}
-          title={leftSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-        >
-          {leftSidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-        </button>
+        {!session?.isSolo && (
+          <>
+            <button
+              onClick={() => setLeftSidebarCollapsed(!leftSidebarCollapsed)}
+              className={`hidden md:flex absolute top-20 -right-3 z-50 p-1 rounded-md bg-[var(--bg-card)] border border-[var(--border-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-orange-500 transition-all shadow-md ${leftSidebarCollapsed ? '' : 'opacity-0 group-hover/sidebar:opacity-100'}`}
+              title={leftSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {leftSidebarCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+            </button>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {(isMobile || !leftSidebarCollapsed) && (
-            <>
-              {livestreamUrl && !isMobile && (
-                <div className="hidden md:block p-4 border-b border-[var(--border-primary)]">
-                  <LivestreamEmbed url={livestreamUrl} />
-                </div>
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {(isMobile || !leftSidebarCollapsed) && (
+                <>
+                  {livestreamUrl && !isMobile && (
+                    <div className="hidden md:block p-4 border-b border-[var(--border-primary)]">
+                      <LivestreamEmbed url={livestreamUrl} />
+                    </div>
+                  )}
+
+                  <ParticipantList
+                    activeUsers={activeUsers}
+                    moderators={moderators}
+                    effectiveHostId={effectiveHostId}
+                    currentUserId={currentUserId}
+                    isHost={isHost}
+                    canModerate={canModerate}
+                    readyCheckActive={readyCheckActive}
+                    readyUsers={readyUsers}
+                    onStartReadyCheck={startReadyCheck}
+                    onEndReadyCheck={endReadyCheck}
+                    onMarkReady={markReady}
+                    onMarkUnready={markUnready}
+                    onGetBannedUsers={getBannedUsers}
+                    onShowManageBans={setShowManageBans}
+                    onMakeModerator={makeModerator}
+                    onUnmodUser={unmodUser}
+                    onTransferHost={handleTransferHost}
+                    onMuteUser={(userId, displayName) => setConfirmAction({ type: 'mute', userId, displayName })}
+                    onKickUser={(userId, displayName) => setConfirmAction({ type: 'kick', userId, displayName })}
+                    mutedUsers={mutedUsers}
+                    unmuteUser={unmuteUser}
+                    isTastersMenuOpen={isTastersMenuOpen}
+                    setIsTastersMenuOpen={setIsTastersMenuOpen}
+                    tastersMenuRef={tastersMenuRef}
+                    expandedActionUserId={expandedActionUserId}
+                    setExpandedActionUserId={setExpandedActionUserId}
+                    isTransferring={isTransferring}
+                    onCloseSidebar={() => setActiveSidebar(null)}
+                    activeProductIndex={activeProductIndex}
+                  />
+
+                  <JoinRequestsPanel
+                    joinRequests={joinRequests}
+                    onApproveJoinRequest={(requestId) => approveJoinRequest.mutate({ requestId, sessionId: id! })}
+                    onRejectJoinRequest={(requestId) => rejectJoinRequest.mutate({ requestId, sessionId: id! })}
+                  />
+                </>
               )}
-
-              <ParticipantList
-                activeUsers={activeUsers}
-                moderators={moderators}
-                effectiveHostId={effectiveHostId}
-                currentUserId={currentUserId}
-                isHost={isHost}
-                canModerate={canModerate}
-                readyCheckActive={readyCheckActive}
-                readyUsers={readyUsers}
-                onStartReadyCheck={startReadyCheck}
-                onEndReadyCheck={endReadyCheck}
-                onMarkReady={markReady}
-                onMarkUnready={markUnready}
-                onGetBannedUsers={getBannedUsers}
-                onShowManageBans={setShowManageBans}
-                onMakeModerator={makeModerator}
-                onUnmodUser={unmodUser}
-                onTransferHost={handleTransferHost}
-                onMuteUser={(userId, displayName) => setConfirmAction({ type: 'mute', userId, displayName })}
-                onKickUser={(userId, displayName) => setConfirmAction({ type: 'kick', userId, displayName })}
-                mutedUsers={mutedUsers}
-                unmuteUser={unmuteUser}
-                isTastersMenuOpen={isTastersMenuOpen}
-                setIsTastersMenuOpen={setIsTastersMenuOpen}
-                tastersMenuRef={tastersMenuRef}
-                expandedActionUserId={expandedActionUserId}
-                setExpandedActionUserId={setExpandedActionUserId}
-                isTransferring={isTransferring}
-                onCloseSidebar={() => setActiveSidebar(null)}
-                activeProductIndex={activeProductIndex}
-              />
-
-              <JoinRequestsPanel
-                joinRequests={joinRequests}
-                onApproveJoinRequest={(requestId) => approveJoinRequest.mutate({ requestId, sessionId: id! })}
-                onRejectJoinRequest={(requestId) => rejectJoinRequest.mutate({ requestId, sessionId: id! })}
-              />
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </aside>
 
       {livestreamUrl && !isSessionEnded && !leftSidebarCollapsed && (
@@ -505,6 +509,7 @@ export function ChatRoom() {
                         revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
                         phaseVisibility={phaseVisibility}
                         summaryId={summaryId}
+                        isSolo={session?.isSolo}
                       />
                     </div>
                   </div>
@@ -531,6 +536,7 @@ export function ChatRoom() {
                           <MessageInput
                             onSend={(content, phase) => sendMessage(content, phase, idx)}
                             disabled={!isConnected || !isActive || (error?.includes('Rate limit') ?? false)}
+                            isSolo={session?.isSolo}
                           />
                         </>
                       )}
@@ -562,6 +568,7 @@ export function ChatRoom() {
                   revealedMessageIds={new Set([...revealedMessageIds, ...globallyRevealedMessageIds])}
                   phaseVisibility={phaseVisibility}
                   summaryId={summaryId}
+                  isSolo={session?.isSolo}
                 />
               </div>
             </div>
@@ -587,7 +594,8 @@ export function ChatRoom() {
                     )}
                     <MessageInput
                       onSend={(content, phase) => sendMessage(content, phase, 0)}
-                      disabled={!isConnected || (error?.includes('Rate limit') ?? false)}
+                      disabled={isSessionEnded || !isConnected || (error?.includes('Rate limit') ?? false)}
+                      isSolo={session?.isSolo}
                     />
                   </>
                 )}
@@ -642,18 +650,23 @@ export function ChatRoom() {
             activeProductIndex={activeProductIndex}
             averageRatings={averageRatings}
             valueGradeDistributions={valueGradeDistributions}
+            isSolo={session?.isSolo}
           />
 
-          <SpoilerControlsPanel
-            phaseVisibility={phaseVisibility}
-            setPhaseVisibility={setPhaseVisibility}
-            setAllPhaseVisibility={setAllPhaseVisibility}
-            customTags={customTags}
-            showSpoilerDefaults={showSpoilerDefaults}
-            setShowSpoilerDefaults={setShowSpoilerDefaults}
-            spoilerDefaults={spoilerDefaults}
-            setSpoilerDefault={setSpoilerDefault}
-          />
+          {!session?.isSolo && (
+            <div className="mt-6 border-t border-[var(--border-primary)] pt-6">
+              <SpoilerControlsPanel
+                phaseVisibility={phaseVisibility}
+                setPhaseVisibility={setPhaseVisibility}
+                setAllPhaseVisibility={setAllPhaseVisibility}
+                customTags={customTags}
+                showSpoilerDefaults={showSpoilerDefaults}
+                setShowSpoilerDefaults={setShowSpoilerDefaults}
+                spoilerDefaults={spoilerDefaults}
+                setSpoilerDefault={setSpoilerDefault}
+              />
+            </div>
+          )}
         </div>
       </aside>
 

@@ -172,7 +172,9 @@ export function Summary({ publicMode = false }: SummaryProps) {
                 </h2>
                 <p className="text-[var(--text-secondary)] max-w-sm mx-auto leading-relaxed">
                     {shouldPoll
-                        ? 'Our AI is synthesizing everyone\'s perspectives into a collective summary. This usually takes about 10-15 seconds.'
+                        ? session?.isSolo
+                            ? 'Our AI is synthesizing your notes into a personal summary. This usually takes about 10-15 seconds.'
+                            : 'Our AI is synthesizing everyone\'s perspectives into a collective summary. This usually takes about 10-15 seconds.'
                         : 'Fetching the latest session data for you.'}
                 </p>
                 {shouldPoll && (
@@ -259,7 +261,7 @@ export function Summary({ publicMode = false }: SummaryProps) {
                 </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+            <div className={`grid grid-cols-1 ${session?.isSolo ? '' : 'md:grid-cols-2'} gap-8 md:gap-12`}>
                 <TastingNote
                     summary={summary}
                     currentUser={currentUser}
@@ -274,13 +276,16 @@ export function Summary({ publicMode = false }: SummaryProps) {
                     onEdit={handleEdit}
                     onSave={handleSave}
                     onTasterClick={(userId) => navigate(`/profile/${userId}/public`)}
+                    isSolo={session?.isSolo}
                 />
 
-                <GroupSynthesis
-                    summary={summary}
-                    publicMode={publicMode}
-                    participants={participants}
-                />
+                {!session?.isSolo && (
+                    <GroupSynthesis
+                        summary={summary}
+                        publicMode={publicMode}
+                        participants={participants}
+                    />
+                )}
             </div>
 
             {/* Public Session Log Link */}

@@ -64,6 +64,7 @@ export const tastingSessions = pgTable('tasting_sessions', {
     productLink: string | null;
     productName: string | null;
   }>>().notNull().default(sql`'[]'::jsonb`),
+  isSolo: boolean('is_solo').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`now()`),
 }, (table) => ({

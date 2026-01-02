@@ -7,7 +7,7 @@ import { saveComparisonSummary } from './comparisonSummaries.js';
 
 
 // Helper to get model
-function getModel(type: 'product' | 'comparison' = 'product') {
+function getModel(type: 'product' | 'comparison' = 'product', isSolo: boolean = false) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
     const productSchema: any = {
@@ -40,7 +40,7 @@ function getModel(type: 'product' | 'comparison' = 'product') {
                 },
             },
         },
-        required: ['nose', 'palate', 'finish', 'observations'],
+        required: isSolo ? [] : ['nose', 'palate', 'finish', 'observations'],
     };
 
     const comparisonSchema: any = {
@@ -79,24 +79,25 @@ export async function generateSessionSummary(sessionId: string) {
         const sessionData = await getSession(sessionId);
         if (!sessionData) throw new Error('Session not found');
 
+        const isSolo = (sessionData.session as any).isSolo || false;
         const products = (sessionData.session as any).products || [];
         const productSummaries = [];
 
         // 1. Generate independent summaries for each product
         for (const product of products) {
             console.log(`[AI] Generating summary for product ${product.index}: ${product.productName}`);
-            const summary = await generateProductSummary(sessionId, product);
+            const summary = await generateProductSummary(sessionId, product, isSolo);
             if (summary) productSummaries.push(summary);
         }
 
         // If no products were defined (legacy or empty), try productIndex 0
         if (products.length === 0) {
-            const summary = await generateProductSummary(sessionId, { index: 0, productName: sessionData.session.productName, productType: sessionData.session.productType, productLink: sessionData.session.productLink });
+            const summary = await generateProductSummary(sessionId, { index: 0, productName: sessionData.session.productName, productType: sessionData.session.productType, productLink: sessionData.session.productLink }, isSolo);
             if (summary) productSummaries.push(summary);
         }
 
-        // 2. Generate comparison if multiple products
-        if (productSummaries.length > 1) {
+        // 2. Generate comparison if multiple products (skip for solo sessions)
+        if (productSummaries.length > 1 && !isSolo) {
             console.log(`[AI] Generating comparative analysis for ${productSummaries.length} products`);
             await generateComparisonSummary(sessionId, productSummaries, products);
         }
@@ -109,22 +110,22 @@ export async function generateSessionSummary(sessionId: string) {
     }
 }
 
-async function generateProductSummary(sessionId: string, product: any) {
-    const model = getModel('product');
+async function generateProductSummary(sessionId: string, product: any, isSolo: boolean = false) {
+    const model = getModel('product', isSolo);
     const messages = await getSessionMessages(sessionId, 1000, product.index);
 
     if (messages.length === 0) {
         const [saved] = await db.insert(tastingSummaries).values({
             sessionId,
             productIndex: product.index,
-            nose: 'No aromas recorded.',
-            palate: 'No flavor notes recorded.',
-            finish: 'No finish notes recorded.',
-            observations: 'No messages for this product.',
+            nose: isSolo ? null : 'No aromas recorded.',
+            palate: isSolo ? null : 'No flavor notes recorded.',
+            finish: isSolo ? null : 'No finish notes recorded.',
+            observations: isSolo ? null : 'No messages for this product.',
             metadata: { tags: [], participants: [] },
         }).onConflictDoUpdate({
             target: [tastingSummaries.sessionId, tastingSummaries.productIndex],
-            set: { observations: 'No messages for this product.', generatedAt: new Date() }
+            set: { observations: isSolo ? null : 'No messages for this product.', generatedAt: new Date() }
         }).returning();
         emitSummaryGenerated(sessionId, saved.id);
         return saved;
@@ -134,7 +135,15 @@ async function generateProductSummary(sessionId: string, product: any) {
         `${m.user?.displayName || 'Anonymous'} [ID: ${m.user?.id || 'unknown'}]: ${m.message.content}`
     ).join('\n');
 
-    const prompt = `
+    const prompt = isSolo
+        ? `
+        Analyze this solo tasting session for: ${product.productName || 'Product ' + (product.index + 1)} (${product.productType || 'Unknown'}).
+        This is a solo session, so ONLY generate the individual taster summary for the user. 
+        DO NOT generate the top-level nose, palate, finish, and observations fields (leave them out of the JSON or null).
+        Transcript:
+        ${transcript}
+        `
+        : `
         Analyze this tasting session for: ${product.productName || 'Product ' + (product.index + 1)} (${product.productType || 'Unknown'}).
         Transcript:
         ${transcript}

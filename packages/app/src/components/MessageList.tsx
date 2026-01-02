@@ -12,6 +12,7 @@ interface MessageListProps {
   phaseVisibility?: Record<string, 'normal' | 'hidden' | 'revealed'>;
   onEditMessage?: (messageId: string, content: string) => void;
   summaryId?: string | null;
+  isSolo?: boolean;
 }
 
 export function MessageList({
@@ -23,6 +24,7 @@ export function MessageList({
   phaseVisibility = {},
   onEditMessage,
   summaryId,
+  isSolo = false,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -39,8 +41,8 @@ export function MessageList({
         const isSystemMessage = message.userId === 'system';
 
         const phaseSetting = message.phase ? phaseVisibility[message.phase] : (phaseVisibility['untagged'] || 'normal');
-        const isForceHidden = phaseSetting === 'hidden';
-        const isForceRevealed = phaseSetting === 'revealed';
+        const isForceHidden = !isSolo && phaseSetting === 'hidden';
+        const isForceRevealed = isSolo || phaseSetting === 'revealed';
 
         // Phase visibility takes precedence over individual message reveal state:
         // - 'hidden': Always hide spoilers (force entire message as spoiler)

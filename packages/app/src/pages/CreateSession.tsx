@@ -17,6 +17,7 @@ export function CreateSession() {
     isFetchingMetadata: boolean;
   }>>([{ productType: '', productLink: '', productName: '', isFetchingMetadata: false }]);
   const [livestreamUrl, setLivestreamUrl] = useState('');
+  const [isSoloSession, setIsSoloSession] = useState(false);
   const createSession = useCreateSession();
 
   const fetchMetadata = async (index: number, link: string) => {
@@ -69,6 +70,7 @@ export function CreateSession() {
           productName: p.productName.trim() || null,
         })),
         livestreamUrl: livestreamUrl.trim() || undefined,
+        isSolo: isSoloSession,
       });
       navigate(`/session/${result.session.id}`);
     } catch (error) {
@@ -194,6 +196,28 @@ export function CreateSession() {
             + Add Another Product to Compare
           </button>
         )}
+
+        <div className="card">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-1 block">Solo Tasting Mode</label>
+              <p className="text-[10px] text-[var(--text-muted)]">
+                Streamline the experience for individual note-taking.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSoloSession(!isSoloSession)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isSoloSession ? 'bg-orange-500' : 'bg-[var(--bg-input)] border border-[var(--border-primary)]'
+                }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isSoloSession ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+              />
+            </button>
+          </div>
+        </div>
 
         <div className="card">
           <label className="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4 block">Livestream URL (Optional)</label>

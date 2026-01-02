@@ -15,6 +15,7 @@ interface SummaryPanelProps {
     activeProductIndex?: number;
     averageRatings?: Record<number, number | null>;
     valueGradeDistributions?: Record<number, Record<ValueGrade, number>>;
+    isSolo?: boolean;
 }
 
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({
@@ -28,6 +29,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
     activeProductIndex = 0,
     averageRatings = {},
     valueGradeDistributions = {},
+    isSolo = false,
 }) => {
     const currentUser = activeUsers.find(u => u.userId === currentUserId);
     const userRating = currentUser?.ratings?.[activeProductIndex] ?? currentUser?.rating ?? '';
@@ -88,7 +90,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                             <h3 className="text-sm font-bold text-[var(--text-primary)]">
                                 {activeProduct?.productName ? `${activeProduct.productName} Score` : 'Your Score'}
                             </h3>
-                            {avgRating !== null && (
+                            {!isSolo && avgRating !== null && (
                                 <span className="text-[10px] text-[var(--text-muted)]">
                                     Group Avg: <span className="text-orange-500 font-bold">{avgRating.toFixed(1)}</span>
                                 </span>
@@ -148,7 +150,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                             onChange={(grade) => updateValueGrade(grade, activeProductIndex)}
                         />
                     </div>
-                    {Object.values(gradeDistribution).some(v => v > 0) && (
+                    {!isSolo && Object.values(gradeDistribution).some(v => v > 0) && (
                         <div className="mt-4 pt-4 border-t border-[var(--border-primary)]">
                             <span className="text-[10px] text-[var(--text-muted)] block mb-2">Group Distribution</span>
                             <ValueGradeDistribution distribution={gradeDistribution} />
