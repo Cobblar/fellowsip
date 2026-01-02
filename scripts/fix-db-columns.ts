@@ -48,6 +48,72 @@ async function addMissingColumns() {
         console.log('share_session_log already exists or error:', e.message);
     }
 
+    try {
+        await sql.unsafe('ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false NOT NULL');
+        console.log('✓ Added is_archived to session_participants');
+    } catch (e: any) {
+        console.log('is_archived already exists or error:', e.message);
+    }
+
+    try {
+        await sql.unsafe('ALTER TABLE tasting_sessions ADD COLUMN IF NOT EXISTS products JSONB DEFAULT \'[]\'::jsonb NOT NULL');
+        console.log('✓ Added products to tasting_sessions');
+    } catch (e: any) {
+        console.log('products already exists or error:', e.message);
+    }
+
+    try {
+        await sql.unsafe('ALTER TABLE tasting_summaries ADD COLUMN IF NOT EXISTS product_index INTEGER DEFAULT 0 NOT NULL');
+        console.log('✓ Added product_index to tasting_summaries');
+    } catch (e: any) {
+        console.log('product_index already exists or error:', e.message);
+    }
+
+    try {
+        await sql.unsafe('ALTER TABLE messages ADD COLUMN IF NOT EXISTS product_index INTEGER DEFAULT 0 NOT NULL');
+        console.log('✓ Added product_index to messages');
+    } catch (e: any) {
+        console.log('product_index already exists or error:', e.message);
+    }
+
+    // Create product_ratings table if it doesn't exist
+    try {
+        await sql.unsafe(`
+            CREATE TABLE IF NOT EXISTS product_ratings (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                session_id UUID NOT NULL REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                product_index INTEGER DEFAULT 0 NOT NULL,
+                rating REAL,
+                value_grade TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                UNIQUE(session_id, user_id, product_index)
+            )
+        `);
+        console.log('✓ Created product_ratings table');
+    } catch (e: any) {
+        console.log('product_ratings table error:', e.message);
+    }
+
+    // Create comparison_summaries table if it doesn't exist
+    try {
+        await sql.unsafe(`
+            CREATE TABLE IF NOT EXISTS comparison_summaries (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                session_id UUID NOT NULL UNIQUE REFERENCES tasting_sessions(id) ON DELETE CASCADE,
+                comparative_notes TEXT,
+                rankings JSONB,
+                metadata JSONB,
+                generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+            )
+        `);
+        console.log('✓ Created comparison_summaries table');
+    } catch (e: any) {
+        console.log('comparison_summaries table error:', e.message);
+    }
+
     console.log('Done!');
     await sql.end();
     process.exit(0);

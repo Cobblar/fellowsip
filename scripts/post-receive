@@ -19,11 +19,9 @@ git --work-tree=$APP_DIR --git-dir=$GIT_DIR checkout -f main
 echo "Installing dependencies..."
 npm install
 
-# Run database migrations
-echo "Running database migrations..."
-cd packages/server
-npm run db:migrate
-cd ../..
+# Run database schema fix (idempotent, non-interactive)
+echo "Applying database schema fixes..."
+npm run db:fix || echo "Note: db:fix had issues, continuing..."
 
 # Build the application
 echo "Building application..."
