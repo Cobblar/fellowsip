@@ -339,7 +339,7 @@ export async function sessionRoutes(fastify: FastifyInstance) {
       // Also update the participant's rating if provided
       const user = (request as any).user;
       if (data.rating !== undefined && user) {
-        await updateParticipantRating(id, user.id, data.rating);
+        await updateParticipantRating(id, user.id, data.rating, productIndex || 0);
       }
 
       return reply.send({ summary });

@@ -85,7 +85,7 @@ export function Settings() {
         <div className="p-4 md:p-8 max-w-5xl mx-auto">
             <div className="mb-8">
                 <h1 className="heading-xl mb-2">Account Settings</h1>
-                <p className="text-sm text-[var(--text-secondary)]">Manage your display name, friends, and account security.</p>
+                <p className="text-sm text-[var(--text-secondary)]">Manage your display name, friends, and archived sessions.</p>
             </div>
 
             <div className="flex flex-col lg:grid lg:grid-cols-3 gap-8">

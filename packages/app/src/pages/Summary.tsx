@@ -141,6 +141,7 @@ export function Summary({ publicMode = false }: SummaryProps) {
         try {
             await updateSummary.mutateAsync({
                 id,
+                productIndex: activeProductIndex,
                 data: {
                     nose: editData.nose,
                     palate: editData.palate,

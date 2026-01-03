@@ -268,16 +268,16 @@ export function Summaries() {
                                         onClick={() => navigate(`/session/${item.session?.id}`)}
                                         className="card hover:border-gray-600 transition-all cursor-pointer group flex flex-col h-full"
                                     >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
+                                        <div className="flex items-start justify-between mb-4 gap-4">
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl shrink-0">
                                                     {productEmoji}
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">
+                                                <div className="min-w-0">
+                                                    <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors truncate">
                                                         {item.session?.name}
                                                     </h3>
-                                                    <p className="text-xs text-[var(--text-secondary)]">
+                                                    <p className="text-xs text-[var(--text-secondary)] truncate">
                                                         {item.productType || 'Tasting'}
                                                     </p>
                                                 </div>

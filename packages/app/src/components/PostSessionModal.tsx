@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, FileText, CheckCircle2, Share2, Users, MessageSquare, Lock, Globe } from 'lucide-react';
 import { useChatContext } from '../contexts/ChatContext';
-import { useUpdateSharing } from '../api/sessions';
+import { useUpdateSharing, useSession } from '../api/sessions';
 import { ValueGradeSelector } from './ValueGradeSelector';
 
 type ValueGrade = 'A' | 'B' | 'C' | 'D' | 'F';
@@ -15,19 +15,24 @@ interface PostSessionModalProps {
 export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
     const navigate = useNavigate();
     const { sessionEndedBy, isAnalyzing, summaryId, updateRating, updateValueGrade, sessionId, currentUserId, activeUsers } = useChatContext();
-    const initialRating = activeUsers.find(u => u.userId === currentUserId)?.rating;
-    const [userRating, setUserRating] = useState<number | null>(initialRating ?? null);
+    const { data: sessionData } = useSession(sessionId || '');
+    const products = sessionData?.session?.products || [];
+
+    const [activeProductIndex, setActiveProductIndex] = useState(0);
+    const [userRating, setUserRating] = useState<number | null>(null);
     const [userValueGrade, setUserValueGrade] = useState<ValueGrade | null>(null);
     const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
-    // Sync rating when modal opens
+    // Sync rating when modal opens or activeProductIndex changes
     useEffect(() => {
         if (isOpen) {
             const user = activeUsers.find(u => u.userId === currentUserId);
-            setUserRating(user?.rating ?? null);
-            setUserValueGrade(user?.valueGrades?.[0] as ValueGrade ?? null);
+            const rating = user?.ratings?.[activeProductIndex] ?? (activeProductIndex === 0 ? user?.rating : null) ?? null;
+            const grade = user?.valueGrades?.[activeProductIndex] as ValueGrade ?? null;
+            setUserRating(rating);
+            setUserValueGrade(grade);
         }
-    }, [isOpen, activeUsers, currentUserId]);
+    }, [isOpen, activeUsers, currentUserId, activeProductIndex]);
 
     const updateSharing = useUpdateSharing();
     const [sharing, setSharing] = useState({
@@ -42,7 +47,7 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
         setUserRating(rating);
         setIsSubmittingRating(true);
         try {
-            await updateRating(rating);
+            await updateRating(rating, activeProductIndex);
         } catch (error) {
             console.error('Failed to update rating:', error);
         } finally {
@@ -105,10 +110,38 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                         )}
                     </div>
 
+                    {/* Product Tabs if multi-product */}
+                    {products.length > 1 && (
+                        <div className="space-y-3">
+                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] text-center">Select Product to Rate</h3>
+                            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                {products.map((product, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setActiveProductIndex(idx)}
+                                        className={`flex-1 min-w-[100px] py-2 px-3 rounded-lg border text-xs font-bold transition-all ${activeProductIndex === idx
+                                            ? 'bg-orange-500 border-orange-500 text-white shadow-md'
+                                            : 'bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--border-secondary)]'
+                                            }`}
+                                    >
+                                        <div className="truncate">{product.productName || `Product ${idx + 1}`}</div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Rating Prompt */}
                     <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Assign Score</h3>
+                            <div className="flex flex-col">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Assign Score</h3>
+                                {products.length > 1 && (
+                                    <span className="text-[9px] text-orange-500 font-bold truncate max-w-[150px]">
+                                        {products[activeProductIndex]?.productName || `Product ${activeProductIndex + 1}`}
+                                    </span>
+                                )}
+                            </div>
                             <input
                                 type="number"
                                 min="0"
@@ -145,12 +178,19 @@ export function PostSessionModal({ isOpen, onClose }: PostSessionModalProps) {
                     {/* Value Grade Prompt */}
                     <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
                         <div className="flex flex-col gap-3">
-                            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Value Grade</h3>
+                            <div className="flex flex-col">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Value Grade</h3>
+                                {products.length > 1 && (
+                                    <span className="text-[9px] text-blue-500 font-bold truncate max-w-[150px]">
+                                        {products[activeProductIndex]?.productName || `Product ${activeProductIndex + 1}`}
+                                    </span>
+                                )}
+                            </div>
                             <ValueGradeSelector
                                 value={userValueGrade}
                                 onChange={(grade) => {
                                     setUserValueGrade(grade);
-                                    updateValueGrade(grade);
+                                    updateValueGrade(grade, activeProductIndex);
                                 }}
                             />
                         </div>

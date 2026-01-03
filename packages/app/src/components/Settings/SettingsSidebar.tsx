@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Archive, ChevronRight, Mail, Shield, LogOut, Edit2, Check, X } from 'lucide-react';
+import { Archive, ChevronRight, LogOut, Edit2, Check, X } from 'lucide-react';
 import { UserAvatar } from '../UserAvatar';
 
 interface SettingsSidebarProps {
@@ -133,14 +133,6 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     <Archive size={16} className="text-[var(--text-secondary)]" />
                     <span>Archived Sessions</span>
                     <ChevronRight size={14} className="ml-auto text-[var(--text-muted)]" />
-                </button>
-                <button className="w-full flex items-center gap-3 p-4 hover:bg-[var(--bg-input)]/50 transition-colors text-sm text-[var(--text-secondary)] border-t border-[var(--border-primary)]">
-                    <Mail size={16} className="text-[var(--text-secondary)]" />
-                    <span>Notifications</span>
-                </button>
-                <button className="w-full flex items-center gap-3 p-4 hover:bg-[var(--bg-input)]/50 transition-colors text-sm text-[var(--text-secondary)] border-t border-[var(--border-primary)]">
-                    <Shield size={16} className="text-[var(--text-secondary)]" />
-                    <span>Security</span>
                 </button>
                 <button
                     onClick={onLogout}

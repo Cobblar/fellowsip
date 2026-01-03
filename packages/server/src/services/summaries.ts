@@ -15,7 +15,7 @@ export async function getSessionSummary(sessionId: string, productIndex: number 
     const allParticipants = await db
         .select({
             userId: sessionParticipants.userId,
-            rating: sessionParticipants.rating,
+            rating: productRatings.rating,
             valueGrade: productRatings.valueGrade,
             sharePersonalSummary: sessionParticipants.sharePersonalSummary,
             shareGroupSummary: sessionParticipants.shareGroupSummary,
@@ -73,22 +73,23 @@ export async function getAllUserSummaries(userId: string) {
         })
         .from(tastingSummaries)
         .innerJoin(tastingSessions, eq(tastingSummaries.sessionId, tastingSessions.id))
+        .leftJoin(sessionParticipants, and(
+            eq(sessionParticipants.sessionId, tastingSessions.id),
+            eq(sessionParticipants.userId, userId)
+        ))
         .where(
             and(
                 ne(tastingSessions.status, 'archived'),
+                // Filter out sessions where the user has archived them
+                or(
+                    eq(sessionParticipants.isArchived, false),
+                    sql`${sessionParticipants.isArchived} IS NULL`
+                ),
                 or(
                     eq(tastingSessions.hostId, userId),
-                    exists(
-                        db
-                            .select()
-                            .from(sessionParticipants)
-                            .where(
-                                and(
-                                    eq(sessionParticipants.sessionId, tastingSessions.id),
-                                    eq(sessionParticipants.userId, userId),
-                                    eq(sessionParticipants.isBanned, false)
-                                )
-                            )
+                    and(
+                        eq(sessionParticipants.userId, userId),
+                        eq(sessionParticipants.isBanned, false)
                     )
                 )
             )
@@ -204,7 +205,8 @@ export async function getPublicSummary(sessionId: string) {
     const allParticipants = await db
         .select({
             userId: sessionParticipants.userId,
-            rating: sessionParticipants.rating,
+            rating: productRatings.rating,
+            valueGrade: productRatings.valueGrade,
             displayName: users.displayName,
             avatarUrl: users.avatarUrl,
             sharePersonalSummary: sessionParticipants.sharePersonalSummary,
@@ -214,6 +216,11 @@ export async function getPublicSummary(sessionId: string) {
         })
         .from(sessionParticipants)
         .leftJoin(users, eq(sessionParticipants.userId, users.id))
+        .leftJoin(productRatings, and(
+            eq(productRatings.sessionId, sessionId),
+            eq(productRatings.userId, sessionParticipants.userId),
+            eq(productRatings.productIndex, summary.productIndex)
+        ))
         .where(eq(sessionParticipants.sessionId, sessionId));
 
     const hasAnySharer = allParticipants.some(

@@ -271,42 +271,52 @@ export function Dashboard() {
                 onClick={() => navigate(`/session/${item.session.id}/summary?product=${item.productIndex}`)}
                 className="card hover:border-gray-600 transition-all cursor-pointer group"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-[var(--bg-input)] rounded-lg flex items-center justify-center text-2xl">
+                <div className="flex items-start justify-between mb-4 gap-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-12 h-12 bg-[var(--bg-input)] rounded-lg flex items-center justify-center text-2xl shrink-0">
                       {productEmoji}
                     </div>
-                    <div>
-                      <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors">
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] transition-colors line-clamp-2">
                         {item.productName || item.session.name}
                       </h3>
-                      <p className="text-xs text-[var(--text-secondary)]">
+                      <p className="text-xs text-[var(--text-secondary)] truncate">
                         {item.productName ? item.session.name : (item.productType || 'Tasting')}
                       </p>
                     </div>
                   </div>
-                  {item.summary?.metadata?.rating && (
-                    <div className="flex flex-col items-end">
-                      <span className="text-xl font-bold text-orange-500">{item.summary.metadata.rating}</span>
-                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">Avg Score</span>
-                    </div>
-                  )}
-                  {item.summary?.participants?.find((p: any) => p.userId === currentUser?.id)?.valueGrade && (
-                    <div className="flex flex-col items-end mt-2">
-                      <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded text-xs font-bold text-blue-500">
-                        {item.summary.participants.find((p: any) => p.userId === currentUser?.id)?.valueGrade}
+
+                  <div className="flex items-start gap-4 shrink-0">
+                    {item.summary?.metadata?.rating && (
+                      <div className="flex flex-col items-end">
+                        <span className="text-xl font-bold text-orange-500">{item.summary.metadata.rating}</span>
+                        <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">Avg Score</span>
                       </div>
-                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter mt-1">Value</span>
-                    </div>
-                  )}
-                  {item.summary?.participants?.find((p: any) => p.userId === currentUser?.id)?.rating && (
-                    <div className="flex flex-col items-end mt-2">
-                      <span className="text-lg font-bold text-orange-500">
-                        {item.summary.participants.find((p: any) => p.userId === currentUser?.id)?.rating}
-                      </span>
-                      <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">My Score</span>
-                    </div>
-                  )}
+                    )}
+                    {(() => {
+                      const userParticipant = item.summary?.participants?.find((p: any) => p.userId === currentUser?.id);
+                      return (
+                        <>
+                          {userParticipant?.rating && (
+                            <div className="flex flex-col items-end">
+                              <span className="text-lg font-bold text-orange-500">
+                                {userParticipant.rating}
+                              </span>
+                              <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter">My Score</span>
+                            </div>
+                          )}
+                          {userParticipant?.valueGrade && (
+                            <div className="flex flex-col items-end">
+                              <div className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 rounded text-xs font-bold text-blue-500">
+                                {userParticipant.valueGrade}
+                              </div>
+                              <span className="text-[8px] text-[var(--text-muted)] uppercase font-bold tracking-tighter mt-1">Value</span>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
 
                 {/* Tasting Profile Quick View */}

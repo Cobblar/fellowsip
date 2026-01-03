@@ -111,11 +111,12 @@ export function useUpdateSummary() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      api.patch<{ summary: any }>(`/sessions/${id}/summary`, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ id, productIndex = 0, data }: { id: string; productIndex?: number; data: any }) =>
+      api.patch<{ summary: any }>(`/sessions/${id}/summary`, { ...data, productIndex }),
+    onSuccess: (_, { id, productIndex = 0 }) => {
       queryClient.invalidateQueries({ queryKey: sessionKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: [...sessionKeys.all, 'summaries'] });
+      queryClient.invalidateQueries({ queryKey: [...sessionKeys.detail(id), 'summary', productIndex] });
     },
   });
 }

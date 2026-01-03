@@ -55,27 +55,27 @@ export const RecentSummaries: React.FC<RecentSummariesProps> = ({
                                 onClick={() => onViewSummary(item.session?.id, item.productIndex)}
                                 className="card hover:border-gray-600 transition-all cursor-pointer group p-5"
                             >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl">
+                                <div className="flex items-start justify-between mb-3 gap-4">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="w-10 h-10 bg-[var(--bg-input)] rounded flex items-center justify-center text-xl shrink-0">
                                             {productEmoji}
                                         </div>
-                                        <div>
+                                        <div className="min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] text-sm">
+                                                <h3 className="font-bold text-[var(--text-primary)] group-hover:text-[var(--text-primary)] text-sm truncate">
                                                     {item.productName || item.session?.name}
                                                 </h3>
                                                 {item.session?.startedAt && (new Date().getTime() - new Date(item.session.startedAt).getTime() < 24 * 60 * 60 * 1000) && (
-                                                    <span className="text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">New</span>
+                                                    <span className="text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0">New</span>
                                                 )}
                                             </div>
-                                            <p className="text-[10px] text-[var(--text-secondary)]">
+                                            <p className="text-[10px] text-[var(--text-secondary)] truncate">
                                                 {item.productName ? item.session?.name : (item.productType || 'Tasting')}
                                             </p>
                                         </div>
                                     </div>
                                     {(item.summary?.metadata?.rating || item.summary?.averageRating) && (
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0">
                                             <span className="text-lg font-bold text-orange-500">{item.summary?.metadata?.rating || item.summary?.averageRating}</span>
                                             <p className="text-[8px] text-[var(--text-muted)] uppercase font-bold">Score</p>
                                         </div>

@@ -62,6 +62,7 @@ interface ChatContextType {
     getBannedUsers: () => void;
     unmodUser: (userId: string) => void;
     isSolo: boolean;
+    sessionTags: string[];
 }
 
 // We need to access the internal context of ChatContext to provide a compatible value
@@ -255,6 +256,7 @@ export const PublicChatProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         getBannedUsers: () => { },
         unmodUser: () => { },
         isSolo,
+        sessionTags: [],
     };
 
     if (isLoading) {
