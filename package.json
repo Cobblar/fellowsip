@@ -18,6 +18,8 @@
     "docker:logs": "docker-compose logs -f",
     "docker:restart": "docker-compose restart",
     "docker:clean": "docker-compose down -v",
+    "db:migrate": "npx tsx scripts/migrate-db.ts",
+    "db:bootstrap": "npx tsx scripts/bootstrap-migrations.ts",
     "db:fix": "npx tsx scripts/fix-db-columns.ts"
   },
   "engines": {

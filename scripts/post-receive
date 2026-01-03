@@ -27,9 +27,9 @@ fi
 echo "Installing dependencies..."
 npm install
 
-# Run database schema fix (idempotent, non-interactive)
-echo "Applying database schema fixes..."
-npm run db:fix || echo "Note: db:fix had issues, continuing..."
+# Run database migrations (Drizzle ORM - source of truth)
+echo "Running database migrations..."
+npm run db:migrate
 
 # Build the application
 echo "Building application..."

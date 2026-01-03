@@ -57,6 +57,13 @@
       "when": 1767275784016,
       "tag": "0007_sloppy_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767462040070,
+      "tag": "0008_marvelous_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

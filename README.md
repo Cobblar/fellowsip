@@ -128,7 +128,20 @@ npm run docker:down      # Stop Docker services
 npm run docker:logs      # View Docker logs
 npm run docker:restart   # Restart Docker services
 npm run docker:clean     # Stop and remove all volumes
+npm run db:migrate       # Run database migrations
 ```
+
+## Database Migrations
+
+This project uses Drizzle ORM for database schema management. See [MIGRATIONS.md](./MIGRATIONS.md) for details on:
+- How to make schema changes
+- How migrations work
+- Troubleshooting migration issues
+
+## Deployment
+
+For production deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 
 ## Next Steps
 
