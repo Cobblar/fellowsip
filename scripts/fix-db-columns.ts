@@ -83,6 +83,13 @@ async function addMissingColumns() {
         console.log('product_index already exists or error:', e.message);
     }
 
+    try {
+        await sql.unsafe('ALTER TABLE messages ADD COLUMN IF NOT EXISTS tags TEXT[] DEFAULT \'{}\' NOT NULL');
+        console.log('✓ Added tags to messages');
+    } catch (e: any) {
+        console.log('tags already exists or error:', e.message);
+    }
+
     // Create product_ratings table if it doesn't exist
     try {
         await sql.unsafe(`

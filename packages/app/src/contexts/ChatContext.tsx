@@ -17,7 +17,7 @@ interface ChatContextType {
     moderators: string[];
     isConnected: boolean;
     error: string | null;
-    sendMessage: (content: string, phase?: string, productIndex?: number) => void;
+    sendMessage: (content: string, phase?: string, productIndex?: number, tags?: string[]) => void;
     injectDebugHistory: () => void;
     deleteMessage: (messageId: string) => void;
     editMessage: (messageId: string, content: string) => void;
@@ -66,6 +66,7 @@ interface ChatContextType {
     getBannedUsers: () => void;
     unmodUser: (userId: string) => void;
     isSolo: boolean;
+    sessionTags: string[];
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -301,6 +302,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             getBannedUsers,
             unmodUser,
             isSolo,
+            sessionTags: Array.from(new Set(messages.flatMap(m => m.tags || []))).sort(),
         }}>
             {children}
         </ChatContext.Provider>

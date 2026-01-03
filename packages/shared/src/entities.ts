@@ -47,6 +47,7 @@ export interface Message {
     userId: string;
     content: string;
     phase?: string;
+    tags?: string[];
     productIndex?: number;
     createdAt: string | Date;
     user: {

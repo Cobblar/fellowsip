@@ -1,7 +1,7 @@
 import { db, messages, users } from '../db/index.js';
 import { eq, desc, and } from 'drizzle-orm';
 
-export async function createMessage(sessionId: string, userId: string, content: string, phase?: string, productIndex: number = 0) {
+export async function createMessage(sessionId: string, userId: string, content: string, phase?: string, productIndex: number = 0, tags: string[] = []) {
   const [message] = await db
     .insert(messages)
     .values({
@@ -10,6 +10,7 @@ export async function createMessage(sessionId: string, userId: string, content: 
       content,
       phase,
       productIndex,
+      tags,
     })
     .returning();
 
@@ -83,13 +84,16 @@ export async function hideMessage(messageId: string) {
   return updated;
 }
 
-// Update a message's content
-export async function updateMessage(messageId: string, content: string) {
+// Update a message's content and tags
+export async function updateMessage(messageId: string, content: string, tags?: string[]) {
+  const updateData: any = { content };
+  if (tags) {
+    updateData.tags = tags;
+  }
+
   const [updated] = await db
     .update(messages)
-    .set({
-      content
-    })
+    .set(updateData)
     .where(eq(messages.id, messageId))
     .returning();
 

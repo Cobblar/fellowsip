@@ -102,6 +102,7 @@ export function setupSocketHandlers(io: Server) {
               userId: m.message.userId,
               content: m.message.content,
               phase: m.message.phase,
+              tags: m.message.tags,
               productIndex: m.message.productIndex ?? 0,
               createdAt: m.message.createdAt,
               user: {
@@ -163,6 +164,7 @@ export function setupSocketHandlers(io: Server) {
             userId: m.message.userId,
             content: m.message.content,
             phase: m.message.phase,
+            tags: m.message.tags,
             productIndex: m.message.productIndex ?? 0,
             createdAt: m.message.createdAt,
             user: {

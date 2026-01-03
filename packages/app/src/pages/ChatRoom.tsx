@@ -538,7 +538,7 @@ export function ChatRoom() {
                             </div>
                           )}
                           <MessageInput
-                            onSend={(content, phase) => sendMessage(content, phase, idx)}
+                            onSend={(content, phase, tags) => sendMessage(content, phase, idx, tags)}
                             disabled={!isConnected || !isActive || (error?.includes('Rate limit') ?? false)}
                             isSolo={session?.isSolo}
                           />
@@ -612,7 +612,7 @@ export function ChatRoom() {
                       </div>
                     )}
                     <MessageInput
-                      onSend={(content, phase) => sendMessage(content, phase, 0)}
+                      onSend={(content, phase, tags) => sendMessage(content, phase, 0, tags)}
                       disabled={isSessionEnded || !isConnected || (error?.includes('Rate limit') ?? false)}
                       isSolo={session?.isSolo}
                     />

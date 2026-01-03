@@ -96,12 +96,26 @@ export function MessageList({
             </div>
 
             <div className={`flex flex-col gap-1 max-w-[70%] ${isOwnMessage ? 'items-end' : 'items-start'}`}>
-              <div className="flex items-center gap-2 px-1">
+              <div className="flex items-center gap-2 px-1 w-full">
                 {!isOwnMessage && (
                   <span className="text-[10px] font-bold text-[var(--text-secondary)]">
                     {message.user.displayName || 'Anonymous'}
                   </span>
                 )}
+                {/* Tags on the left */}
+                {message.tags && message.tags.length > 0 && (
+                  <div className="flex gap-1">
+                    {message.tags.map((tag: string) => (
+                      <span key={tag} className="text-[8px] font-bold uppercase tracking-widest px-1 py-0.5 rounded border bg-cyan-500/10 border-cyan-500/30 text-cyan-500">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex-1" />
+
+                {/* Phase on the right */}
                 {message.phase && (
                   <span className={`text-[8px] font-bold uppercase tracking-widest px-1 py-0.5 rounded border ${message.phase === 'nose' ? 'bg-orange-500/10 border-orange-500/30 text-orange-500' :
                     message.phase === 'palate' ? 'bg-blue-500/10 border-blue-500/30 text-blue-500' :
@@ -111,9 +125,6 @@ export function MessageList({
                     {message.phase}
                   </span>
                 )}
-                <span className="text-[10px] text-[var(--text-muted)]">
-                  {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
                 {summaryId && (
                   <a
                     href={`/session/${message.sessionId}/summary`}
@@ -127,7 +138,7 @@ export function MessageList({
 
               {/* Message bubble with delete button - button always toward center */}
               <div className={`flex items-start gap-2 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-                <div className={`px-4 py-3 rounded-lg text-sm leading-relaxed ${isOwnMessage
+                <div className={`px-4 py-3 rounded-lg text-sm leading-relaxed relative ${isOwnMessage
                   ? 'bg-orange-600/90 text-white'
                   : 'bg-[var(--bg-input)] border border-[var(--border-primary)] text-[var(--text-secondary)]'
                   }`}>
@@ -161,11 +172,18 @@ export function MessageList({
                       </div>
                     </div>
                   ) : (
-                    <SpoilerText
-                      text={message.content}
-                      forceReveal={shouldRevealSpoilers}
-                      forceHide={shouldForceHide}
-                    />
+                    <>
+                      <SpoilerText
+                        text={message.content}
+                        forceReveal={shouldRevealSpoilers}
+                        forceHide={shouldForceHide}
+                      />
+                      <div className={`mt-1 flex justify-end ${isOwnMessage ? 'text-orange-200' : 'text-[var(--text-muted)]'}`}>
+                        <span className="text-[9px] font-medium opacity-70">
+                          {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
 

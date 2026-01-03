@@ -7,13 +7,14 @@ export const useChatMessageLogic = (socket: Socket | null, sessionId: string | n
     const [revealedMessageIds, setRevealedMessageIds] = useState<Set<string>>(new Set());
     const [globallyRevealedMessageIds, setGloballyRevealedMessageIds] = useState<Set<string>>(new Set());
 
-    const sendMessage = useCallback((content: string, phase?: string, productIndex: number = 0) => {
+    const sendMessage = useCallback((content: string, phase?: string, productIndex: number = 0, tags: string[] = []) => {
         if (socket && sessionId && content.trim() && !sessionEnded) {
             socket.emit('send_message', {
                 sessionId,
                 content: content.trim(),
                 phase,
                 productIndex,
+                tags,
             });
         }
     }, [socket, sessionId, sessionEnded]);
@@ -84,7 +85,7 @@ export const useChatMessageLogic = (socket: Socket | null, sessionId: string | n
 
         const handleMessageUpdated = (data: MessageUpdatedEvent) => {
             setMessages((prev) => prev.map((m) =>
-                m.id === data.messageId ? { ...m, content: data.content } : m
+                m.id === data.messageId ? { ...m, content: data.content, tags: data.tags } : m
             ));
         };
 

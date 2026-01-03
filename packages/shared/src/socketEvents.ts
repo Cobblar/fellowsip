@@ -9,6 +9,7 @@ export interface SendMessagePayload {
     sessionId: string;
     content: string;
     phase?: string;
+    tags?: string[];
     productIndex?: number;
 }
 
@@ -56,6 +57,7 @@ export interface EditMessagePayload {
     sessionId: string;
     messageId: string;
     content: string;
+    tags?: string[];
 }
 
 export interface MakeModeratorPayload {
@@ -77,6 +79,7 @@ export interface MessageDeletedEvent {
 export interface MessageUpdatedEvent {
     messageId: string;
     content: string;
+    tags?: string[];
 }
 
 export interface ModeratorAddedEvent {

@@ -19,7 +19,7 @@ import type {
 export function setupMessageHandlers(io: Server, socket: Socket, userId: string, user: any) {
     socket.on('send_message', async (payload: SendMessagePayload) => {
         try {
-            const { sessionId, content, phase, productIndex } = payload;
+            const { sessionId, content, phase, productIndex, tags } = payload;
 
             if (!content.trim()) {
                 socket.emit('error', { message: 'Message cannot be empty' });
@@ -50,13 +50,14 @@ export function setupMessageHandlers(io: Server, socket: Socket, userId: string,
                 return;
             }
 
-            const messageData = await createMessage(sessionId, userId, content, phase, productIndex || 0);
+            const messageData = await createMessage(sessionId, userId, content, phase, productIndex || 0, tags || []);
             const messagePayload = {
                 id: messageData.message.id,
                 sessionId: messageData.message.sessionId,
                 userId: messageData.message.userId,
                 content: messageData.message.content,
                 phase: messageData.message.phase,
+                tags: messageData.message.tags,
                 productIndex: messageData.message.productIndex,
                 createdAt: messageData.message.createdAt,
                 user: {
@@ -76,7 +77,7 @@ export function setupMessageHandlers(io: Server, socket: Socket, userId: string,
 
     socket.on('edit_message', async (payload: EditMessagePayload) => {
         try {
-            const { sessionId, messageId, content } = payload;
+            const { sessionId, messageId, content, tags } = payload;
             if (!content.trim()) {
                 socket.emit('error', { message: 'Message content cannot be empty' });
                 return;
@@ -88,10 +89,11 @@ export function setupMessageHandlers(io: Server, socket: Socket, userId: string,
                 return;
             }
 
-            await updateMessage(messageId, content.trim());
+            await updateMessage(messageId, content.trim(), tags);
             const event: MessageUpdatedEvent = {
                 messageId,
                 content: content.trim(),
+                tags,
             };
             io.to(sessionId).emit('message_updated', event);
         } catch (error) {

@@ -18,11 +18,167 @@ const SERVER_URL = import.meta.env.PUBLIC_SERVER_URL || 'http://localhost:3000';
           </div>
           <div class="flex items-center gap-4">
             <a href={`${SERVER_URL}/auth/google`} class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Login</a>
-            <a href={`${SERVER_URL}/auth/google`} class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-orange-500/20">Get Started</a>
+            <button id="request-access-btn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-orange-500/20">Request Access</button>
           </div>
         </div>
       </div>
     </nav>
+
+    <!-- Beta Request Modal -->
+    <div id="beta-modal" class="fixed inset-0 z-[100] hidden">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-[#161b22] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div class="p-6 space-y-6">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold text-white">Request Beta Access</h3>
+              <button id="close-modal-btn" class="text-gray-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <form id="beta-form" class="space-y-4">
+              <div class="space-y-2">
+                <label for="email" class="text-sm font-medium text-gray-300">Email Address</label>
+                <input 
+                  type="email" 
+                  id="email" 
+                  name="email" 
+                  required 
+                  placeholder="you@example.com"
+                  class="w-full bg-[#0b0e14] border border-gray-800 rounded-lg px-4 py-2.5 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all"
+                />
+              </div>
+              
+              <div class="space-y-2">
+                <label for="notes" class="text-sm font-medium text-gray-300">Other notes</label>
+                <textarea 
+                  id="notes" 
+                  name="notes" 
+                  required 
+                  rows="4"
+                  placeholder="Tell us a bit about yourself..."
+                  class="w-full bg-[#0b0e14] border border-gray-800 rounded-lg px-4 py-2.5 text-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition-all resize-none"
+                ></textarea>
+                <p class="text-xs text-gray-500">For example: How you heard about us, who you are, what you plan to use it for, etc.</p>
+              </div>
+
+              <div id="form-error" class="hidden text-sm text-red-500 bg-red-500/10 border border-red-500/20 p-3 rounded-lg"></div>
+              
+              <button 
+                type="submit" 
+                id="submit-btn"
+                class="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-orange-500/20"
+              >
+                Submit Request
+              </button>
+            </form>
+
+            <div id="success-message" class="hidden flex flex-col items-center justify-center py-8 space-y-4 text-center">
+              <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center text-green-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h4 class="text-xl font-bold text-white">Thanks for applying!</h4>
+              <p class="text-gray-400">We'll be in touch soon.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script is:inline>
+      const modal = document.getElementById('beta-modal');
+      const openBtn = document.getElementById('request-access-btn');
+      const closeBtn = document.getElementById('close-modal-btn');
+      const form = document.getElementById('beta-form');
+      const successMsg = document.getElementById('success-message');
+      const submitBtn = document.getElementById('submit-btn');
+      const errorMsg = document.getElementById('form-error');
+
+      const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyuuw2b3PT4X0Ucdz0kkxerE_Y1ywzTr7mwKaKxFOPfiwJ1SJ5G8czC8vXXnv6QlVMTXQ/exec';
+
+      function openModal() {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        // Reset form state after close
+        setTimeout(() => {
+          form.classList.remove('hidden');
+          successMsg.classList.add('hidden');
+          form.reset();
+          errorMsg.classList.add('hidden');
+        }, 300);
+      }
+
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal.children[0] || e.target === modal.children[1]) {
+          closeModal();
+        }
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Rate limiting check
+        const lastSignup = localStorage.getItem('beta_signup_timestamp');
+        if (lastSignup && Date.now() - parseInt(lastSignup) < 5 * 60 * 1000) {
+          errorMsg.textContent = "You've already submitted a request recently. Please wait a few minutes.";
+          errorMsg.classList.remove('hidden');
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+        errorMsg.classList.add('hidden');
+
+        const formData = new FormData(form);
+        const data = {
+          email: formData.get('email'),
+          notes: formData.get('notes')
+        };
+
+        try {
+          // Using fetch with no-cors might be needed for Apps Script if not handling options,
+          // but our script handles it. However, Apps Script redirects can be tricky.
+          // We'll use a standard POST.
+          const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Apps Script requires no-cors for simple POSTs from different origins
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+          });
+
+          // With no-cors, we can't read the response, but if it doesn't throw, it's usually fine
+          localStorage.setItem('beta_signup_timestamp', Date.now().toString());
+          
+          form.classList.add('hidden');
+          successMsg.classList.remove('hidden');
+          
+          setTimeout(() => {
+            closeModal();
+          }, 3000);
+
+        } catch (error) {
+          console.error('Submission error:', error);
+          errorMsg.textContent = 'Something went wrong. Please try again later.';
+          errorMsg.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Request';
+        }
+      });
+    </script>
 
     <!-- Hero Section -->
     <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">

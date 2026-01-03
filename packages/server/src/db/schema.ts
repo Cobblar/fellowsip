@@ -85,6 +85,7 @@ export const messages = pgTable('messages', {
     .references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
   phase: text('phase'),
+  tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
   productIndex: integer('product_index').notNull().default(0),
   isHidden: boolean('is_hidden').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`now()`),

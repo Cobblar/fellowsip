@@ -1,10 +1,10 @@
 import { useState, KeyboardEvent, useRef, useEffect } from 'react';
-import { Send, EyeOff, ChevronDown, Wand2, Wand, Plus, ChevronRight, Check } from 'lucide-react';
+import { Send, EyeOff, ChevronDown, Wand2, Wand, Plus, ChevronRight, Check, X } from 'lucide-react';
 import { useChatContext } from '../contexts/ChatContext';
 import { api } from '../api/client';
 
 interface MessageInputProps {
-  onSend: (content: string, phase?: string) => void;
+  onSend: (content: string, phase?: string, tags?: string[]) => void;
   disabled?: boolean;
   isSolo?: boolean;
 }
@@ -12,6 +12,9 @@ interface MessageInputProps {
 export function MessageInput({ onSend, disabled = false, isSolo = false }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [phase, setPhase] = useState<string | undefined>(undefined);
+  const [tags, setTags] = useState<string[]>([]);
+  const [inputTagText, setInputTagText] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [isManualPhase, setIsManualPhase] = useState(false);
   const [isAutoSelectEnabled, setIsAutoSelectEnabled] = useState(true);
   const [showPhaseMenu, setShowPhaseMenu] = useState(false);
@@ -19,20 +22,31 @@ export function MessageInput({ onSend, disabled = false, isSolo = false }: Messa
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [showRecentTags, setShowRecentTags] = useState(false);
   const [selectedRecentTags, setSelectedRecentTags] = useState<string[]>([]);
-  const { customTags, canModerate, sessionId, recentTags, updateRecentTags } = useChatContext();
+  const { customTags, canModerate, sessionId, recentTags, updateRecentTags, sessionTags } = useChatContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const words = content.split(/\s+/);
+    const lastWord = words[words.length - 1];
+    if (lastWord.startsWith('#') && lastWord.length > 1 && tags.length < 3) {
+      setInputTagText(lastWord.substring(1).toLowerCase());
+      setShowTagSuggestions(true);
+    } else {
+      setShowTagSuggestions(false);
+    }
+  }, [content, tags.length]);
 
   useEffect(() => {
     if (!isAutoSelectEnabled || isManualPhase) return;
 
     const lowerContent = content.toLowerCase();
-    if (lowerContent.includes('nose') || lowerContent.includes('smell')) {
+    if (lowerContent.includes('nose') || lowerContent.includes('smell') || lowerContent.includes('aroma') || lowerContent.includes('scent')) {
       setPhase('nose');
     } else if (lowerContent.includes('palate') || lowerContent.includes('palette') || lowerContent.includes('flavor') || lowerContent.includes('taste') || lowerContent.includes('tasting')) {
       setPhase('palate');
     } else if (lowerContent.includes('finish') || lowerContent.includes('hui gan') || lowerContent.includes('huigan')) {
       setPhase('finish');
-    } else if (lowerContent.includes('texture') || lowerContent.includes('mouthfeel') || lowerContent.includes('body') || lowerContent.includes('viscosity')) {
+    } else if (lowerContent.includes('texture') || lowerContent.includes('mouthfeel') || lowerContent.includes('body') || lowerContent.includes('viscosity') || lowerContent.includes('drying') || lowerContent.includes('astringent') || lowerContent.includes('astringency')) {
       setPhase('texture');
     } else {
       // Check custom tags
@@ -47,9 +61,27 @@ export function MessageInput({ onSend, disabled = false, isSolo = false }: Messa
 
   const handleSubmit = () => {
     if (!content.trim() || disabled || content.length > 300) return;
-    onSend(content, phase);
+
+    let finalContent = content.trim();
+    let finalTags = [...tags];
+
+    // Check for trailing hashtag if we have room for more tags
+    if (finalTags.length < 3) {
+      const words = finalContent.split(/\s+/);
+      const lastWord = words[words.length - 1];
+      if (lastWord && lastWord.startsWith('#') && lastWord.length > 1) {
+        const tag = lastWord.substring(1).replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
+        if (tag && !finalTags.includes(tag)) {
+          finalTags.push(tag);
+          finalContent = finalContent.substring(0, finalContent.lastIndexOf(lastWord)).trim();
+        }
+      }
+    }
+
+    onSend(finalContent, phase, finalTags);
     setContent('');
     setPhase(undefined);
+    setTags([]);
     setIsManualPhase(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -57,12 +89,52 @@ export function MessageInput({ onSend, disabled = false, isSolo = false }: Messa
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    const currentVal = e.currentTarget.value;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (content.length <= 300) {
+
+      // Check for hashtag completion before submitting
+      const words = currentVal.trim().split(/\s+/);
+      const lastWord = words[words.length - 1];
+      if (lastWord && lastWord.startsWith('#') && lastWord.length > 1 && tags.length < 3) {
+        const tag = lastWord.substring(1).replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
+        if (tag && !tags.includes(tag)) {
+          const newTags = [...tags, tag];
+          const newContent = currentVal.substring(0, currentVal.lastIndexOf(lastWord)).trim();
+          onSend(newContent, phase, newTags);
+          setContent('');
+          setPhase(undefined);
+          setTags([]);
+          setIsManualPhase(false);
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+          }
+          return;
+        }
+      }
+
+      if (currentVal.length <= 300) {
         handleSubmit();
       }
+    } else if (e.key === ' ') {
+      // Check for hashtag completion
+      const words = currentVal.split(/\s+/);
+      const lastWord = words[words.length - 1];
+      if (lastWord && lastWord.startsWith('#') && lastWord.length > 1 && tags.length < 3) {
+        const tag = lastWord.substring(1).replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
+        if (tag && !tags.includes(tag)) {
+          setTags([...tags, tag]);
+          const newContent = currentVal.substring(0, currentVal.lastIndexOf(lastWord)).trim() + ' ';
+          setContent(newContent);
+          setInputTagText('');
+          setShowTagSuggestions(false);
+        }
+      }
     }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
   };
 
   const handleSpoiler = () => {
@@ -316,32 +388,98 @@ export function MessageInput({ onSend, disabled = false, isSolo = false }: Messa
         )}
       </div>
 
-      <div className="relative group">
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Share your tasting notes..."
-          disabled={disabled}
-          className={`w-full bg-[var(--bg-card)] border rounded-lg px-4 py-4 text-sm resize-none focus:border-[var(--border-secondary)] transition-all pr-14 ${content.length > 300 ? 'border-red-500 focus:border-red-500' : 'border-[var(--border-primary)]'
-            }`}
-          rows={1}
-          onInput={(e) => {
-            const target = e.target as HTMLTextAreaElement;
-            target.style.height = 'auto';
-            target.style.height = Math.min(target.scrollHeight, 150) + 'px';
-          }}
-        />
+      <div className="group">
+        {/* Tag Chips */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2 px-1">
+            {tags.map(tag => (
+              <span
+                key={tag}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-500 text-[10px] font-bold uppercase tracking-wider animate-in zoom-in-95 duration-200"
+              >
+                {tag}
+                <button
+                  onClick={() => removeTag(tag)}
+                  className="hover:text-cyan-400 transition-colors"
+                >
+                  <X size={10} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
 
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          <button
-            onClick={handleSubmit}
-            disabled={disabled || !content.trim() || content.length > 300}
-            className="w-10 h-10 bg-orange-600 rounded-md flex items-center justify-center text-white hover:bg-orange-500 disabled:opacity-50 disabled:bg-[var(--bg-input)] transition-all"
-          >
-            <Send size={18} />
-          </button>
+        <div className="relative">
+          {/* Tag Suggestions */}
+          {showTagSuggestions && (
+            <div className="absolute bottom-full left-0 mb-2 w-48 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="px-3 py-1.5 text-[8px] font-bold uppercase text-[var(--text-muted)] border-b border-[var(--border-primary)] bg-[var(--bg-input)]/50">
+                Suggestions
+              </div>
+              <div className="max-h-32 overflow-y-auto custom-scrollbar">
+                {sessionTags
+                  .filter(t => t.startsWith(inputTagText) && !tags.includes(t))
+                  .map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => {
+                        const words = content.split(/\s+/);
+                        const lastWord = words[words.length - 1];
+                        setTags([...tags, tag]);
+                        setContent(content.substring(0, content.lastIndexOf(lastWord)).trim() + ' ');
+                        setShowTagSuggestions(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-cyan-500/10 hover:text-cyan-500 transition-colors"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                {inputTagText && !sessionTags.includes(inputTagText) && (
+                  <button
+                    onClick={() => {
+                      const words = content.split(/\s+/);
+                      const lastWord = words[words.length - 1];
+                      setTags([...tags, inputTagText]);
+                      setContent(content.substring(0, content.lastIndexOf(lastWord)).trim() + ' ');
+                      setShowTagSuggestions(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-wider hover:bg-cyan-500/10 hover:text-cyan-500 transition-colors border-t border-[var(--border-primary)]"
+                  >
+                    Create "{inputTagText}"
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Share your tasting notes..."
+            disabled={disabled}
+            className={`block w-full bg-[var(--bg-card)] border rounded-lg px-4 py-3 text-sm resize-none focus:border-[var(--border-secondary)] transition-all pr-14 custom-scrollbar overflow-hidden ${content.length > 300 ? 'border-red-500 focus:border-red-500' : 'border-[var(--border-primary)]'
+              }`}
+            rows={1}
+            onInput={(e) => {
+              const target = e.target as HTMLTextAreaElement;
+              target.style.height = 'auto';
+              const newHeight = Math.min(target.scrollHeight, 150);
+              target.style.height = newHeight + 'px';
+              target.style.overflowY = target.scrollHeight >= 150 ? 'auto' : 'hidden';
+            }}
+          />
+
+          <div className="absolute right-[2px] top-1/2 -translate-y-1/2">
+            <button
+              onClick={handleSubmit}
+              disabled={disabled || !content.trim() || content.length > 300}
+              className="w-10 h-10 bg-orange-600 rounded-md flex items-center justify-center text-white hover:bg-orange-500 disabled:opacity-50 disabled:bg-[var(--bg-input)] transition-all"
+            >
+              <Send size={18} />
+            </button>
+          </div>
         </div>
       </div>
 

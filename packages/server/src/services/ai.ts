@@ -132,7 +132,7 @@ async function generateProductSummary(sessionId: string, product: any, isSolo: b
     }
 
     const transcript = messages.map(m =>
-        `${m.user?.displayName || 'Anonymous'} [ID: ${m.user?.id || 'unknown'}]: ${m.message.content}`
+        `${m.user?.displayName || 'Anonymous'} [ID: ${m.user?.id || 'unknown'}]${m.message.tags?.length ? ` [tags: ${m.message.tags.join(', ')}]` : ''}: ${m.message.content}`
     ).join('\n');
 
     const prompt = isSolo

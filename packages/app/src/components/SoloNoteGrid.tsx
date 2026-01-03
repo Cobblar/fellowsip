@@ -290,9 +290,20 @@ function NoteContent({
                     <div className="h-[1.1rem] flex items-center flex-shrink-0">
                         <span className="text-orange-500/60 select-none text-[10px]">•</span>
                     </div>
-                    <p className="solo-note-text text-xs text-[var(--text-primary)] leading-snug whitespace-pre-wrap">
-                        {message.content}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                        {message.tags && message.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-1">
+                                {message.tags.map((tag: string) => (
+                                    <span key={tag} className="text-[8px] font-bold uppercase tracking-widest px-1 py-0.5 rounded border bg-cyan-500/10 border-cyan-500/30 text-cyan-500">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                        <p className="solo-note-text text-xs text-[var(--text-primary)] leading-snug whitespace-pre-wrap">
+                            {message.content}
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
