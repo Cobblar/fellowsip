@@ -1,6 +1,7 @@
 #!/bin/bash
 # Post-receive hook for Fellowsip deployment
 # Copy this to /opt/git/fellowsip.git/hooks/post-receive on the production server
+# Version: 2.0 - Now using proper Drizzle migrations!
 
 set -e
 
