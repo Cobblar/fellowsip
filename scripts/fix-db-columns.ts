@@ -21,6 +21,13 @@ async function addMissingColumns() {
     }
 
     try {
+        await sql.unsafe('ALTER TABLE users ADD COLUMN IF NOT EXISTS use_generated_avatar BOOLEAN DEFAULT false NOT NULL');
+        console.log('✓ Added use_generated_avatar to users');
+    } catch (e: any) {
+        console.log('use_generated_avatar already exists or error:', e.message);
+    }
+
+    try {
         await sql.unsafe('ALTER TABLE session_participants ADD COLUMN IF NOT EXISTS share_personal_summary BOOLEAN DEFAULT false NOT NULL');
         console.log('✓ Added share_personal_summary to session_participants');
     } catch (e: any) {
